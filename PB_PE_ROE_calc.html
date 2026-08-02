@@ -340,7 +340,7 @@ body {
         <input type="password" id="regPass2" placeholder="再次输入密码">
       </div>
       <div class="auth-error" id="regError"></div>
-      <button class="auth-btn auth-btn-green" onclick="doRegister()">注 册</button>
+      <button class="auth-btn auth-btn-green" id="btnRegister" onclick="doRegister()">注 册</button>
       <div class="auth-notice">
         当前为免费版本，所有功能均可免费使用。<br>后续版本可能会收费，届时将提前通知。
       </div>
@@ -356,7 +356,7 @@ body {
         <input type="password" id="loginPass" placeholder="请输入密码">
       </div>
       <div class="auth-error" id="loginError"></div>
-      <button class="auth-btn auth-btn-primary" onclick="doLogin()">登 录</button>
+      <button class="auth-btn auth-btn-primary" id="btnLogin" onclick="doLogin()">登 录</button>
       <div class="auth-notice">
         当前为免费版本，所有功能均可免费使用。<br>后续版本可能会收费，届时将提前通知。
       </div>
@@ -478,15 +478,53 @@ body {
 </div>
 
 <script>
-// ===== Auth System =====
-const AUTH_KEY = 'customer_db';
+// ===== Auth System (GitHub Cloud) =====
 const SESSION_KEY = 'current_user';
+const DEV_PASS = 'xxjqc2026';
 
-function getAuthDB() {
-  try { return JSON.parse(localStorage.getItem(AUTH_KEY)) || {}; }
-  catch { return {}; }
+// Token encryption (XOR with dev password)
+const _ET = [31,16,26,46,90,0,72,70,78,47,43,37,53,86,116,5,83,65,75,59,60,43,7,75,116,5,99,32,79,61,65,38,123,106,0,71,49,48,90,70]; // XOR encrypted token
+function _xorDec(enc, key) {
+  const k = key || DEV_PASS;
+  const r = [];
+  for (let i = 0; i < enc.length; i++) r.push(enc[i] ^ k.charCodeAt(i % k.length));
+  return r.map(c => String.fromCharCode(c)).join('');
 }
-function saveAuthDB(db) { localStorage.setItem(AUTH_KEY, JSON.stringify(db)); }
+const GH_TOKEN = _xorDec(_ET);
+const GH_REPO = 'gyhok368519/stock-valuation';
+const GH_PATH = 'customers.json';
+const GH_API = 'https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_PATH;
+
+// GitHub API helpers
+let _ghSha = null; // cache SHA for updates
+async function ghGet() {
+  try {
+    const r = await fetch(GH_API, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    _ghSha = d.sha;
+    return JSON.parse(atob(d.content));
+  } catch (e) { console.error('ghGet error:', e); return {}; }
+}
+async function ghPut(db) {
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(db))));
+    const body = { message: 'update customers ' + new Date().toISOString(), content: content };
+    if (_ghSha) body.sha = _ghSha;
+    const r = await fetch(GH_API, {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'HTTP ' + r.status); }
+    const d = await r.json();
+    _ghSha = d.content.sha; // update SHA
+    return true;
+  } catch (e) { console.error('ghPut error:', e); return false; }
+}
+
+function getAuthDB() { return ghGet(); } // returns Promise
+function saveAuthDB(db) { return ghPut(db); } // returns Promise
 
 function switchAuthTab(tab) {
   document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
@@ -505,12 +543,13 @@ function validatePassword(p) {
          /[a-z]/.test(p) && /[A-Z]/.test(p) && /\d/.test(p);
 }
 
-function doRegister() {
+async function doRegister() {
   const phone = document.getElementById('regPhone').value.trim();
   const user = document.getElementById('regUser').value.trim();
   const pass = document.getElementById('regPass').value;
   const pass2 = document.getElementById('regPass2').value;
   const err = document.getElementById('regError');
+  const btn = document.getElementById('btnRegister');
 
   if (!validatePhone(phone)) { err.textContent = '请输入有效的11位手机号'; return; }
   if (!user || user.length < 2) { err.textContent = '用户名至少2个字符'; return; }
@@ -518,44 +557,58 @@ function doRegister() {
   if (!validatePassword(pass)) { err.textContent = '密码需字母开头，6-16位，含大小写字母和数字'; return; }
   if (pass !== pass2) { err.textContent = '两次密码不一致'; return; }
 
-  const db = getAuthDB();
-  if (db[user]) { err.textContent = '该用户名已注册，请直接登录'; return; }
-
-  // 检查手机号是否已注册
-  for (const [u, d] of Object.entries(db)) {
-    if (d.phone === phone) { err.textContent = '该手机号已注册，请直接登录'; return; }
-  }
-
-  db[user] = { phone: phone, pass: pass, time: new Date().toISOString() };
-  saveAuthDB(db);
-  localStorage.setItem(SESSION_KEY, user);
-  document.getElementById('authOverlay').classList.add('hidden');
-  updateMenuUser();
-  alert('注册成功！欢迎使用股票估值计算器');
+  btn.textContent = '注册中...'; btn.disabled = true;
+  try {
+    const db = await getAuthDB();
+    if (db[user]) { err.textContent = '该用户名已注册，请直接登录'; btn.textContent = '注册'; btn.disabled = false; return; }
+    for (const [u, d] of Object.entries(db)) {
+      if (d.phone === phone) { err.textContent = '该手机号已注册，请直接登录'; btn.textContent = '注册'; btn.disabled = false; return; }
+    }
+    db[user] = { phone: phone, pass: pass, time: new Date().toISOString() };
+    const ok = await saveAuthDB(db);
+    if (!ok) { err.textContent = '注册失败，网络错误请重试'; btn.textContent = '注册'; btn.disabled = false; return; }
+    localStorage.setItem(SESSION_KEY, user);
+    document.getElementById('authOverlay').classList.add('hidden');
+    updateMenuUser();
+    alert('注册成功！欢迎使用股票估值计算器');
+  } catch(e) { err.textContent = '网络错误，请稍后重试'; }
+  btn.textContent = '注册'; btn.disabled = false;
 }
 
-function doLogin() {
+async function doLogin() {
   const user = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value;
   const err = document.getElementById('loginError');
+  const btn = document.getElementById('btnLogin');
 
   if (!user) { err.textContent = '请输入用户名'; return; }
   if (!pass) { err.textContent = '请输入密码'; return; }
 
-  const db = getAuthDB();
-  if (!db[user]) { err.textContent = '用户名不存在，请先注册'; return; }
-  if (db[user].pass !== pass) { err.textContent = '密码错误，请重新输入'; return; }
-
-  localStorage.setItem(SESSION_KEY, user);
-  document.getElementById('authOverlay').classList.add('hidden');
-  updateMenuUser();
+  btn.textContent = '登录中...'; btn.disabled = true;
+  try {
+    const db = await getAuthDB();
+    if (!db[user]) { err.textContent = '用户名不存在，请先注册'; btn.textContent = '登录'; btn.disabled = false; return; }
+    if (db[user].pass !== pass) { err.textContent = '密码错误，请重新输入'; btn.textContent = '登录'; btn.disabled = false; return; }
+    localStorage.setItem(SESSION_KEY, user);
+    document.getElementById('authOverlay').classList.add('hidden');
+    updateMenuUser();
+  } catch(e) { err.textContent = '网络错误，请稍后重试'; }
+  btn.textContent = '登录'; btn.disabled = false;
 }
 
-// Auto-login: if session exists, skip auth overlay
-(function checkSession() {
+// Auto-login: if session exists, verify against cloud DB
+(async function checkSession() {
   const session = localStorage.getItem(SESSION_KEY);
-  const db = getAuthDB();
-  if (session && db[session]) {
+  if (!session) return;
+  try {
+    const db = await getAuthDB();
+    if (db[session]) {
+      document.getElementById('authOverlay').classList.add('hidden');
+    } else {
+      localStorage.removeItem(SESSION_KEY); // invalid session
+    }
+  } catch(e) {
+    // Network error: allow offline use if session exists locally
     document.getElementById('authOverlay').classList.add('hidden');
   }
 })();
@@ -576,13 +629,15 @@ function doLogout() {
   document.getElementById('loginError').textContent = '';
 }
 
-function doDeregister() {
+async function doDeregister() {
   const session = localStorage.getItem(SESSION_KEY);
   if (!session) return;
   if (!confirm('注销后将清除您的所有账号数据，确定要注销吗？')) return;
-  const db = getAuthDB();
-  delete db[session];
-  saveAuthDB(db);
+  try {
+    const db = await getAuthDB();
+    delete db[session];
+    await saveAuthDB(db);
+  } catch(e) { alert('网络错误，注销失败'); return; }
   localStorage.removeItem(SESSION_KEY);
   toggleInfoMenu();
   document.getElementById('authOverlay').classList.remove('hidden');
@@ -598,23 +653,23 @@ function doDeregister() {
 // Update menu user on load and after auth actions
 updateMenuUser();
 
-const DEV_PASS = 'xxjqc2026'; // 开发者密码
-
-function showCustomerDB() {
+async function showCustomerDB() {
   const pwd = prompt('请输入开发者密码：');
   if (pwd === null) return;
   if (pwd !== DEV_PASS) { alert('密码错误，无权访问'); return; }
-  const db = getAuthDB();
-  const keys = Object.keys(db);
-  if (!keys.length) { alert('客户数据库为空，暂无注册用户'); return; }
-  let msg = '【customer_db】共 ' + keys.length + ' 位注册用户\n\n';
-  keys.forEach((u, i) => {
-    const d = db[u];
-    const phone = d.phone || '-';
-    const time = d.time ? d.time.replace('T',' ').substring(0,19) : '-';
-    msg += (i+1) + '. 用户: ' + u + '\n   手机: ' + phone + '\n   注册: ' + time + '\n\n';
-  });
-  alert(msg);
+  try {
+    const db = await getAuthDB();
+    const keys = Object.keys(db);
+    if (!keys.length) { alert('客户数据库为空，暂无注册用户'); return; }
+    let msg = '【云端customer_db】共 ' + keys.length + ' 位注册用户\n\n';
+    keys.forEach((u, i) => {
+      const d = db[u];
+      const phone = d.phone || '-';
+      const time = d.time ? d.time.replace('T',' ').substring(0,19) : '-';
+      msg += (i+1) + '. 用户: ' + u + '\n   手机: ' + phone + '\n   注册: ' + time + '\n\n';
+    });
+    alert(msg);
+  } catch(e) { alert('网络错误，无法读取云端数据'); }
 }
 
 // ===== Info Menu =====
