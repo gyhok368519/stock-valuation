@@ -16653,7 +16653,13 @@ function delHistory(idx) { const h=getHistory(); h.splice(idx,1); saveHistory(h)
 function clearHistory() { if(confirm('确定清空全部历史？')){localStorage.removeItem(STORAGE_KEY);renderHistory();} }
 renderHistory();
 document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') calculate(); }));
-if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').then(()=>console.log('SW ok')).catch(e=>console.log('SW fail',e)); }
+if ('serviceWorker' in navigator) {
+  // Force unregister old service workers and clear all caches
+  navigator.serviceWorker.getRegistrations().then(regs => { regs.forEach(r => r.unregister()); });
+  if (caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  // Register new service worker with version param
+  navigator.serviceWorker.register('./sw.js?v=20260802b').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+}
 </script>
 </body>
 </html>
