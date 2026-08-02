@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pb-calc-v2';
+const CACHE_NAME = 'pb-calc-v3';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './manifest.json',
@@ -22,11 +22,10 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Network-first strategy: always try server, fall back to cache
+// Network-first: always fetch from server first, cache as fallback
 self.addEventListener('fetch', e => {
   e.respondWith(
     fetch(e.request).then(response => {
-      // Cache the fresh response for offline use
       const clone = response.clone();
       caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
       return response;
