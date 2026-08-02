@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PB估值计算器</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a73e8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PB计算器">
+<link rel="apple-touch-icon" href="icon-512.jpg">
+<style>
+:root {
+  --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
+  --green: #0d904f; --green-bg: #e6f4ea; --red: #d93025; --red-bg: #fce8e6;
+  --blue: #1a73e8; --blue-bg: #e8f0fe; --gray: #5f6368; --gray-light: #dadce0;
+  --text: #202124; --text2: #5f6368; --radius: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tab bar */
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  background: #fff; border-top: 1px solid var(--gray-light);
+  display: flex; padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.tab-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 8px 0 6px; cursor: pointer; transition: color 0.2s;
+  color: var(--text2); font-size: 10px; font-weight: 500;
+  -webkit-user-select: none; user-select: none;
+}
+.tab-item.active { color: var(--primary); }
+.tab-item svg { width: 24px; height: 24px; margin-bottom: 2px; fill: currentColor; }
+
+/* Pages */
+.page { display: none; padding-bottom: 70px; }
+.page.active { display: block; }
+
+.header {
+  background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+  color: #fff; padding: 20px 16px 16px; text-align: center;
+}
+.header h1 { font-size: 20px; font-weight: 600; }
+.header p { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+
+.container { max-width: 480px; margin: 0 auto; padding: 12px 12px 20px; }
+
+/* Search bar */
+.search-bar { position: relative; margin-bottom: 12px; }
+.search-bar input {
+  width: 100%; border: 1.5px solid var(--gray-light); border-radius: 24px;
+  padding: 10px 16px 10px 36px; font-size: 15px; outline: none;
+  transition: border-color 0.2s; background: #fff;
+}
+.search-bar input:focus { border-color: var(--primary); }
+.search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; color: #bbb;
+}
+
+/* Autocomplete */
+.ac-wrap { position: relative; }
+.ac-list {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+  background: #fff; border: 1px solid var(--gray-light); border-radius: 0 0 12px 12px;
+  max-height: 240px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  display: none;
+}
+.ac-list.show { display: block; }
+.ac-item {
+  padding: 10px 16px; cursor: pointer; font-size: 14px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ac-item:active, .ac-item:hover { background: var(--primary-light); }
+.ac-item .ac-code { font-weight: 600; color: var(--primary); }
+.ac-item .ac-name { color: var(--text2); font-size: 13px; }
+.ac-empty { padding: 16px; text-align: center; color: #bbb; font-size: 13px; }
+
+/* ===== DB Detail Styles ===== */
+.db-stock-header {
+  background: linear-gradient(135deg, #1a5276 0%, #2c3e50 100%);
+  color: #fff; border-radius: var(--radius); padding: 20px 16px;
+  margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.db-stock-header .left {}
+.db-stock-header .code { font-size: 24px; font-weight: 700; }
+.db-stock-header .name { font-size: 18px; font-weight: 500; margin-left: 10px; }
+.db-stock-header .sub { font-size: 12px; opacity: 0.7; margin-top: 4px; }
+.db-go-calc {
+  background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 20px; padding: 8px 16px; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: background 0.2s;
+}
+.db-go-calc:active { background: rgba(255,255,255,0.35); }
+
+/* Key metrics row - top 4 important numbers */
+.db-key-metrics {
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;
+  margin-bottom: 12px;
+}
+.db-metric {
+  background: #fff; border-radius: 10px; padding: 12px 8px; text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.db-metric .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+.db-metric .metric-value { font-size: 16px; font-weight: 700; color: var(--text); }
+.db-metric .metric-value.green { color: var(--green); }
+.db-metric .metric-value.red { color: var(--red); }
+.db-metric .metric-unit { font-size: 10px; color: var(--text2); font-weight: 400; }
+
+/* Section card */
+.db-section {
+  background: #fff; border-radius: var(--radius); margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden;
+}
+.db-section-head {
+  font-size: 13px; font-weight: 600; color: #fff; padding: 8px 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+.db-section-head::before {
+  content: ''; display: inline-block; width: 3px; height: 14px;
+  background: rgba(255,255,255,0.5); border-radius: 2px;
+}
+.db-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px; border-bottom: 1px solid #f5f5f5; font-size: 14px;
+}
+.db-row:last-child { border-bottom: none; }
+.db-row .label { color: var(--text2); font-size: 13px; flex-shrink: 0; }
+.db-row .value { font-weight: 600; text-align: right; margin-left: 12px; }
+.db-row .value.green { color: var(--green); }
+.db-row .value.red { color: var(--red); }
+
+/* Long text scroll box */
+.db-text-scroll {
+  background: #f8f9fa; border-radius: 8px; padding: 10px 12px;
+  font-size: 13px; line-height: 1.7; color: var(--text);
+  max-height: 120px; overflow-y: auto; white-space: pre-wrap;
+  -webkit-overflow-scrolling: touch;
+}
+.db-text-scroll::-webkit-scrollbar { width: 3px; }
+.db-text-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+
+/* Two-column detail grid */
+.db-grid-2 {
+  display: grid; grid-template-columns: 1fr 1fr;
+}
+.db-grid-2 .db-row { border-right: 1px solid #f5f5f5; }
+.db-grid-2 .db-row:nth-child(even) { border-right: none; }
+
+/* No data */
+.no-data-hint { text-align: center; padding: 60px 20px; color: #bbb; }
+.no-data-hint .icon { font-size: 48px; margin-bottom: 12px; }
+.no-data-hint p { font-size: 14px; line-height: 1.8; }
+
+/* ===== Calculator Styles ===== */
+.card {
+  background: var(--card); border-radius: var(--radius); padding: 16px;
+  margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+.form-group { display: flex; flex-direction: column; position: relative; }
+.form-group label { font-size: 12px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
+.form-group input {
+  border: 1.5px solid var(--gray-light); border-radius: 8px;
+  padding: 10px 12px; font-size: 16px; outline: none;
+  transition: border-color 0.2s; background: #fff; width: 100%;
+}
+.form-group input:focus { border-color: var(--primary); }
+.form-group input::placeholder { color: #bbb; font-size: 13px; }
+
+.btn-row { display: flex; gap: 10px; margin-top: 4px; }
+.btn { flex:1; padding:12px; border:none; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; transition: opacity 0.2s, transform 0.1s; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-secondary { background: var(--primary-light); color: var(--primary); }
+.btn-danger { background: var(--red-bg); color: var(--red); font-size:13px; padding:8px; }
+
+.result-card { background:var(--card); border-radius:var(--radius); padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); display:none; }
+.result-card.show { display:block; animation:fadeIn 0.3s; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.result-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+.result-item { background:var(--bg); border-radius:8px; padding:10px; text-align:center; }
+.result-item .label { font-size:11px; color:var(--text2); margin-bottom:2px; }
+.result-item .value { font-size:18px; font-weight:700; }
+.result-item .value.green { color:var(--green); }
+.result-item .value.red { color:var(--red); }
+.result-item .value.blue { color:var(--blue); }
+.judge-box { text-align:center; padding:14px; border-radius:8px; font-size:16px; font-weight:700; }
+.judge-box.under { background:var(--green-bg); color:var(--green); }
+.judge-box.over { background:var(--red-bg); color:var(--red); }
+.judge-box.fair { background:var(--blue-bg); color:var(--blue); }
+.judge-detail { font-size:12px; font-weight:400; margin-top:4px; opacity:0.8; }
+.formula-box { background:#f8f9fa; border-radius:8px; padding:10px 12px; margin-top:10px; font-size:12px; color:var(--text2); line-height:1.8; }
+.formula-box span { color:var(--primary); font-weight:600; }
+
+.history-card { background:var(--card); border-radius:var(--radius); margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); overflow:hidden; }
+.history-item { padding:12px 16px; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; justify-content:space-between; }
+.history-item:last-child { border-bottom:none; }
+.history-item:active { background:#f5f5f5; }
+.history-left { flex:1; min-width:0; }
+.history-code { font-size:14px; font-weight:600; }
+.history-name { font-size:12px; color:var(--text2); margin-left:6px; }
+.history-params { font-size:11px; color:var(--text2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.history-right { text-align:right; flex-shrink:0; }
+.history-pb { font-size:14px; font-weight:600; }
+.history-judge { font-size:11px; padding:2px 8px; border-radius:4px; margin-top:2px; display:inline-block; font-weight:600; }
+.history-judge.under { background:var(--green-bg); color:var(--green); }
+.history-judge.over { background:var(--red-bg); color:var(--red); }
+.history-judge.fair { background:var(--blue-bg); color:var(--blue); }
+.history-del { background:none; border:none; color:#bbb; font-size:18px; cursor:pointer; padding:4px 0 4px 8px; line-height:1; flex-shrink:0; }
+.history-del:active { color:var(--red); }
+.empty-state { text-align:center; padding:40px 20px; color:#bbb; font-size:14px; }
+.section-title { font-size:14px; font-weight:600; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
+.section-title .count { font-size:12px; font-weight:400; color:var(--text2); }
+.safe-bottom { height: env(safe-area-inset-bottom, 20px); }
+
+/* Auth overlay */
+.auth-overlay {
+  position: fixed; top:0; left:0; right:0; bottom:0; z-index: 9999;
+  background: linear-gradient(135deg, #1a73e8 0%, #4285f4 50%, #1a5276 100%);
+  display: flex; align-items: flex-start; justify-content: center;
+  min-height: 100vh; overflow-y: auto; padding: 16px 0;
+}
+.auth-overlay.hidden { display: none; }
+.auth-card {
+  background: #fff; border-radius: 16px; width: 90%; max-width: 380px;
+  padding: 20px 20px 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+.auth-logo { text-align: center; margin-bottom: 12px; }
+.auth-logo h2 { font-size: 20px; color: var(--primary); margin-bottom: 2px; }
+.auth-logo p { font-size: 11px; color: var(--text2); }
+.auth-tab { display: flex; margin-bottom: 14px; border-bottom: 2px solid #f0f0f0; }
+.auth-tab-item {
+  flex: 1; text-align: center; padding: 10px 0; font-size: 15px; font-weight: 600;
+  color: #999; cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -2px; transition: all 0.2s;
+}
+.auth-tab-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+.auth-form { display: none; }
+.auth-form.active { display: block; }
+.auth-field { margin-bottom: 10px; }
+.auth-field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
+.auth-field input {
+  width: 100%; border: 1.5px solid var(--gray-light); border-radius: 10px;
+  padding: 10px 12px; font-size: 15px; outline: none; transition: border-color 0.2s;
+}
+.auth-field input:focus { border-color: var(--primary); }
+.auth-hint { font-size: 11px; color: #bbb; margin-top: 3px; line-height: 1.5; }
+.auth-btn {
+  width: 100%; padding: 11px; border: none; border-radius: 10px;
+  font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 4px;
+  transition: opacity 0.2s;
+}
+.auth-btn:active { opacity: 0.85; }
+.auth-btn-primary { background: var(--primary); color: #fff; }
+.auth-btn-green { background: var(--green); color: #fff; }
+.auth-notice {
+  margin-top: 10px; padding: 8px 10px; background: #fff8e1; border-radius: 8px;
+  font-size: 11px; color: #b7950b; line-height: 1.5; text-align: center;
+}
+.auth-error { color: var(--red); font-size: 12px; margin-top: 4px; min-height: 16px; }
+
+/* Info button & menu */
+.info-btn {
+  position: absolute; top: 18px; right: 14px; z-index: 10;
+  width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2);
+  border: none; color: #fff; font-size: 18px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  line-height: 1; transition: background 0.2s;
+}
+.info-btn:active { background: rgba(255,255,255,0.35); }
+.info-menu {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300;
+  display: none;
+}
+.info-menu.show { display: block; }
+.info-menu-bg { position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.3); }
+.info-menu-card {
+  position: absolute; top: 56px; right: 12px;
+  background: #fff; border-radius: 12px; width: 280px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow-y: auto;
+  max-height: calc(100vh - 70px);
+  animation: menuIn 0.2s ease;
+}
+@keyframes menuIn { from{opacity:0;transform:translateY(-8px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+.info-menu-header { background: linear-gradient(135deg,#1a73e8,#4285f4); color:#fff; padding:10px 14px; }
+.info-menu-header .app-name { font-size:15px; font-weight:700; }
+.info-menu-header .app-ver { font-size:11px; opacity:0.8; margin-top:1px; }
+.info-menu-body { padding:0; }
+.info-menu-row { display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid #f5f5f5; font-size:13px; }
+.info-menu-row:last-child { border-bottom:none; }
+.info-menu-row .row-label { color:var(--text2); font-size:12px; }
+.info-menu-row .row-value { font-weight:500; }
+.info-menu-divider { border-top:1px solid #f0f0f0; }
+.info-menu-disclaimer { padding:8px 14px; background:#f8f9fa; font-size:11px; color:#888; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<!-- ========== Auth Overlay ========== -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <h2>股票估值计算器</h2>
+      <p>注册/登录后即可使用</p>
+    </div>
+    <div class="auth-tab">
+      <div class="auth-tab-item active" id="tabRegister" onclick="switchAuthTab('register')">注册</div>
+      <div class="auth-tab-item" id="tabLogin" onclick="switchAuthTab('login')">登录</div>
+    </div>
+    <!-- Register Form -->
+    <div class="auth-form active" id="formRegister">
+      <div class="auth-field">
+        <label>手机号</label>
+        <input type="tel" id="regPhone" placeholder="请输入11位手机号" maxlength="11" inputmode="numeric">
+      </div>
+      <div class="auth-field">
+        <label>用户名</label>
+        <input type="text" id="regUser" placeholder="设置用户名" maxlength="20">
+      </div>
+      <div class="auth-field">
+        <label>密码</label>
+        <input type="password" id="regPass" placeholder="设置密码">
+        <div class="auth-hint">以字母开头，6-16位，需包含大小写字母和数字组合</div>
+      </div>
+      <div class="auth-field">
+        <label>确认密码</label>
+        <input type="password" id="regPass2" placeholder="再次输入密码">
+      </div>
+      <div class="auth-error" id="regError"></div>
+      <button class="auth-btn auth-btn-green" onclick="doRegister()">注 册</button>
+      <div class="auth-notice">
+        当前为免费版本，所有功能均可免费使用。<br>后续版本可能会收费，届时将提前通知。
+      </div>
+    </div>
+    <!-- Login Form -->
+    <div class="auth-form" id="formLogin">
+      <div class="auth-field">
+        <label>用户名</label>
+        <input type="text" id="loginUser" placeholder="请输入用户名" maxlength="20">
+      </div>
+      <div class="auth-field">
+        <label>密码</label>
+        <input type="password" id="loginPass" placeholder="请输入密码">
+      </div>
+      <div class="auth-error" id="loginError"></div>
+      <button class="auth-btn auth-btn-primary" onclick="doLogin()">登 录</button>
+      <div class="auth-notice">
+        当前为免费版本，所有功能均可免费使用。<br>后续版本可能会收费，届时将提前通知。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 1: Database ========== -->
+<div class="page active" id="pageDB">
+  <div class="header" style="position:relative;">
+    <h1>A股股票数据库</h1>
+    <p>5203只A股 | 全量财务数据</p>
+    <button class="info-btn" onclick="toggleInfoMenu()">i</button>
+  </div>
+  <div class="container">
+    <div class="search-bar ac-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="dbSearch" placeholder="输入股票代码或名称搜索" autocomplete="off">
+      <div class="ac-list" id="dbAcList"></div>
+    </div>
+    <div id="dbContent">
+      <div class="no-data-hint">
+        <div class="icon">&#128269;</div>
+        <p>搜索股票代码或名称<br>查看完整财务数据</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 2: Calculator ========== -->
+<div class="page" id="pageCalc">
+  <div class="header" style="position:relative;">
+    <button class="info-btn" onclick="switchTab('db')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;font-weight:400;">&#x2039;</button>
+    <h1>估值计算器</h1>
+    <p>输入数据，一键验证估值偏离度</p>
+  </div>
+  <div class="container">
+    <div class="card">
+      <div class="card-title">&#x1F4DD; 录入数据</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>股票代码</label>
+          <div class="ac-wrap">
+            <input type="text" id="code" placeholder="代码或名称" inputmode="text" maxlength="6" autocomplete="off">
+            <div class="ac-list" id="calcAcList"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>股票名称</label>
+          <input type="text" id="name" placeholder="自动填充" readonly style="background:#f8f9fa;">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group"><label>PE(TTM)</label><input type="text" id="pe" placeholder="7.49 或 100/13" inputmode="text" autocomplete="off"></div>
+        <div class="form-group"><label>ROE(%)</label><input type="text" id="roe" placeholder="13.63 或 50-36" inputmode="text" autocomplete="off"></div>
+        <div class="form-group"><label>市场PB</label><input type="text" id="pb" placeholder="0.70 或 2.1/3" inputmode="text" autocomplete="off"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="calculate()">&#x1F4CA; 计 算</button>
+        <button class="btn btn-secondary" onclick="clearForm()">&#x2716; 清 除</button>
+      </div>
+    </div>
+    <div class="result-card" id="resultCard">
+      <div class="card-title">&#x1F4C8; 计算结果</div>
+      <div class="result-grid">
+        <div class="result-item"><div class="label">计算PB (PE x ROE)</div><div class="value" id="calcPB">-</div></div>
+        <div class="result-item"><div class="label">市场PB</div><div class="value" id="marketPB">-</div></div>
+        <div class="result-item"><div class="label">偏差</div><div class="value" id="deviation">-</div></div>
+        <div class="result-item"><div class="label">隐含ROE</div><div class="value" id="impliedROE">-</div></div>
+      </div>
+      <div class="judge-box" id="judgeBox">-</div>
+      <div class="formula-box" id="formulaBox"></div>
+    </div>
+    <div class="section-title"><span>&#x1F4CB; 历史记录</span><span class="count" id="historyCount">0 条</span></div>
+    <div class="history-card" id="historyList"><div class="empty-state">暂无记录</div></div>
+    <div class="btn-row" id="clearHistoryRow" style="display:none;"><button class="btn btn-danger" onclick="clearHistory()">&#x1F5D1; 清空全部历史</button></div>
+  </div>
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <div class="tab-item active" onclick="switchTab('db')">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    <span>数据库</span>
+  </div>
+  <div class="tab-item" onclick="switchTab('calc')">
+    <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm4 11H8v-1c0-1.7 2.7-2.5 4-2.5s4 .8 4 2.5v1z"/></svg>
+    <span>计算器</span>
+  </div>
+</div>
+<div class="safe-bottom"></div>
+
+<!-- Info Menu -->
+<div class="info-menu" id="infoMenu">
+  <div class="info-menu-bg" onclick="toggleInfoMenu()"></div>
+  <div class="info-menu-card">
+    <div class="info-menu-header">
+      <div class="app-name">股票估值计算器</div>
+      <div class="app-ver">v2.0</div>
+    </div>
+    <div class="info-menu-body">
+      <div class="info-menu-row"><span class="row-label">用户</span><span class="row-value" id="menuUser">-</span></div>
+      <div class="info-menu-row" style="cursor:pointer;" onclick="doLogout()"><span class="row-label" style="color:var(--primary);font-weight:600;">退出登录</span><span class="row-value">&#x1F6AA;</span></div>
+      <div class="info-menu-row" style="cursor:pointer;" onclick="doDeregister()"><span class="row-label" style="color:var(--red);font-weight:600;">注销账号</span><span class="row-value">&#x26D4;</span></div>
+    </div>
+    <div class="info-menu-divider"></div>
+    <div class="info-menu-body">
+      <div class="info-menu-row"><span class="row-label">名称</span><span class="row-value">股票估值计算器</span></div>
+      <div class="info-menu-row"><span class="row-label">版本</span><span class="row-value">v2.0</span></div>
+      <div class="info-menu-row"><span class="row-label">作者(微信同名)</span><span class="row-value">小小金钱草</span></div>
+      <div class="info-menu-row"><span class="row-label">联系作者</span><span class="row-value"><a href="tel:15029164832" style="color:var(--primary)">15029164832</a></span></div>
+      <div class="info-menu-row" style="cursor:pointer;" onclick="showCustomerDB()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 查看客户数据</span><span class="row-value">&#x1F527;</span></div>
+    </div>
+    <div class="info-menu-disclaimer">
+      <b>免责声明</b><br>
+      本工具提供的所有数据及计算结果仅供参考，不构成任何投资建议。数据来源于公开渠道，不保证其准确性、完整性和及时性。投资有风险，入市须谨慎。任何因使用本工具而产生的投资决策及盈亏，均由用户自行承担全部责任，作者不对任何直接或间接损失负责。
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Auth System =====
+const AUTH_KEY = 'customer_db';
+const SESSION_KEY = 'current_user';
+
+function getAuthDB() {
+  try { return JSON.parse(localStorage.getItem(AUTH_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveAuthDB(db) { localStorage.setItem(AUTH_KEY, JSON.stringify(db)); }
+
+function switchAuthTab(tab) {
+  document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('formRegister').classList.toggle('active', tab === 'register');
+  document.getElementById('formLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('regError').textContent = '';
+  document.getElementById('loginError').textContent = '';
+}
+
+function validatePhone(p) { return /^1[3-9]\d{9}$/.test(p); }
+
+function validatePassword(p) {
+  // 字母开头，6-16位，包含大小写字母和数字
+  return /^[a-zA-Z][a-zA-Z0-9]{5,15}$/.test(p) &&
+         /[a-z]/.test(p) && /[A-Z]/.test(p) && /\d/.test(p);
+}
+
+function doRegister() {
+  const phone = document.getElementById('regPhone').value.trim();
+  const user = document.getElementById('regUser').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const pass2 = document.getElementById('regPass2').value;
+  const err = document.getElementById('regError');
+
+  if (!validatePhone(phone)) { err.textContent = '请输入有效的11位手机号'; return; }
+  if (!user || user.length < 2) { err.textContent = '用户名至少2个字符'; return; }
+  if (/[^a-zA-Z0-9\u4e00-\u9fa5]/.test(user)) { err.textContent = '用户名只能含字母、数字、中文'; return; }
+  if (!validatePassword(pass)) { err.textContent = '密码需字母开头，6-16位，含大小写字母和数字'; return; }
+  if (pass !== pass2) { err.textContent = '两次密码不一致'; return; }
+
+  const db = getAuthDB();
+  if (db[user]) { err.textContent = '该用户名已注册，请直接登录'; return; }
+
+  // 检查手机号是否已注册
+  for (const [u, d] of Object.entries(db)) {
+    if (d.phone === phone) { err.textContent = '该手机号已注册，请直接登录'; return; }
+  }
+
+  db[user] = { phone: phone, pass: pass, time: new Date().toISOString() };
+  saveAuthDB(db);
+  localStorage.setItem(SESSION_KEY, user);
+  document.getElementById('authOverlay').classList.add('hidden');
+  updateMenuUser();
+  alert('注册成功！欢迎使用股票估值计算器');
+}
+
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+
+  if (!user) { err.textContent = '请输入用户名'; return; }
+  if (!pass) { err.textContent = '请输入密码'; return; }
+
+  const db = getAuthDB();
+  if (!db[user]) { err.textContent = '用户名不存在，请先注册'; return; }
+  if (db[user].pass !== pass) { err.textContent = '密码错误，请重新输入'; return; }
+
+  localStorage.setItem(SESSION_KEY, user);
+  document.getElementById('authOverlay').classList.add('hidden');
+  updateMenuUser();
+}
+
+// Auto-login: if session exists, skip auth overlay
+(function checkSession() {
+  const session = localStorage.getItem(SESSION_KEY);
+  const db = getAuthDB();
+  if (session && db[session]) {
+    document.getElementById('authOverlay').classList.add('hidden');
+  }
+})();
+
+function updateMenuUser() {
+  const session = localStorage.getItem(SESSION_KEY);
+  const el = document.getElementById('menuUser');
+  el.textContent = session || '-';
+}
+
+function doLogout() {
+  localStorage.removeItem(SESSION_KEY);
+  toggleInfoMenu();
+  document.getElementById('authOverlay').classList.remove('hidden');
+  switchAuthTab('login');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').textContent = '';
+}
+
+function doDeregister() {
+  const session = localStorage.getItem(SESSION_KEY);
+  if (!session) return;
+  if (!confirm('注销后将清除您的所有账号数据，确定要注销吗？')) return;
+  const db = getAuthDB();
+  delete db[session];
+  saveAuthDB(db);
+  localStorage.removeItem(SESSION_KEY);
+  toggleInfoMenu();
+  document.getElementById('authOverlay').classList.remove('hidden');
+  switchAuthTab('register');
+  document.getElementById('regPhone').value = '';
+  document.getElementById('regUser').value = '';
+  document.getElementById('regPass').value = '';
+  document.getElementById('regPass2').value = '';
+  document.getElementById('regError').textContent = '';
+  alert('账号已注销');
+}
+
+// Update menu user on load and after auth actions
+updateMenuUser();
+
+const DEV_PASS = 'xxjqc2026'; // 开发者密码
+
+function showCustomerDB() {
+  const pwd = prompt('请输入开发者密码：');
+  if (pwd === null) return;
+  if (pwd !== DEV_PASS) { alert('密码错误，无权访问'); return; }
+  const db = getAuthDB();
+  const keys = Object.keys(db);
+  if (!keys.length) { alert('客户数据库为空，暂无注册用户'); return; }
+  let msg = '【customer_db】共 ' + keys.length + ' 位注册用户\n\n';
+  keys.forEach((u, i) => {
+    const d = db[u];
+    const phone = d.phone || '-';
+    const time = d.time ? d.time.replace('T',' ').substring(0,19) : '-';
+    msg += (i+1) + '. 用户: ' + u + '\n   手机: ' + phone + '\n   注册: ' + time + '\n\n';
+  });
+  alert(msg);
+}
+
+// ===== Info Menu =====
+function toggleInfoMenu() {
+  const menu = document.getElementById('infoMenu');
+  menu.classList.toggle('show');
+}
+
+const STOCK_MAP = __STOCK_MAP_PLACEHOLDER__;
+const STOCK_ABBR = __STOCK_ABBR_PLACEHOLDER__;
+const DB_HEADERS = __DB_HEADERS_PLACEHOLDER__;
+const DB_GROUPS = __DB_GROUPS_PLACEHOLDER__;
+const DB_DATA = __DB_DATA_PLACEHOLDER__;
+
+const GROUP_COLORS = {'基础信息':'#1a5276','估值指标':'#1e8449','盈利能力':'#b7950b','财务健康':'#ca6f1e','股东回报':'#7d3c98','股权结构':'#c0392b','业务概览':'#1a5276'};
+const GROUP_ICONS = {'基础信息':'&#x1F3E2;','估值指标':'&#x1F4C8;','盈利能力':'&#x1F4B0;','财务健康':'&#x1F3E5;','股东回报':'&#x1F4B8;','股权结构':'&#x1F517;','业务概览':'&#x1F4CA;'};
+const PCT_FIELDS = ['毛利率','净利率','ROE','负债率','股利支付率','股息率','十大股东持股比例'];
+const LONG_TEXT_FIELDS = ['主营业务内容','控股股东名称'];
+
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  if (tab === 'db') { document.getElementById('pageDB').classList.add('active'); document.querySelectorAll('.tab-item')[0].classList.add('active'); }
+  else { document.getElementById('pageCalc').classList.add('active'); document.querySelectorAll('.tab-item')[1].classList.add('active'); }
+}
+
+// ===== DB Page =====
+const dbSearch = document.getElementById('dbSearch');
+const dbAcList = document.getElementById('dbAcList');
+
+function dbDoSearch(query) {
+  query = query.trim().toUpperCase();
+  if (!query) { dbAcList.classList.remove('show'); return; }
+  const results = [];
+  for (const [code, name] of Object.entries(STOCK_MAP)) {
+    const abbr = STOCK_ABBR[code] || '';
+    if (code.startsWith(query) || name.toUpperCase().includes(query) || abbr.includes(query)) { results.push({code, name}); }
+    if (results.length >= 20) break;
+  }
+  if (results.length === 0) { dbAcList.innerHTML = '<div class="ac-empty">未找到匹配股票</div>'; }
+  else {
+    dbAcList.innerHTML = results.map(r =>
+      `<div class="ac-item" data-code="${r.code}" data-name="${r.name}" ontouchstart="dbSelect(this)" onclick="dbSelect(this)"><span class="ac-code">${r.code}</span><span class="ac-name">${r.name}</span></div>`
+    ).join('');
+  }
+  dbAcList.classList.add('show');
+}
+
+function dbSelect(el) {
+  const code = el.dataset.code;
+  dbSearch.value = code + ' ' + el.dataset.name;
+  dbAcList.classList.remove('show');
+  showDBDetail(code);
+}
+
+function showDBDetail(code) {
+  const container = document.getElementById('dbContent');
+  const name = STOCK_MAP[code] || '';
+  const rowData = DB_DATA[code];
+  let html = '';
+
+  // Stock header card
+  html += `<div class="db-stock-header">
+    <div class="left"><div><span class="code">${code}</span><span class="name">${name}</span></div></div>
+    <div class="db-go-calc" onclick="goCalc('${code}')">&#x1F4CA; 去计算</div>
+  </div>`;
+
+  if (rowData) {
+    // Key metrics bar: PE, PB, ROE, 市值
+    const peVal = getFieldVal('PE', rowData);
+    const pbVal = getFieldVal('PB', rowData);
+    const roeVal = getFieldVal('ROE', rowData);
+    const mvVal = getFieldVal('市值(亿)', rowData);
+    html += `<div class="db-key-metrics">
+      <div class="db-metric"><div class="metric-label">PE</div><div class="metric-value">${peVal}<span class="metric-unit"> 倍</span></div></div>
+      <div class="db-metric"><div class="metric-label">PB</div><div class="metric-value">${pbVal}<span class="metric-unit"> 倍</span></div></div>
+      <div class="db-metric"><div class="metric-label">ROE</div><div class="metric-value">${roeVal}<span class="metric-unit"> %</span></div></div>
+      <div class="db-metric"><div class="metric-label">市值</div><div class="metric-value">${mvVal}<span class="metric-unit"> 亿</span></div></div>
+    </div>`;
+
+    // Build sections by group
+    const sections = buildSections(rowData);
+    for (const sec of sections) {
+      const color = GROUP_COLORS[sec.group] || '#1a5276';
+      const icon = GROUP_ICONS[sec.group] || '';
+      html += `<div class="db-section">`;
+      html += `<div class="db-section-head" style="background:${color}">${icon} ${sec.group}</div>`;
+
+      // Check if all fields in this section are short (no long text) -> use 2-col grid
+      const hasLong = sec.fields.some(f => LONG_TEXT_FIELDS.includes(f.header));
+      if (!hasLong && sec.fields.length > 2) {
+        html += `<div class="db-grid-2">`;
+        for (const f of sec.fields) {
+          html += `<div class="db-row"><span class="label">${f.header}</span><span class="value">${formatVal(f.header, f.value)}</span></div>`;
+        }
+        html += `</div>`;
+      } else {
+        for (const f of sec.fields) {
+          if (LONG_TEXT_FIELDS.includes(f.header)) {
+            html += `<div style="padding:10px 14px;border-bottom:1px solid #f5f5f5;">
+              <div style="font-size:13px;color:var(--text2);margin-bottom:6px;">${f.header}</div>
+              <div class="db-text-scroll">${f.value !== null && f.value !== undefined ? f.value : '<span style="color:#ccc">-</span>'}</div>
+            </div>`;
+          } else {
+            html += `<div class="db-row"><span class="label">${f.header}</span><span class="value">${formatVal(f.header, f.value)}</span></div>`;
+          }
+        }
+      }
+      html += `</div>`;
+    }
+  } else {
+    html += `<div class="db-section" style="padding:32px 20px;text-align:center;color:#999;font-size:14px;">
+      &#x1F4ED; 该股票暂无数据库详细记录<br><span style="font-size:12px;color:#bbb">可在计算器页面手动输入数据计算估值</span></div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function getFieldVal(fieldName, rowData) {
+  const idx = DB_HEADERS.indexOf(fieldName);
+  if (idx < 0 || !rowData) return '-';
+  const v = rowData[idx];
+  if (v === null || v === undefined) return '-';
+  if (PCT_FIELDS.includes(fieldName)) return v + '%';
+  return v;
+}
+
+function buildSections(rowData) {
+  const sections = [];
+  let currentGroup = null;
+  let currentFields = [];
+  for (let i = 0; i < DB_HEADERS.length; i++) {
+    const g = DB_GROUPS[i];
+    if (g) {
+      if (currentGroup) sections.push({group: currentGroup, fields: currentFields});
+      currentGroup = g; currentFields = [];
+    }
+    if (i < 3) continue; // skip code, name & abbr
+    currentFields.push({header: DB_HEADERS[i], value: rowData[i]});
+  }
+  if (currentGroup) sections.push({group: currentGroup, fields: currentFields});
+  return sections;
+}
+
+function formatVal(header, val) {
+  if (val === null || val === undefined) return '<span style="color:#ccc">-</span>';
+  if (PCT_FIELDS.includes(header)) return val + '%';
+  if (typeof val === 'number') return val.toLocaleString('zh-CN', {maximumFractionDigits:2});
+  return val;
+}
+
+function goCalc(code) {
+  switchTab('calc');
+  codeInput.value = code;
+  nameInput.value = STOCK_MAP[code] || '';
+  // Auto-fill PE and PB from DB, leave ROE blank for manual input
+  const rowData = DB_DATA[code];
+  if (rowData) {
+    const peIdx = DB_HEADERS.indexOf('PE');
+    const pbIdx = DB_HEADERS.indexOf('PB');
+    if (peIdx >= 0 && rowData[peIdx] != null) document.getElementById('pe').value = rowData[peIdx];
+    if (pbIdx >= 0 && rowData[pbIdx] != null) document.getElementById('pb').value = rowData[pbIdx];
+  }
+  document.getElementById('roe').focus();
+}
+
+dbSearch.addEventListener('input', function() {
+  const v = this.value.trim();
+  if (/^\d{6}$/.test(v) && STOCK_MAP[v]) { dbAcList.classList.remove('show'); showDBDetail(v); }
+  else { dbDoSearch(v); }
+});
+dbSearch.addEventListener('focus', function() { if (this.value.trim()) dbDoSearch(this.value.trim()); });
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.ac-wrap')) { dbAcList.classList.remove('show'); calcAcList.classList.remove('show'); }
+});
+
+// ===== Calculator =====
+const codeInput = document.getElementById('code');
+const nameInput = document.getElementById('name');
+const calcAcList = document.getElementById('calcAcList');
+
+function calcDoSearch(query) {
+  query = query.trim().toUpperCase();
+  if (!query) { calcAcList.classList.remove('show'); return; }
+  const results = [];
+  for (const [code, name] of Object.entries(STOCK_MAP)) {
+    const abbr = STOCK_ABBR[code] || '';
+    if (code.startsWith(query) || name.toUpperCase().includes(query) || abbr.includes(query)) results.push({code, name});
+    if (results.length >= 20) break;
+  }
+  if (results.length === 0) calcAcList.innerHTML = '<div class="ac-empty">未找到匹配股票</div>';
+  else calcAcList.innerHTML = results.map(r =>
+    `<div class="ac-item" data-code="${r.code}" data-name="${r.name}" ontouchstart="calcSelect(this)" onclick="calcSelect(this)"><span class="ac-code">${r.code}</span><span class="ac-name">${r.name}</span></div>`
+  ).join('');
+  calcAcList.classList.add('show');
+}
+
+function calcSelect(el) {
+  codeInput.value = el.dataset.code;
+  nameInput.value = el.dataset.name;
+  calcAcList.classList.remove('show');
+  // Auto-fill PE and PB from DB, leave ROE blank for manual input
+  const rowData = DB_DATA[el.dataset.code];
+  if (rowData) {
+    const peIdx = DB_HEADERS.indexOf('PE'), pbIdx = DB_HEADERS.indexOf('PB');
+    if (peIdx >= 0 && rowData[peIdx] != null) document.getElementById('pe').value = rowData[peIdx];
+    if (pbIdx >= 0 && rowData[pbIdx] != null) document.getElementById('pb').value = rowData[pbIdx];
+  }
+  document.getElementById('roe').focus();
+}
+
+codeInput.addEventListener('input', function() {
+  const v = this.value.trim();
+  if (/^\d{6}$/.test(v) && STOCK_MAP[v]) { nameInput.value = STOCK_MAP[v]; calcAcList.classList.remove('show'); }
+  else { nameInput.value = ''; calcDoSearch(v); }
+});
+codeInput.addEventListener('focus', function() { if (this.value.trim()) calcDoSearch(this.value.trim()); });
+
+// ===== Calc Logic =====
+const STORAGE_KEY = 'pb_calc_history';
+function getHistory() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+function saveHistory(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+
+function calcExpr(str) {
+  if (!str) return NaN;
+  str = str.trim();
+  if (/^-?[\d.]+$/.test(str)) return parseFloat(str);
+  if (!/^[\d+\-*/.() ]+$/.test(str)) return NaN;
+  try { const r = new Function('return (' + str + ')')(); return (typeof r === 'number' && isFinite(r)) ? r : NaN; }
+  catch(e) { return NaN; }
+}
+
+function round2(n) { return Math.round(n * 100) / 100; }
+
+function getCalcVal(id) {
+  const raw = document.getElementById(id).value;
+  const v = calcExpr(raw);
+  if (!isNaN(v)) {
+    const r = round2(v);
+    if (raw.trim() !== String(r)) document.getElementById(id).value = r;
+    return r;
+  }
+  return NaN;
+}
+
+function calculate() {
+  const code = codeInput.value.trim(), name = nameInput.value.trim();
+  const peVal = getCalcVal('pe');
+  const roeVal = getCalcVal('roe');
+  const pbVal = getCalcVal('pb');
+  if (!code) { alert('请输入股票代码'); return; }
+  if (isNaN(peVal) || peVal <= 0) { alert('请输入有效的PE（支持四则运算，如 100/13）'); return; }
+  if (isNaN(roeVal) || roeVal <= 0) { alert('请输入有效的ROE（支持四则运算，如 50-36）'); return; }
+  if (isNaN(pbVal) || pbVal <= 0) { alert('请输入有效的市场PB（支持四则运算，如 2.1/3）'); return; }
+  const roeDecimal = roeVal / 100;
+  const calcPB = peVal * roeDecimal;
+  const deviation = (pbVal - calcPB) / calcPB;
+  let judge, judgeClass;
+  if (deviation < -0.10) { judge = '低估'; judgeClass = 'under'; }
+  else if (deviation > 0.10) { judge = '高估'; judgeClass = 'over'; }
+  else { judge = '合理'; judgeClass = 'fair'; }
+  document.getElementById('resultCard').classList.add('show');
+  document.getElementById('calcPB').textContent = calcPB.toFixed(2);
+  document.getElementById('marketPB').textContent = pbVal.toFixed(2);
+  const devEl = document.getElementById('deviation');
+  devEl.textContent = (deviation >= 0 ? '+' : '') + (deviation * 100).toFixed(2) + '%';
+  devEl.className = 'value ' + (deviation < -0.10 ? 'green' : deviation > 0.10 ? 'red' : 'blue');
+  document.getElementById('impliedROE').textContent = ((pbVal / peVal) * 100).toFixed(2) + '%';
+  const jb = document.getElementById('judgeBox'); jb.className = 'judge-box ' + judgeClass;
+  let jd = '';
+  if (judgeClass === 'under') jd = '<div class="judge-detail">市场PB低于理论值 ' + Math.abs(deviation*100).toFixed(1) + '%，可能低估</div>';
+  else if (judgeClass === 'over') jd = '<div class="judge-detail">市场PB高于理论值 ' + (deviation*100).toFixed(1) + '%，含成长溢价</div>';
+  else jd = '<div class="judge-detail">偏差在10%以内，估值合理</div>';
+  jb.innerHTML = '&#x1F4CC; ' + judge + jd;
+  document.getElementById('formulaBox').innerHTML = '<span>' + (name||code) + '</span> | PE=' + peVal.toFixed(2) + ' &times; ROE=' + roeVal.toFixed(2) + '% = 计算PB <span>' + calcPB.toFixed(2) + '</span><br>市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
+  const record = { code, name:name||'-', pe:peVal, roe:roeVal, marketPB:pbVal, calcPB:+calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, time:new Date().toLocaleString('zh-CN') };
+  const hist = getHistory(); hist.unshift(record); if (hist.length > 50) hist.pop();
+  saveHistory(hist); renderHistory();
+}
+
+function clearForm() {
+  ['code','name','pe','roe','pb'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('resultCard').classList.remove('show'); codeInput.focus();
+}
+
+function renderHistory() {
+  const hist = getHistory(); const list = document.getElementById('historyList');
+  const count = document.getElementById('historyCount'); const clearRow = document.getElementById('clearHistoryRow');
+  count.textContent = hist.length + ' 条';
+  if (!hist.length) { list.innerHTML = '<div class="empty-state">暂无记录</div>'; clearRow.style.display='none'; return; }
+  clearRow.style.display = '';
+  list.innerHTML = hist.map((r,i) => '<div class="history-item"><div class="history-left"><span class="history-code">'+r.code+'</span><span class="history-name">'+r.name+'</span><div class="history-params">PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div></div><div class="history-right"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="delHistory('+i+')">&times;</button></div>').join('');
+}
+
+function delHistory(idx) { const h=getHistory(); h.splice(idx,1); saveHistory(h); renderHistory(); }
+function clearHistory() { if(confirm('确定清空全部历史？')){localStorage.removeItem(STORAGE_KEY);renderHistory();} }
+renderHistory();
+document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') calculate(); }));
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').then(()=>console.log('SW ok')).catch(e=>console.log('SW fail',e)); }
+</script>
+</body>
+</html>
