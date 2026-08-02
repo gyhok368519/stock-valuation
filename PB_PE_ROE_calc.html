@@ -495,21 +495,48 @@ const GH_REPO = 'gyhok368519/stock-valuation';
 const GH_PATH = 'customers.json';
 const GH_API = 'https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_PATH;
 
-// GitHub API helpers
-let _ghSha = null; // cache SHA for updates
+// GitHub API helpers (with localStorage cache for speed)
+const CACHE_KEY = '_auth_db_cache';
+const CACHE_TIME_KEY = '_auth_db_cache_time';
+const CACHE_TTL = 60000; // cache valid for 60s
+let _ghSha = null;
+let _dbCache = null;
+let _dbCacheTime = 0;
+
+function _loadCache() {
+  try {
+    const t = localStorage.getItem(CACHE_TIME_KEY);
+    const d = localStorage.getItem(CACHE_KEY);
+    if (d && t && (Date.now() - parseInt(t)) < CACHE_TTL) {
+      _dbCache = JSON.parse(d);
+      _dbCacheTime = parseInt(t);
+    }
+  } catch(e) {}
+}
+function _saveCache(db) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(db));
+    localStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
+    _dbCache = db;
+    _dbCacheTime = Date.now();
+  } catch(e) {}
+}
+_loadCache(); // load cache on page init
+
 async function ghGet() {
   try {
     const r = await fetch(GH_API, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     _ghSha = d.sha;
-    return JSON.parse(atob(d.content));
+    const db = JSON.parse(atob(d.content));
+    _saveCache(db);
+    return db;
   } catch (e) { console.error('ghGet error:', e); return null; }
 }
 async function ghPut(db, retryCount) {
   retryCount = retryCount || 0;
   try {
-    // Always get fresh SHA before writing
     if (!_ghSha || retryCount > 0) {
       const r = await fetch(GH_API, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
       if (r.ok) { const d = await r.json(); _ghSha = d.sha; }
@@ -522,19 +549,21 @@ async function ghPut(db, retryCount) {
       body: JSON.stringify(body)
     });
     if (r.status === 409 && retryCount < 3) {
-      // SHA conflict, retry with fresh SHA
       _ghSha = null;
       return ghPut(db, retryCount + 1);
     }
     if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'HTTP ' + r.status); }
     const d = await r.json();
     _ghSha = d.content.sha;
+    _saveCache(db);
     return true;
   } catch (e) { console.error('ghPut error:', e); return false; }
 }
 
-function getAuthDB() { return ghGet(); } // returns Promise
-function saveAuthDB(db) { return ghPut(db); } // returns Promise
+// Cached auth DB: returns cache if fresh, otherwise fetches from cloud
+function getCachedDB() { return (_dbCache && (Date.now() - _dbCacheTime) < CACHE_TTL) ? _dbCache : null; }
+function getAuthDB() { const c = getCachedDB(); return c !== null ? Promise.resolve(c) : ghGet(); }
+function saveAuthDB(db) { return ghPut(db); }
 
 function switchAuthTab(tab) {
   document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
@@ -577,11 +606,11 @@ async function doRegister() {
       if (d.phone === phone) { err.textContent = '该手机号已注册，请直接登录'; btn.textContent = '注册'; btn.disabled = false; return; }
     }
     db[user] = { phone: phone, pass: pass, time: new Date().toISOString() };
-    const ok = await saveAuthDB(db);
-    if (!ok) { err.textContent = '注册失败，请稍后重试（服务器冲突）'; btn.textContent = '注册'; btn.disabled = false; return; }
+    _saveCache(db); // update cache immediately
     localStorage.setItem(SESSION_KEY, user);
     document.getElementById('authOverlay').classList.add('hidden');
     updateMenuUser();
+    saveAuthDB(db).then(ok => { if (!ok) { _loadCache(); /* refresh cache on failure */ } }); // fire-and-forget write
     alert('注册成功！欢迎使用股票估值计算器');
   } catch(e) { err.textContent = '网络错误，请稍后重试'; }
   btn.textContent = '注册'; btn.disabled = false;
@@ -596,6 +625,17 @@ async function doLogin() {
   if (!user) { err.textContent = '请输入用户名'; return; }
   if (!pass) { err.textContent = '请输入密码'; return; }
 
+  // Check cache first for instant login
+  const cached = getCachedDB();
+  if (cached && cached[user] && cached[user].pass === pass) {
+    localStorage.setItem(SESSION_KEY, user);
+    document.getElementById('authOverlay').classList.add('hidden');
+    updateMenuUser();
+    // Background cloud validation
+    ghGet().then(db => { if (db && db[user] && db[user].pass === pass) return; if (db !== null) { doLogout(); } });
+    return;
+  }
+
   btn.textContent = '登录中...'; btn.disabled = true;
   try {
     const db = await getAuthDB();
@@ -609,20 +649,31 @@ async function doLogin() {
   btn.textContent = '登录'; btn.disabled = false;
 }
 
-// Auto-login: if session exists, verify against cloud DB
+// Auto-login: cache first for instant entry, then background cloud verify
 (async function checkSession() {
   const session = localStorage.getItem(SESSION_KEY);
   if (!session) return;
+  // Instant: check cache
+  const cached = getCachedDB();
+  if (cached && cached[session]) {
+    document.getElementById('authOverlay').classList.add('hidden');
+    // Background cloud validation
+    ghGet().then(db => { if (db && db[session]) return; if (db === null) return; localStorage.removeItem(SESSION_KEY); });
+    return;
+  }
+  // No cache: fetch from cloud
   try {
     const db = await getAuthDB();
     if (db && db[session]) {
       document.getElementById('authOverlay').classList.add('hidden');
     } else if (db === null) {
-      // Network error: allow offline use if session exists locally
       document.getElementById('authOverlay').classList.add('hidden');
     } else {
-      localStorage.removeItem(SESSION_KEY); // invalid session
+      localStorage.removeItem(SESSION_KEY);
     }
+  } catch(e) {
+    document.getElementById('authOverlay').classList.add('hidden');
+  }
 })();
 
 function updateMenuUser() {
@@ -650,18 +701,19 @@ async function doDeregister() {
     if (db === null) { alert('网络连接失败，请稍后重试'); return; }
     if (!db) db = {};
     delete db[session];
-    const ok = await saveAuthDB(db);
-    if (!ok) { alert('注销失败，请稍后重试'); return; }
-  localStorage.removeItem(SESSION_KEY);
-  toggleInfoMenu();
-  document.getElementById('authOverlay').classList.remove('hidden');
-  switchAuthTab('register');
-  document.getElementById('regPhone').value = '';
-  document.getElementById('regUser').value = '';
-  document.getElementById('regPass').value = '';
-  document.getElementById('regPass2').value = '';
-  document.getElementById('regError').textContent = '';
-  alert('账号已注销');
+    _saveCache(db);
+    localStorage.removeItem(SESSION_KEY);
+    toggleInfoMenu();
+    document.getElementById('authOverlay').classList.remove('hidden');
+    switchAuthTab('register');
+    document.getElementById('regPhone').value = '';
+    document.getElementById('regUser').value = '';
+    document.getElementById('regPass').value = '';
+    document.getElementById('regPass2').value = '';
+    document.getElementById('regError').textContent = '';
+    alert('账号已注销');
+    saveAuthDB(db); // background write to cloud
+  } catch(e) { alert('注销失败，请稍后重试'); }
 }
 
 // Update menu user on load and after auth actions
