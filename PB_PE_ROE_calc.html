@@ -11581,12 +11581,12 @@ function startApiFetch() {
     });
   }
 
-  // Fetch emweb PageAjax APIs (bonus, company info) - may fail due to CORS
+  // Fetch emweb PageAjax APIs via Service Worker proxy (bypass CORS)
   function fetchEmwebData(code, mkt, row, closePrice, netProfit) {
-    var bonusUrl = 'https://emweb.securities.eastmoney.com/PC_HSF10/BonusFinancing/PageAjax?code=' + mkt + code;
-    var companyUrl = 'https://emweb.securities.eastmoney.com/PC_HSF10/CompanySurvey/PageAjax?code=' + mkt + code;
+    var bonusUrl = './emweb-proxy/BonusFinancing/PageAjax?code=' + mkt + code;
+    var companyUrl = './emweb-proxy/CompanySurvey/PageAjax?code=' + mkt + code;
 
-    var p1 = fetch(bonusUrl, {mode: 'cors'}).then(function(r) { return r.json(); }).then(function(data) {
+    var p1 = fetch(bonusUrl).then(function(r) { return r.json(); }).then(function(data) {
       try {
         // 分红(亿): lnfhrz latest year TOTAL_DIVIDEND
         if (data.lnfhrz && data.lnfhrz.length > 0) {
@@ -17472,7 +17472,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => { regs.forEach(r => r.unregister()); });
   if (caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
   // Register new service worker with version param
-  navigator.serviceWorker.register('./sw.js?v=20260803d').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260803e').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 </script>
 </body>
