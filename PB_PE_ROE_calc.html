@@ -335,8 +335,10 @@ body {
   [data-theme="dark"] .ac-item:active, [data-theme="dark"] .ac-item:hover { background: #1e2a4a; }
   [data-theme="dark"] .search-bar input { background: #1a1a2e; color: var(--text); border-color: #2d2d44; }
   [data-theme="dark"] .db-metric { background: #1a1a2e; }
-  [data-theme="dark"] .db-section { background: #1a1a2e; }
-  [data-theme="dark"] .db-row { border-bottom-color: #2d2d44; }
+  [data-theme="dark"] .db-section { background: #1a1a2e; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  [data-theme="dark"] .db-row { border-bottom-color: #2d2d44; border-right-color: #2d2d44; }
+  [data-theme="dark"] .db-grid-2 .db-row { border-right-color: #2d2d44; }
+  [data-theme="dark"] .db-section-head { border-bottom: none; }
   [data-theme="dark"] .db-text-scroll { background: #0d0d1a; }
   [data-theme="dark"] .history-item:active { background: #1e1e30; }
   [data-theme="dark"] .formula-box { background: #0d0d1a; }
@@ -444,7 +446,7 @@ body {
 <div class="page active" id="pageDB">
   <div class="header" style="position:relative;">
     <h1>A股股票数据库</h1>
-    <p>5203只A股 | 全量财务数据</p>
+    <p id="dbSubTitle">加载中... | 全量财务数据</p>
     <button class="info-btn" onclick="toggleInfoMenu()">i</button>
     <button class="info-btn" style="right:50px;" id="themeBtnDB" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconDB"></span></button>
   </div>
@@ -17555,13 +17557,23 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
   loadDBData().then(function() {
     clearTimeout(safetyTimer);
     if (dbHint) dbHint.style.display = 'none';
+    _updateDBSubTitle();
     console.log('DB_DATA loaded: ' + dbCount() + ' stocks');
   }).catch(function() {
     clearTimeout(safetyTimer);
     if (dbHint) dbHint.style.display = 'none';
+    _updateDBSubTitle();
     console.log('DB_DATA load failed');
   });
 })();
+
+function _updateDBSubTitle() {
+  var el = document.getElementById('dbSubTitle');
+  if (el) {
+    var c = dbCount();
+    el.textContent = (c > 0 ? c + '只A股' : '加载中...') + ' | 全量财务数据';
+  }
+}
 
 if ('serviceWorker' in navigator) {
   // Force unregister old service workers and clear all caches
