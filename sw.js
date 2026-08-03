@@ -1,6 +1,7 @@
-const CACHE_NAME = 'pb-calc-v3';
+const CACHE_NAME = 'pb-calc-v4';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
+  './stock_map.js',
   './manifest.json',
   './icon-512.jpg',
   './sw.js'
@@ -22,13 +23,18 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Network-first: always fetch from server first, cache as fallback
+// Network-first, cache-fallback strategy
 self.addEventListener('fetch', e => {
   e.respondWith(
-    fetch(e.request).then(response => {
-      const clone = response.clone();
-      caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-      return response;
-    }).catch(() => caches.match(e.request))
+    fetch(e.request)
+      .then(response => {
+        // Cache the fresh response
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
