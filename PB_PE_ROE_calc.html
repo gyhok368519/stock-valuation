@@ -16,7 +16,7 @@
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
   --green: #0d904f; --green-bg: #e6f4ea; --red: #d93025; --red-bg: #fce8e6;
   --blue: #1a73e8; --blue-bg: #e8f0fe; --gray: #5f6368; --gray-light: #dadce0;
-  --text: #202124; --text2: #5f6368; --radius: 12px;
+  --text: #202124; --text2: #5f6368; --text3: #bbb; --radius: 12px;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -84,6 +84,7 @@ body {
 .ac-item .ac-code { font-weight: 600; color: var(--primary); }
 .ac-item .ac-name { color: var(--text2); font-size: 13px; }
 .ac-empty { padding: 16px; text-align: center; color: #bbb; font-size: 13px; }
+.ac-pinyin { color: #bbb; font-size: 11px; margin-left: 4px; }
 
 /* ===== DB Detail Styles ===== */
 .db-stock-header {
@@ -224,9 +225,9 @@ body {
 .history-judge.under { background:var(--green-bg); color:var(--green); }
 .history-judge.over { background:var(--red-bg); color:var(--red); }
 .history-judge.fair { background:var(--blue-bg); color:var(--blue); }
-.history-del { background:none; border:none; color:#bbb; font-size:18px; cursor:pointer; padding:4px 0 4px 8px; line-height:1; flex-shrink:0; }
+.history-del { background:none; border:none; color:var(--text3, #bbb); font-size:18px; cursor:pointer; padding:4px 0 4px 8px; line-height:1; flex-shrink:0; }
 .history-del:active { color:var(--red); }
-.empty-state { text-align:center; padding:40px 20px; color:#bbb; font-size:14px; }
+.empty-state { text-align:center; padding:40px 20px; color:var(--text3, #bbb); font-size:14px; }
 .section-title { font-size:14px; font-weight:600; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
 .section-title .count { font-size:12px; font-weight:400; color:var(--text2); }
 .safe-bottom { height: env(safe-area-inset-bottom, 20px); }
@@ -329,7 +330,7 @@ body {
     --bg: #0f0f1a; --card: #1a1a2e; --primary: #5b9cf5; --primary-light: #1e2a4a;
     --green: #34d399; --green-bg: #0d2818; --red: #f87171; --red-bg: #2d0f0f;
     --blue: #5b9cf5; --blue-bg: #1e2a4a; --gray: #9ca3af; --gray-light: #2d2d44;
-    --text: #e5e7eb; --text2: #9ca3af;
+    --text: #e5e7eb; --text2: #9ca3af; --text3: #7a7a9a;
     --shadow: 0 1px 3px rgba(0,0,0,0.3); --border: #2d2d44;
   }
   [data-theme="dark"] .header { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d5e 100%); }
@@ -337,6 +338,10 @@ body {
   [data-theme="dark"] .form-group input[readonly] { background: #0d0d1a; }
   [data-theme="dark"] .ac-list { background: #1a1a2e; border-color: #2d2d44; }
   [data-theme="dark"] .ac-item:active, [data-theme="dark"] .ac-item:hover { background: #1e2a4a; }
+  [data-theme="dark"] .ac-item .ac-code { color: var(--primary-light); }
+  [data-theme="dark"] .ac-item .ac-name { color: #c8c8d8; }
+  [data-theme="dark"] .ac-pinyin { color: #7a7a9a !important; }
+  [data-theme="dark"] .ac-empty { color: #7a7a9a; }
   [data-theme="dark"] .search-bar input { background: #1a1a2e; color: var(--text); border-color: #2d2d44; }
   [data-theme="dark"] .db-metric { background: #1a1a2e; }
   [data-theme="dark"] .db-section { background: #1a1a2e; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
@@ -17160,7 +17165,7 @@ function dbDoSearch(query) {
   query = query.trim();
   if (!query) { dbAcList.classList.remove('show'); return; }
   if (!/^\d/.test(query) && query.length < 2) {
-    dbAcList.innerHTML = '<div style="padding:8px;text-align:center;color:#bbb;font-size:12px;">输入2位以上搜索（支持拼音首字母）</div>';
+    dbAcList.innerHTML = '<div class="ac-empty">输入2位以上搜索（支持拼音首字母）</div>';
     dbAcList.classList.add('show');
     return;
   }
@@ -17174,7 +17179,7 @@ function dbDoSearch(query) {
     dbAcList.innerHTML = '<div class="ac-empty">未找到匹配股票</div>';
   } else {
     dbAcList.innerHTML = results.map(function(r) {
-      return '<div class="ac-item" data-code="'+r.code+'" data-name="'+r.name+'" ontouchstart="dbSelect(this)" onclick="dbSelect(this)"><span class="ac-code">'+r.code+'</span><span><span class="ac-name">'+r.name+'</span><span style="color:#bbb;font-size:11px;margin-left:4px;">'+(r.pi||'')+'</span></span></div>';
+      return '<div class="ac-item" data-code="'+r.code+'" data-name="'+r.name+'" ontouchstart="dbSelect(this)" onclick="dbSelect(this)"><span class="ac-code">'+r.code+'</span><span><span class="ac-name">'+r.name+'</span><span class="ac-pinyin">'+(r.pi||'')+'</span></span></div>';
     }).join('');
   }
   dbAcList.classList.add('show');
@@ -17195,7 +17200,7 @@ function showDBDetail(code) {
     if (_dbDataLoading || dbCount() === 0) {
       container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">数据库正在加载，请稍后重试</div>';
     } else {
-      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">该股票暂无数据库记录<br><span style="font-size:12px;color:#bbb">可在计算器页面手动输入数据</span></div>';
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">该股票暂无数据库记录<br><span style="font-size:12px;color:var(--text3, #aaa)">可在计算器页面手动输入数据</span></div>';
     }
     return;
   }
@@ -17252,7 +17257,7 @@ function showDBDetail(code) {
     }
   } else {
     html += `<div class="db-section" style="padding:32px 20px;text-align:center;color:#999;font-size:14px;">
-      &#x1F4ED; 该股票暂无数据库详细记录<br><span style="font-size:12px;color:#bbb">可在计算器页面手动输入数据计算估值</span></div>`;
+      &#x1F4ED; 该股票暂无数据库详细记录<br><span style="font-size:12px;color:var(--text3, #aaa)">可在计算器页面手动输入数据计算估值</span></div>`;
   }
 
   container.innerHTML = html;
@@ -17317,7 +17322,7 @@ function fetchRealTimeData(code) {
     if (d.pb) document.getElementById('pb').value = d.pb;
     if (d.roe) document.getElementById('roe').value = d.roe;
     rtStatus.style.display = 'block';
-    rtStatus.innerHTML = '<span style="color:var(--green);">&#10003; 实时数据已填充</span> <span style="color:#bbb;">| PE=' + (d.pe||'-') + ' PB=' + (d.pb||'-') + ' ROE=' + (d.roe||'-') + '%</span>';
+    rtStatus.innerHTML = '<span style="color:var(--green);">&#10003; 实时数据已填充</span> <span style="color:var(--text3, #bbb);">| PE=' + (d.pe||'-') + ' PB=' + (d.pb||'-') + ' ROE=' + (d.roe||'-') + '%</span>';
     setTimeout(function() { rtStatus.style.display = 'none'; }, 4000);
     return;
   }
@@ -17344,7 +17349,7 @@ function fetchRealTimeData(code) {
     if (pbVal !== null) msgs.push('PB=' + pbVal);
     if (roeVal !== null) msgs.push('ROE=' + roeVal + '%');
     if (msgs.length) {
-      rtStatus.innerHTML = '<span style="color:var(--green);">&#10003; 实时数据已填充</span> <span style="color:#bbb;">| ' + msgs.join(' ') + '</span>';
+      rtStatus.innerHTML = '<span style="color:var(--green);">&#10003; 实时数据已填充</span> <span style="color:var(--text3, #bbb);">| ' + msgs.join(' ') + '</span>';
     } else {
       rtStatus.innerHTML = '<span style="color:var(--red);">&#10007; 实时数据获取失败，请手动输入</span>';
     }
@@ -17420,7 +17425,7 @@ function calcDoSearch(query) {
   query = query.trim();
   if (!query) { calcAcList.classList.remove('show'); return; }
   if (!/^\d/.test(query) && query.length < 2) {
-    calcAcList.innerHTML = '<div style="padding:8px;text-align:center;color:#bbb;font-size:12px;">输入2位以上搜索（支持拼音首字母）</div>';
+    calcAcList.innerHTML = '<div class="ac-empty">输入2位以上搜索（支持拼音首字母）</div>';
     calcAcList.classList.add('show');
     return;
   }
@@ -17434,7 +17439,7 @@ function calcDoSearch(query) {
     calcAcList.innerHTML = '<div class="ac-empty">未找到匹配股票</div>';
   } else {
     calcAcList.innerHTML = results.map(function(r) {
-      return '<div class="ac-item" data-code="'+r.code+'" data-name="'+r.name+'" ontouchstart="calcSelect(this)" onclick="calcSelect(this)"><span class="ac-code">'+r.code+'</span><span><span class="ac-name">'+r.name+'</span><span style="color:#bbb;font-size:11px;margin-left:4px;">'+(r.pi||'')+'</span></span></div>';
+      return '<div class="ac-item" data-code="'+r.code+'" data-name="'+r.name+'" ontouchstart="calcSelect(this)" onclick="calcSelect(this)"><span class="ac-code">'+r.code+'</span><span><span class="ac-name">'+r.name+'</span><span class="ac-pinyin">'+(r.pi||'')+'</span></span></div>';
     }).join('');
   }
   calcAcList.classList.add('show');
