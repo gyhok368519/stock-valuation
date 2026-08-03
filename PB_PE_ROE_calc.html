@@ -17182,7 +17182,7 @@ function getFieldVal(fieldName, rowData) {
   if (idx < 0 || !rowData) return '-';
   const v = rowData[idx];
   if (v === null || v === undefined) return '-';
-  if (PCT_FIELDS.includes(fieldName)) return v + '%';
+  if (PCT_FIELDS.includes(fieldName)) return (v * 100).toFixed(2) + '%';
   return v;
 }
 
@@ -17205,7 +17205,7 @@ function buildSections(rowData) {
 
 function formatVal(header, val) {
   if (val === null || val === undefined) return '<span style="color:#ccc">-</span>';
-  if (PCT_FIELDS.includes(header)) return val + '%';
+  if (PCT_FIELDS.includes(header)) return (val * 100).toFixed(2) + '%';
   if (typeof val === 'number') return val.toLocaleString('zh-CN', {maximumFractionDigits:2});
   return val;
 }
