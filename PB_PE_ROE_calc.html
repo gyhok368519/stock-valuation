@@ -483,6 +483,7 @@ body {
         <button class="btn btn-primary" onclick="calculate()">&#x1F4CA; 计 算</button>
         <button class="btn btn-secondary" onclick="clearForm()">&#x2716; 清 除</button>
       </div>
+      <div id="rtStatus" style="display:none;text-align:center;padding:4px 0;font-size:12px;color:var(--text2);"></div>
     </div>
     <div class="result-card" id="resultCard">
       <div class="card-title">&#x1F4C8; 计算结果</div>
@@ -520,7 +521,7 @@ body {
   <div class="info-menu-card">
     <div class="info-menu-header">
       <div class="app-name">股票估值计算器</div>
-      <div class="app-ver">v2.0</div>
+      <div class="app-ver">v2.1</div>
     </div>
     <div class="info-menu-body">
       <div class="info-menu-row"><span class="row-label">用户</span><span class="row-value" id="menuUser">-</span></div>
@@ -530,7 +531,7 @@ body {
     <div class="info-menu-divider"></div>
     <div class="info-menu-body">
       <div class="info-menu-row"><span class="row-label">名称</span><span class="row-value">股票估值计算器</span></div>
-      <div class="info-menu-row"><span class="row-label">版本</span><span class="row-value">v2.0</span></div>
+      <div class="info-menu-row"><span class="row-label">版本</span><span class="row-value">v2.1</span></div>
       <div class="info-menu-row"><span class="row-label">作者(微信同名)</span><span class="row-value">小小金钱草</span></div>
       <div class="info-menu-row"><span class="row-label">联系作者</span><span class="row-value"><a href="tel:15029164832" style="color:var(--primary)">15029164832</a></span></div>
       <div class="info-menu-row" style="cursor:pointer;" onclick="showCustomerDB()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 查看客户数据</span><span class="row-value">&#x1F527;</span></div>
@@ -21882,19 +21883,114 @@ function formatVal(header, val) {
   return val;
 }
 
+// ===== Real-time Data Fetch =====
+function _jsonp(url, timeout) {
+  return new Promise(function(resolve, reject) {
+    var cbName = '_jcb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    var script = document.createElement('script');
+    var timer = setTimeout(function() { cleanup(); reject(new Error('timeout')); }, timeout || 8000);
+    function cleanup() { clearTimeout(timer); delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); }
+    window[cbName] = function(data) { cleanup(); resolve(data); };
+    script.src = url.replace('__CALLBACK__', cbName);
+    script.onerror = function() { cleanup(); reject(new Error('load error')); };
+    document.head.appendChild(script);
+  });
+}
+
+var _rtCache = {};
+function fetchRealTimeData(code) {
+  var rtStatus = document.getElementById('rtStatus');
+  if (!rtStatus) return;
+
+  // Use cache if fresh (< 60s)
+  if (_rtCache[code] && (Date.now() - _rtCache[code].ts < 60000)) {
+    var d = _rtCache[code].data;
+    if (d.pe) document.getElementById('pe').value = d.pe;
+    if (d.pb) document.getElementById('pb').value = d.pb;
+    if (d.roe) document.getElementById('roe').value = d.roe;
+    rtStatus.style.display = 'block';
+    rtStatus.innerHTML = '<span style="color:var(--green);">&#10003; 实时数据已填充</span> <span style="color:#bbb;">| PE=' + (d.pe||'-') + ' PB=' + (d.pb||'-') + ' ROE=' + (d.roe||'-') + '%</span>';
+    setTimeout(function() { rtStatus.style.display = 'none'; }, 4000);
+    return;
+  }
+
+  rtStatus.style.display = 'block';
+  rtStatus.innerHTML = '<span style="color:var(--primary);">&#8987; 正在获取实时数据...</span>';
+
+  // API 1: valuation (PE_TTM, PB_MRQ)
+  var valUrl = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_VALUEANALYSIS_DET&columns=SECURITY_CODE,PE_TTM,PB_MRQ,CLOSE_PRICE&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=1&source=WEB&client=WEB&callback=__CALLBACK__';
+  // API 2: financial (ROE)
+  var finUrl = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_LICO_FN_CPD&columns=SECURITY_CODE,WEIGHTAVG_ROE,QDATE,DATATYPE&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=8&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB&callback=__CALLBACK__';
+
+  var peVal = null, pbVal = null, roeVal = null, pending = 2;
+
+  function done() {
+    pending--;
+    if (pending > 0) return;
+    if (peVal !== null) document.getElementById('pe').value = peVal;
+    if (pbVal !== null) document.getElementById('pb').value = pbVal;
+    if (roeVal !== null) document.getElementById('roe').value = roeVal;
+    _rtCache[code] = { ts: Date.now(), data: { pe: peVal, pb: pbVal, roe: roeVal } };
+    var msgs = [];
+    if (peVal !== null) msgs.push('PE=' + peVal);
+    if (pbVal !== null) msgs.push('PB=' + pbVal);
+    if (roeVal !== null) msgs.push('ROE=' + roeVal + '%');
+    if (msgs.length) {
+      rtStatus.innerHTML = '<span style="color:var(--green);">&#10003; 实时数据已填充</span> <span style="color:#bbb;">| ' + msgs.join(' ') + '</span>';
+    } else {
+      rtStatus.innerHTML = '<span style="color:var(--red);">&#10007; 实时数据获取失败，请手动输入</span>';
+    }
+    setTimeout(function() { rtStatus.style.display = 'none'; }, 5000);
+    document.getElementById('roe').focus();
+  }
+
+  _jsonp(valUrl, 6000).then(function(res) {
+    try {
+      var items = res && res.result && res.result.data;
+      if (items && items.length) {
+        var d = items[0];
+        if (d.PE_TTM != null && d.PE_TTM > 0) peVal = +parseFloat(d.PE_TTM).toFixed(2);
+        if (d.PB_MRQ != null && d.PB_MRQ > 0) pbVal = +parseFloat(d.PB_MRQ).toFixed(2);
+      }
+    } catch(e) {}
+    done();
+  }).catch(function() { done(); });
+
+  _jsonp(finUrl, 6000).then(function(res) {
+    try {
+      var items = res && res.result && res.result.data;
+      if (items && items.length) {
+        // Prefer annual report (年报), fallback to latest available
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].DATATYPE && items[i].DATATYPE.indexOf('年报') >= 0 && items[i].WEIGHTAVG_ROE != null) {
+            var v = parseFloat(items[i].WEIGHTAVG_ROE);
+            if (!isNaN(v) && v > 0) { roeVal = +v.toFixed(2); break; }
+          }
+        }
+        if (roeVal === null) {
+          for (var i = 0; i < items.length; i++) {
+            if (items[i].WEIGHTAVG_ROE != null) {
+              var v = parseFloat(items[i].WEIGHTAVG_ROE);
+              if (!isNaN(v) && v > 0) { roeVal = +v.toFixed(2); break; }
+            }
+          }
+        }
+      }
+    } catch(e) {}
+    done();
+  }).catch(function() { done(); });
+}
+
 function goCalc(code) {
   switchTab('calc');
   codeInput.value = code;
   nameInput.value = STOCK_MAP[code] || '';
-  // Auto-fill PE and PB from DB, leave ROE blank for manual input
-  const rowData = DB_DATA[code];
-  if (rowData) {
-    const peIdx = DB_HEADERS.indexOf('PE');
-    const pbIdx = DB_HEADERS.indexOf('PB');
-    if (peIdx >= 0 && rowData[peIdx] != null) document.getElementById('pe').value = rowData[peIdx];
-    if (pbIdx >= 0 && rowData[pbIdx] != null) document.getElementById('pb').value = rowData[pbIdx];
-  }
-  document.getElementById('roe').focus();
+  // Clear previous values
+  document.getElementById('pe').value = '';
+  document.getElementById('pb').value = '';
+  document.getElementById('roe').value = '';
+  // Fetch real-time data
+  fetchRealTimeData(code);
 }
 
 dbSearch.addEventListener('input', function() {
@@ -21940,19 +22036,24 @@ function calcSelect(el) {
   codeInput.value = el.dataset.code;
   nameInput.value = el.dataset.name;
   calcAcList.classList.remove('show');
-  // Auto-fill PE and PB from DB, leave ROE blank for manual input
-  const rowData = DB_DATA[el.dataset.code];
-  if (rowData) {
-    const peIdx = DB_HEADERS.indexOf('PE'), pbIdx = DB_HEADERS.indexOf('PB');
-    if (peIdx >= 0 && rowData[peIdx] != null) document.getElementById('pe').value = rowData[peIdx];
-    if (pbIdx >= 0 && rowData[pbIdx] != null) document.getElementById('pb').value = rowData[pbIdx];
-  }
-  document.getElementById('roe').focus();
+  // Clear previous values, then fetch real-time data
+  document.getElementById('pe').value = '';
+  document.getElementById('pb').value = '';
+  document.getElementById('roe').value = '';
+  fetchRealTimeData(el.dataset.code);
 }
 
 codeInput.addEventListener('input', function() {
   const v = this.value.trim();
-  if (/^\d{6}$/.test(v) && STOCK_MAP[v]) { nameInput.value = STOCK_MAP[v]; calcAcList.classList.remove('show'); }
+  if (/^\d{6}$/.test(v) && STOCK_MAP[v]) {
+    nameInput.value = STOCK_MAP[v];
+    calcAcList.classList.remove('show');
+    // Auto-fill real-time data when 6-digit code entered directly
+    document.getElementById('pe').value = '';
+    document.getElementById('pb').value = '';
+    document.getElementById('roe').value = '';
+    fetchRealTimeData(v);
+  }
   else { nameInput.value = ''; calcDoSearch(v); }
 });
 codeInput.addEventListener('focus', function() { if (this.value.trim()) calcDoSearch(this.value.trim()); });
@@ -22042,7 +22143,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => { regs.forEach(r => r.unregister()); });
   if (caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
   // Register new service worker with version param
-  navigator.serviceWorker.register('./sw.js?v=20260802b').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260803a').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 </script>
 </body>
