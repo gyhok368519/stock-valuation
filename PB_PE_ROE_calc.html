@@ -11391,8 +11391,8 @@ function showDBUpdater() {
   var panel = document.getElementById('dbUpdaterPanel');
   panel.style.display = 'flex';
   switchUpdaterTab('api');
-  document.getElementById('pushStockCount').textContent = Object.keys(DB_DATA).length;
-  document.getElementById('pushCacheStatus').textContent = localStorage.getItem(DB_DATA_VER) ? '已缓存' : '无缓存';
+      document.getElementById('pushStockCount').textContent = dbCount();
+  document.getElementById('pushCacheStatus').textContent = localStorage.getItem('db_data_v' + (localStorage.getItem('db_data_ver_num') || '1')) ? '已缓存' : '无缓存';
   checkRemoteDB();
 }
 
@@ -11672,8 +11672,8 @@ function startApiFetch() {
       barText.textContent = '完成';
       apiLog('抓取完毕！更新 ' + updated + ' 只，失败 ' + failed + ' 只');
       // Save to localStorage
-      try { localStorage.setItem(DB_DATA_VER, JSON.stringify(DB_DATA)); apiLog('已保存到本地缓存'); } catch(e) { apiLog('本地缓存保存失败（数据过大）'); }
-      document.getElementById('pushStockCount').textContent = Object.keys(DB_DATA).length;
+      try { var _v = _bumpDBVersion(); localStorage.setItem('db_data_v' + _v, JSON.stringify(DB_DATA)); apiLog('已保存到本地缓存(v' + _v + ')'); } catch(e) { apiLog('本地缓存保存失败（数据过大）'); }
+      document.getElementById('pushStockCount').textContent = dbCount();
       return;
     }
     var batch = [];
@@ -11704,7 +11704,7 @@ function uploadDBFile() {
       var keys = Object.keys(data);
       if (!keys.length) { status.innerHTML = '<span style="color:var(--red);">文件内容为空</span>'; return; }
       DB_DATA = data;
-      try { localStorage.setItem(DB_DATA_VER, JSON.stringify(data)); } catch(ex) {}
+      try { localStorage.setItem('db_data_v' + (localStorage.getItem('db_data_ver_num') || '1'), JSON.stringify(data)); } catch(ex) {}
       status.innerHTML = '<span style="color:var(--green);">导入成功！已加载 ' + keys.length + ' 只股票数据</span>';
       document.getElementById('pushStockCount').textContent = keys.length;
     } catch(ex) {
@@ -11722,7 +11722,12 @@ function pushToGitHub() {
   btn.textContent = '推送中...';
   log.innerHTML = '准备上传 db_data.json...<br>';
 
-  var content = JSON.stringify(DB_DATA);
+  // Embed _meta with version for cache invalidation
+  var pushVer = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10) + 1;
+  var pushData = {};
+  for (var k in DB_DATA) { if (k !== '_meta') pushData[k] = DB_DATA[k]; }
+  pushData._meta = { v: pushVer, t: Date.now(), c: dbCount() };
+  var content = JSON.stringify(pushData);
   var contentB64 = btoa(unescape(encodeURIComponent(content)));
 
   // Get current SHA first
@@ -11734,17 +11739,17 @@ function pushToGitHub() {
     if (xhr.status === 200) {
       try { sha = JSON.parse(xhr.responseText).sha; } catch(e) {}
     }
-    uploadToGitHub(sha, contentB64, log, btn);
+    uploadToGitHub(sha, contentB64, log, btn, pushVer);
   };
   xhr.onerror = function() {
-    uploadToGitHub(null, contentB64, log, btn);
+    uploadToGitHub(null, contentB64, log, btn, pushVer);
   };
   xhr.send();
 }
 
-function uploadToGitHub(sha, contentB64, log, btn) {
+function uploadToGitHub(sha, contentB64, log, btn, pushVer) {
   var body = {
-    message: 'update db_data.json: ' + Object.keys(DB_DATA).length + ' stocks @ ' + bjTime(),
+    message: 'update db_data.json v' + pushVer + ': ' + dbCount() + ' stocks @ ' + bjTime(),
     content: contentB64
   };
   if (sha) body.sha = sha;
@@ -11755,7 +11760,10 @@ function uploadToGitHub(sha, contentB64, log, btn) {
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.onload = function() {
     if (xhr.status === 200 || xhr.status === 201) {
-      log.innerHTML += '<span style="color:var(--green);">推送成功！线上数据库已更新</span>';
+      // Bump version so other devices/users will reload fresh data
+      localStorage.setItem('db_data_ver_num', pushVer);
+      try { localStorage.setItem('db_data_v' + pushVer, JSON.stringify(DB_DATA)); } catch(e) {}
+      log.innerHTML += '<span style="color:var(--green);">推送成功！线上数据库已更新（v' + pushVer + '）</span>';
       btn.textContent = '一键推送到线上';
       btn.disabled = false;
       checkRemoteDB();
@@ -16989,20 +16997,51 @@ const DB_HEADERS = ["股票代码", "股票名称", "股票简称", "市值(亿)
 const DB_GROUPS = ["基础信息", null, null, null, null, "估值指标", null, null, null, "盈利能力", null, null, "财务健康", "股东回报", null, null, null, null, "股权结构", null, "业务概览"];
 let DB_DATA = {};
 
-const DB_DATA_VER = 'db_data_v1';
+const DB_DATA_VER = 'db_data_v' + (localStorage.getItem('db_data_ver_num') || '1');
+function _bumpDBVersion() {
+  var v = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10) + 1;
+  localStorage.setItem('db_data_ver_num', v);
+  return v;
+}
+function dbCount() { return Object.keys(DB_DATA).filter(function(k) { return k !== '_meta'; }).length; }
 function loadDBData() {
-  // 1. Try localStorage cache
+  var cacheKey = 'db_data_v' + (localStorage.getItem('db_data_ver_num') || '1');
+  var localVer = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10);
+  // 1. Try localStorage cache (fast display)
+  var hasCache = false;
   try {
-    const cached = localStorage.getItem(DB_DATA_VER);
-    if (cached) { DB_DATA = JSON.parse(cached); return Promise.resolve(); }
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) { DB_DATA = JSON.parse(cached); hasCache = true; }
   } catch(e) {}
-  // 2. Fetch from GitHub
-  return fetch('./db_data.json').then(function(r) { return r.json(); }).then(function(data) {
-    DB_DATA = data;
-    try { localStorage.setItem(DB_DATA_VER, JSON.stringify(data)); } catch(e) {}
-  }).catch(function(e) {
-    console.error('db_data.json load failed:', e);
-  });
+
+  // 2. Always check remote for updates (silent background refresh)
+  function fetchRemote() {
+    return fetch('./db_data.json', {cache: 'no-cache'}).then(function(r) { return r.json(); }).then(function(data) {
+      // Extract version from remote _meta
+      var remoteVer = (data._meta && data._meta.v) ? data._meta.v : 0;
+      // Clean _meta from data before storing
+      delete data._meta;
+      // Update if remote version is newer
+      if (remoteVer > localVer || !hasCache) {
+        DB_DATA = data;
+        var newVer = remoteVer > localVer ? remoteVer : localVer + 1;
+        localStorage.setItem('db_data_ver_num', newVer);
+        try { localStorage.setItem('db_data_v' + newVer, JSON.stringify(data)); } catch(e) {}
+        console.log('DB updated from remote v' + remoteVer + ' -> v' + newVer + ': ' + Object.keys(data).filter(function(k){return k!=='_meta';}).length + ' stocks');
+      }
+    }).catch(function(e) {
+      console.log('Remote DB check skipped:', e.message);
+    });
+  }
+
+  if (hasCache) {
+    // Return immediately with cache, then silently refresh in background
+    fetchRemote();
+    return Promise.resolve(); // don't block UI
+  } else {
+    // No cache: must wait for remote
+    return fetchRemote();
+  }
 }
 
 const GROUP_COLORS = {'基础信息':'#1a5276','估值指标':'#1e8449','盈利能力':'#b7950b','财务健康':'#ca6f1e','股东回报':'#7d3c98','股权结构':'#c0392b','业务概览':'#1a5276'};
@@ -17421,10 +17460,10 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
 (function initDB() {
   var dbHint = document.getElementById('dbLoadHint');
   // Show hint if no cache
-  try { if (!localStorage.getItem(DB_DATA_VER) && dbHint) dbHint.style.display = 'block'; } catch(e) {}
+  try { if (!localStorage.getItem('db_data_v' + (localStorage.getItem('db_data_ver_num') || '1')) && dbHint) dbHint.style.display = 'block'; } catch(e) {}
   loadDBData().then(function() {
     if (dbHint) dbHint.style.display = 'none';
-    console.log('DB_DATA loaded: ' + Object.keys(DB_DATA).length + ' stocks');
+    console.log('DB_DATA loaded: ' + dbCount() + ' stocks');
   });
 })();
 
