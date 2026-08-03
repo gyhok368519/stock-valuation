@@ -17071,10 +17071,14 @@ function loadDBData() {
     }
   } catch(e) { console.log('DB cache parse error:', e.message); }
 
-  // 2. Always check remote for updates
+  // 2. Always check remote for updates (with timeout)
   function fetchRemote() {
     _dbDataLoading = true;
-    return fetch('./db_data.json', {cache: 'no-cache'}).then(function(r) {
+    // Add 15s timeout for slow mobile networks
+    var controller = new AbortController();
+    var timer = setTimeout(function() { controller.abort(); }, 15000);
+    return fetch('./db_data.json', {cache: 'no-cache', signal: controller.signal}).then(function(r) {
+      clearTimeout(timer);
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function(data) {
@@ -17087,11 +17091,18 @@ function loadDBData() {
       DB_DATA = data;
       var newVer = remoteVer > localVer ? remoteVer : localVer + 1;
       localStorage.setItem('db_data_ver_num', newVer);
-      try { localStorage.setItem('db_data_v' + newVer, JSON.stringify(data)); } catch(e) { console.log('DB cache write error:', e.message); }
+      try { localStorage.setItem('db_data_v' + newVer, JSON.stringify(data)); } catch(e) {
+        // localStorage quota exceeded - try to clear old caches and retry
+        _clearOldDBCache(newVer);
+        try { localStorage.setItem('db_data_v' + newVer, JSON.stringify(data)); } catch(e2) {
+          console.log('DB cache still too large, skip caching');
+        }
+      }
       _clearOldDBCache(newVer);
       console.log('DB updated v' + localVer + ' -> v' + newVer + ': ' + Object.keys(data).length + ' stocks');
       _dbDataLoading = false;
     }).catch(function(e) {
+      clearTimeout(timer);
       console.log('Remote DB fetch failed:', e.message);
       _dbDataLoading = false;
     });
@@ -17534,9 +17545,21 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
   _clearOldDBCache(curVer);
   // Show hint if no cache
   try { if (!localStorage.getItem('db_data_v' + curVer) && dbHint) dbHint.style.display = 'block'; } catch(e) {}
+  
+  // Safety: always hide loading hint after 20s max (even if fetch hangs)
+  var safetyTimer = setTimeout(function() {
+    if (dbHint) dbHint.style.display = 'none';
+    _dbDataLoading = false;
+  }, 20000);
+  
   loadDBData().then(function() {
+    clearTimeout(safetyTimer);
     if (dbHint) dbHint.style.display = 'none';
     console.log('DB_DATA loaded: ' + dbCount() + ' stocks');
+  }).catch(function() {
+    clearTimeout(safetyTimer);
+    if (dbHint) dbHint.style.display = 'none';
+    console.log('DB_DATA load failed');
   });
 })();
 
@@ -17545,7 +17568,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => { regs.forEach(r => r.unregister()); });
   if (caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
   // Register new service worker with version param
-  navigator.serviceWorker.register('./sw.js?v=20260803f').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260803g').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 </script>
 </body>
