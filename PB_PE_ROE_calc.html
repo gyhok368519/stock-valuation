@@ -133,7 +133,7 @@ body {
 }
 .db-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 14px; border-bottom: 1px solid #f5f5f5; font-size: 14px;
+  padding: 10px 14px; border-bottom: 1px solid var(--gray-light); font-size: 14px;
 }
 .db-row:last-child { border-bottom: none; }
 .db-row .label { color: var(--text2); font-size: 13px; flex-shrink: 0; }
@@ -155,10 +155,14 @@ body {
 .db-grid-2 {
   display: grid; grid-template-columns: 1fr 1fr;
 }
-.db-grid-2 .db-row { border-right: 1px solid #f5f5f5; }
+.db-grid-2 .db-row { border-right: 1px solid var(--gray-light); }
 .db-grid-2 .db-row:nth-child(even) { border-right: none; }
 
-/* No data */
+/* Long text row in db detail */
+.db-long-text-row { padding:10px 14px; border-bottom:1px solid var(--gray-light); }
+[data-theme="dark"] .db-long-text-row { border-bottom-color: #2d2d44; }
+
+
 .no-data-hint { text-align: center; padding: 60px 20px; color: #bbb; }
 .no-data-hint .icon { font-size: 48px; margin-bottom: 12px; }
 .no-data-hint p { font-size: 14px; line-height: 1.8; }
@@ -207,9 +211,9 @@ body {
 .formula-box span { color:var(--primary); font-weight:600; }
 
 .history-card { background:var(--card); border-radius:var(--radius); margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.08); overflow:hidden; }
-.history-item { padding:12px 16px; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; justify-content:space-between; }
+.history-item { padding:12px 16px; border-bottom:1px solid var(--gray-light); display:flex; align-items:center; justify-content:space-between; }
 .history-item:last-child { border-bottom:none; }
-.history-item:active { background:#f5f5f5; }
+.history-item:active { background:var(--gray-light); }
 .history-left { flex:1; min-width:0; }
 .history-code { font-size:14px; font-weight:600; }
 .history-name { font-size:12px; color:var(--text2); margin-left:6px; }
@@ -242,7 +246,7 @@ body {
 .auth-logo { text-align: center; margin-bottom: 12px; }
 .auth-logo h2 { font-size: 20px; color: var(--primary); margin-bottom: 2px; }
 .auth-logo p { font-size: 11px; color: var(--text2); }
-.auth-tab { display: flex; margin-bottom: 14px; border-bottom: 2px solid #f0f0f0; }
+.auth-tab { display: flex; margin-bottom: 14px; border-bottom: 2px solid var(--gray-light); }
 .auth-tab-item {
   flex: 1; text-align: center; padding: 10px 0; font-size: 15px; font-weight: 600;
   color: #999; cursor: pointer; border-bottom: 2px solid transparent;
@@ -302,11 +306,11 @@ body {
 .info-menu-header .app-name { font-size:15px; font-weight:700; }
 .info-menu-header .app-ver { font-size:11px; opacity:0.8; margin-top:1px; }
 .info-menu-body { padding:0; }
-.info-menu-row { display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid #f5f5f5; font-size:13px; }
+.info-menu-row { display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid var(--gray-light); font-size:13px; }
 .info-menu-row:last-child { border-bottom:none; }
 .info-menu-row .row-label { color:var(--text2); font-size:12px; }
 .info-menu-row .row-value { font-weight:500; }
-.info-menu-divider { border-top:1px solid #f0f0f0; }
+.info-menu-divider { border-top:1px solid var(--gray-light); }
 .info-menu-disclaimer { padding:8px 14px; background:#f8f9fa; font-size:11px; color:#888; line-height:1.5; }
 
 /* ===== DB Updater Panel ===== */
@@ -353,7 +357,11 @@ body {
   [data-theme="dark"] .auth-tab { border-bottom-color: #2d2d44; }
   [data-theme="dark"] .db-stock-header { background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%); }
   [data-theme="dark"] .db-go-calc { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.25); }
-  [data-theme="dark"] .no-data-hint, [data-theme="dark"] .empty-state { color: #555; }
+  [data-theme="dark"] .history-item { border-bottom-color: #2d2d44; }
+  [data-theme="dark"] .auth-tab { border-bottom-color: #2d2d44; }
+  [data-theme="dark"] .info-menu-row { border-bottom-color: #2d2d44; }
+  [data-theme="dark"] .info-menu-divider { border-top-color: #2d2d44; }
+  [data-theme="dark"] .db-text-scroll::-webkit-scrollbar-thumb { background: #444; }
 </style>
 </head>
 <body>
@@ -17231,7 +17239,7 @@ function showDBDetail(code) {
       } else {
         for (const f of sec.fields) {
           if (LONG_TEXT_FIELDS.includes(f.header)) {
-            html += `<div style="padding:10px 14px;border-bottom:1px solid #f5f5f5;">
+            html += `<div class="db-long-text-row">
               <div style="font-size:13px;color:var(--text2);margin-bottom:6px;">${f.header}</div>
               <div class="db-text-scroll">${f.value !== null && f.value !== undefined ? f.value : '<span style="color:#ccc">-</span>'}</div>
             </div>`;
