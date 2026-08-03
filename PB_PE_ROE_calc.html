@@ -307,6 +307,17 @@ body {
 .info-menu-divider { border-top:1px solid #f0f0f0; }
 .info-menu-disclaimer { padding:8px 14px; background:#f8f9fa; font-size:11px; color:#888; line-height:1.5; }
 
+/* ===== DB Updater Panel ===== */
+.db-updater-overlay { position:fixed; top:0; left:0; right:0; bottom:0; z-index:300; background:rgba(0,0,0,0.5); display:flex; align-items:flex-end; justify-content:center; }
+.db-updater-card { background:var(--card); width:100%; max-width:480px; border-radius:16px 16px 0 0; overflow:hidden; animation:slideUp 0.3s; }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.db-updater-header { background:linear-gradient(135deg,#1a5276,#2c3e50); color:#fff; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; }
+.db-updater-header h2 { font-size:16px; font-weight:600; }
+.db-updater-tabs { display:flex; border-bottom:1px solid var(--gray-light); }
+.db-updater-tab { flex:1; text-align:center; padding:10px 0; font-size:13px; font-weight:500; cursor:pointer; color:var(--text2); border-bottom:2px solid transparent; transition:all 0.2s; }
+.db-updater-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+.db-updater-body { padding:16px; }
+
   /* ===== Dark Theme ===== */
   [data-theme="dark"] {
     --bg: #0f0f1a; --card: #1a1a2e; --primary: #5b9cf5; --primary-light: #1e2a4a;
@@ -536,10 +547,66 @@ body {
       <div class="info-menu-row"><span class="row-label">作者(微信同名)</span><span class="row-value">小小金钱草</span></div>
       <div class="info-menu-row"><span class="row-label">联系作者</span><span class="row-value"><a href="tel:15029164832" style="color:var(--primary)">15029164832</a></span></div>
       <div class="info-menu-row" style="cursor:pointer;" onclick="showCustomerDB()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 查看客户数据</span><span class="row-value">&#x1F527;</span></div>
+      <div class="info-menu-row" style="cursor:pointer;" onclick="showDBUpdater()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 更新数据库</span><span class="row-value">&#x1F4BE;</span></div>
     </div>
     <div class="info-menu-disclaimer">
       <b>免责声明</b><br>
       本工具提供的所有数据及计算结果仅供参考，不构成任何投资建议。数据来源于公开渠道，不保证其准确性、完整性和及时性。投资有风险，入市须谨慎。任何因使用本工具而产生的投资决策及盈亏，均由用户自行承担全部责任，作者不对任何直接或间接损失负责。
+    </div>
+  </div>
+</div>
+
+<!-- ========== DB Updater Panel ========== -->
+<div class="db-updater-overlay" id="dbUpdaterPanel" style="display:none;">
+  <div class="db-updater-card">
+    <div class="db-updater-header">
+      <h2>数据库更新</h2>
+      <button onclick="closeDBUpdater()" style="background:none;border:none;font-size:20px;color:#fff;cursor:pointer;">&times;</button>
+    </div>
+    <div class="db-updater-tabs">
+      <div class="db-updater-tab active" data-tab="api" onclick="switchUpdaterTab('api')">API抓取</div>
+      <div class="db-updater-tab" data-tab="upload" onclick="switchUpdaterTab('upload')">上传文件</div>
+      <div class="db-updater-tab" data-tab="push" onclick="switchUpdaterTab('push')">推送到线上</div>
+    </div>
+
+    <!-- API Tab -->
+    <div class="db-updater-body" id="updaterTabApi">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;color:var(--text2);">更新范围：</label>
+        <select id="apiUpdateScope" style="padding:6px 10px;border-radius:6px;border:1px solid var(--gray-light);font-size:13px;">
+          <option value="full">全量更新（5203只，约3-5分钟）</option>
+          <option value="hs300">沪深300成分股</option>
+          <option value="zz500">中证500成分股</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="startApiFetch()" id="apiFetchBtn" style="width:100%;">开始抓取</button>
+      <div id="apiProgress" style="display:none;margin-top:12px;">
+        <div style="background:var(--gray-light);border-radius:8px;height:20px;overflow:hidden;position:relative;">
+          <div id="apiProgressBar" style="background:var(--primary);height:100%;width:0%;transition:width 0.3s;"></div>
+          <div id="apiProgressText" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:600;"></div>
+        </div>
+        <div id="apiLog" style="margin-top:8px;font-size:12px;color:var(--text2);max-height:120px;overflow-y:auto;"></div>
+      </div>
+    </div>
+
+    <!-- Upload Tab -->
+    <div class="db-updater-body" id="updaterTabUpload" style="display:none;">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">上传 db_data.json 文件，替换当前数据库</p>
+      <input type="file" id="dbFileInput" accept=".json" style="width:100%;margin-bottom:12px;font-size:13px;">
+      <button class="btn btn-primary" onclick="uploadDBFile()" style="width:100%;">导入文件</button>
+      <div id="uploadStatus" style="margin-top:8px;font-size:12px;color:var(--text2);"></div>
+    </div>
+
+    <!-- Push Tab -->
+    <div class="db-updater-body" id="updaterTabPush" style="display:none;">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">将当前本地数据库推送到 GitHub Pages，线上用户下次访问即可获取新数据</p>
+      <div style="background:var(--primary-light);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;">
+        <div>当前库存：<b id="pushStockCount">0</b> 只</div>
+        <div>本地缓存：<b id="pushCacheStatus">-</b></div>
+        <div>线上版本：<b id="pushRemoteStatus">检测中...</b></div>
+      </div>
+      <button class="btn btn-primary" onclick="pushToGitHub()" id="pushBtn" style="width:100%;">一键推送到线上</button>
+      <div id="pushLog" style="margin-top:8px;font-size:12px;color:var(--text2);"></div>
     </div>
   </div>
 </div>
@@ -11307,6 +11374,247 @@ async function showCustomerDB() {
     });
     alert(msg);
   } catch(e) { alert('网络错误，无法读取云端数据'); }
+}
+
+// ===== DB Updater =====
+var _updaterVerified = false;
+
+function showDBUpdater() {
+  if (!_updaterVerified) {
+    const pwd = prompt('请输入开发者密码：');
+    if (pwd === null) return;
+    if (pwd !== DEV_PASS) { alert('密码错误，无权访问'); return; }
+    _updaterVerified = true;
+  }
+  toggleInfoMenu();
+  var panel = document.getElementById('dbUpdaterPanel');
+  panel.style.display = 'flex';
+  switchUpdaterTab('api');
+  document.getElementById('pushStockCount').textContent = Object.keys(DB_DATA).length;
+  document.getElementById('pushCacheStatus').textContent = localStorage.getItem(DB_DATA_VER) ? '已缓存' : '无缓存';
+  checkRemoteDB();
+}
+
+function closeDBUpdater() {
+  document.getElementById('dbUpdaterPanel').style.display = 'none';
+}
+
+function switchUpdaterTab(tab) {
+  document.querySelectorAll('.db-updater-tab').forEach(function(t) { t.classList.toggle('active', t.dataset.tab === tab); });
+  document.getElementById('updaterTabApi').style.display = tab === 'api' ? 'block' : 'none';
+  document.getElementById('updaterTabUpload').style.display = tab === 'upload' ? 'block' : 'none';
+  document.getElementById('updaterTabPush').style.display = tab === 'push' ? 'block' : 'none';
+}
+
+function checkRemoteDB() {
+  var statusEl = document.getElementById('pushRemoteStatus');
+  statusEl.textContent = '检测中...';
+  var xhr = new XMLHttpRequest();
+  xhr.open('HEAD', 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', true);
+  xhr.setRequestHeader('Authorization', 'token ' + GH_TOKEN);
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      var info = JSON.parse(xhr.responseText);
+      statusEl.textContent = info.size + ' 字节，SHA=' + info.sha.substring(0,8);
+    } else {
+      statusEl.textContent = '未找到';
+    }
+  };
+  xhr.onerror = function() { statusEl.textContent = '检测失败'; };
+  xhr.send();
+}
+
+// --- API Fetch ---
+var _apiAbort = false;
+function startApiFetch() {
+  var scope = document.getElementById('apiUpdateScope').value;
+  var btn = document.getElementById('apiFetchBtn');
+  var progressDiv = document.getElementById('apiProgress');
+  var bar = document.getElementById('apiProgressBar');
+  var barText = document.getElementById('apiProgressText');
+  var log = document.getElementById('apiLog');
+
+  if (btn.textContent === '停止') { _apiAbort = true; btn.textContent = '开始抓取'; return; }
+  _apiAbort = false;
+  btn.textContent = '停止';
+  progressDiv.style.display = 'block';
+  log.innerHTML = '';
+
+  // Collect target codes
+  var codes = Object.keys(STOCK_MAP);
+  if (scope === 'hs300') codes = _HS300_CODES || codes.slice(0, 300);
+  else if (scope === 'zz500') codes = _ZZ500_CODES || codes.slice(0, 500);
+
+  var total = codes.length;
+  var done = 0, updated = 0, failed = 0;
+  var BATCH = 20; // concurrent requests
+
+  function apiLog(msg) { log.innerHTML += msg + '<br>'; log.scrollTop = log.scrollHeight; }
+
+  function fetchOne(code) {
+    // Valuation API
+    var valUrl = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_VALUEANALYSIS_DET&columns=SECURITY_CODE,PE_TTM,PB_MRQ,CLOSE_PRICE,TOTAL_MARKET_CAP,PS_TTM&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=1&source=WEB&client=WEB&callback=__CALLBACK__';
+    // Financial API
+    var finUrl = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_LICO_FN_CPD&columns=SECURITY_CODE,WEIGHTAVG_ROE,BASIC_EPS,BPS,XSMLL,YSHZ,SJLHZ,QDATE,DATATYPE&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=8&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB&callback=__CALLBACK__';
+
+    return Promise.all([_jsonp(valUrl, 6000).catch(function(){return null}), _jsonp(finUrl, 6000).catch(function(){return null})]).then(function(results) {
+      var valRes = results[0], finRes = results[1];
+      var peVal = null, pbVal = null, roeVal = null, psVal = null, mktCap = null;
+
+      try {
+        var items = valRes && valRes.result && valRes.result.data;
+        if (items && items.length) {
+          var d = items[0];
+          if (d.PE_TTM != null && d.PE_TTM > 0) peVal = +parseFloat(d.PE_TTM).toFixed(2);
+          if (d.PB_MRQ != null && d.PB_MRQ > 0) pbVal = +parseFloat(d.PB_MRQ).toFixed(2);
+          if (d.PS_TTM != null && d.PS_TTM > 0) psVal = +parseFloat(d.PS_TTM).toFixed(2);
+          if (d.TOTAL_MARKET_CAP != null) mktCap = +(d.TOTAL_MARKET_CAP / 1e8).toFixed(2);
+        }
+      } catch(e) {}
+
+      try {
+        var items2 = finRes && finRes.result && finRes.result.data;
+        if (items2 && items2.length) {
+          for (var i = 0; i < items2.length; i++) {
+            if (items2[i].DATATYPE && items2[i].DATATYPE.indexOf('年报') >= 0 && items2[i].WEIGHTAVG_ROE != null) {
+              var v = parseFloat(items2[i].WEIGHTAVG_ROE);
+              if (!isNaN(v) && v > 0) { roeVal = +v.toFixed(2); break; }
+            }
+          }
+          if (roeVal === null) {
+            for (var i = 0; i < items2.length; i++) {
+              if (items2[i].WEIGHTAVG_ROE != null) {
+                var v = parseFloat(items2[i].WEIGHTAVG_ROE);
+                if (!isNaN(v) && v > 0) { roeVal = +v.toFixed(2); break; }
+              }
+            }
+          }
+        }
+      } catch(e) {}
+
+      // Update DB_DATA
+      if (peVal !== null || pbVal !== null || roeVal !== null) {
+        if (!DB_DATA[code]) DB_DATA[code] = [code, STOCK_MAP[code] || '', '', null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+        if (mktCap !== null) DB_DATA[code][3] = mktCap; // 市值
+        if (peVal !== null) DB_DATA[code][5] = peVal;    // PE
+        if (pbVal !== null) DB_DATA[code][6] = pbVal;    // PB
+        if (psVal !== null) DB_DATA[code][8] = psVal;    // PS
+        if (roeVal !== null) DB_DATA[code][11] = roeVal; // ROE
+        updated++;
+      } else {
+        failed++;
+      }
+    });
+  }
+
+  // Process in batches
+  var idx = 0;
+  function processBatch() {
+    if (_apiAbort || idx >= total) {
+      btn.textContent = '开始抓取';
+      bar.style.width = '100%';
+      barText.textContent = '完成';
+      apiLog('抓取完毕！更新 ' + updated + ' 只，失败 ' + failed + ' 只');
+      // Save to localStorage
+      try { localStorage.setItem(DB_DATA_VER, JSON.stringify(DB_DATA)); apiLog('已保存到本地缓存'); } catch(e) { apiLog('本地缓存保存失败（数据过大）'); }
+      document.getElementById('pushStockCount').textContent = Object.keys(DB_DATA).length;
+      return;
+    }
+    var batch = [];
+    for (var i = 0; i < BATCH && idx < total; i++, idx++) {
+      batch.push(fetchOne(codes[idx]));
+    }
+    Promise.all(batch).then(function() {
+      done += batch.length;
+      var pct = Math.round(done / total * 100);
+      bar.style.width = pct + '%';
+      barText.textContent = done + '/' + total + ' (' + pct + '%)';
+      processBatch();
+    });
+  }
+  processBatch();
+}
+
+// --- Upload File ---
+function uploadDBFile() {
+  var input = document.getElementById('dbFileInput');
+  var status = document.getElementById('uploadStatus');
+  if (!input.files || !input.files.length) { status.innerHTML = '<span style="color:var(--red);">请选择文件</span>'; return; }
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      var keys = Object.keys(data);
+      if (!keys.length) { status.innerHTML = '<span style="color:var(--red);">文件内容为空</span>'; return; }
+      DB_DATA = data;
+      try { localStorage.setItem(DB_DATA_VER, JSON.stringify(data)); } catch(ex) {}
+      status.innerHTML = '<span style="color:var(--green);">导入成功！已加载 ' + keys.length + ' 只股票数据</span>';
+      document.getElementById('pushStockCount').textContent = keys.length;
+    } catch(ex) {
+      status.innerHTML = '<span style="color:var(--red);">JSON解析失败: ' + ex.message + '</span>';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// --- Push to GitHub ---
+function pushToGitHub() {
+  var log = document.getElementById('pushLog');
+  var btn = document.getElementById('pushBtn');
+  btn.disabled = true;
+  btn.textContent = '推送中...';
+  log.innerHTML = '准备上传 db_data.json...<br>';
+
+  var content = JSON.stringify(DB_DATA);
+  var contentB64 = btoa(unescape(encodeURIComponent(content)));
+
+  // Get current SHA first
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', true);
+  xhr.setRequestHeader('Authorization', 'token ' + GH_TOKEN);
+  xhr.onload = function() {
+    var sha = null;
+    if (xhr.status === 200) {
+      try { sha = JSON.parse(xhr.responseText).sha; } catch(e) {}
+    }
+    uploadToGitHub(sha, contentB64, log, btn);
+  };
+  xhr.onerror = function() {
+    uploadToGitHub(null, contentB64, log, btn);
+  };
+  xhr.send();
+}
+
+function uploadToGitHub(sha, contentB64, log, btn) {
+  var body = {
+    message: 'update db_data.json: ' + Object.keys(DB_DATA).length + ' stocks @ ' + bjTime(),
+    content: contentB64
+  };
+  if (sha) body.sha = sha;
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('PUT', 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', true);
+  xhr.setRequestHeader('Authorization', 'token ' + GH_TOKEN);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onload = function() {
+    if (xhr.status === 200 || xhr.status === 201) {
+      log.innerHTML += '<span style="color:var(--green);">推送成功！线上数据库已更新</span>';
+      btn.textContent = '一键推送到线上';
+      btn.disabled = false;
+      checkRemoteDB();
+    } else {
+      log.innerHTML += '<span style="color:var(--red);">推送失败: HTTP ' + xhr.status + '</span>';
+      btn.textContent = '一键推送到线上';
+      btn.disabled = false;
+    }
+  };
+  xhr.onerror = function() {
+    log.innerHTML += '<span style="color:var(--red);">网络错误</span>';
+    btn.textContent = '一键推送到线上';
+    btn.disabled = false;
+  };
+  xhr.send(JSON.stringify(body));
 }
 
 // ===== Info Menu =====
