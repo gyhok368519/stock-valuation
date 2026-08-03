@@ -11501,14 +11501,14 @@ function startApiFetch() {
           for (var i = 0; i < items2.length; i++) {
             if (items2[i].DATATYPE && items2[i].DATATYPE.indexOf('年报') >= 0 && items2[i].WEIGHTAVG_ROE != null) {
               var v = parseFloat(items2[i].WEIGHTAVG_ROE);
-              if (!isNaN(v) && v > 0) { roeVal = +v.toFixed(2); break; }
+              if (!isNaN(v) && v !== 0) { roeVal = v; break; }
             }
           }
           if (roeVal === null) {
             for (var i = 0; i < items2.length; i++) {
               if (items2[i].WEIGHTAVG_ROE != null) {
                 var v = parseFloat(items2[i].WEIGHTAVG_ROE);
-              if (!isNaN(v)) { roeVal = +v.toFixed(2); break; }
+              if (!isNaN(v)) { roeVal = v; break; }
               }
             }
           }
@@ -11566,7 +11566,7 @@ function startApiFetch() {
         if (psVal !== null) DB_DATA[code][8] = psVal;           // PS
         if (grossMargin !== null) DB_DATA[code][9] = grossMargin; // 毛利率
         if (netMargin !== null) DB_DATA[code][10] = netMargin;    // 净利率
-        if (roeVal !== null) DB_DATA[code][11] = roeVal;          // ROE
+        if (roeVal !== null) DB_DATA[code][11] = +(roeVal / 100).toFixed(6);  // ROE (百分比→小数)
         if (debtRatio !== null) DB_DATA[code][12] = debtRatio;    // 负债率
         if (holderRatio !== null) DB_DATA[code][18] = holderRatio; // 十大股东持股比例
         updated++;
@@ -17288,20 +17288,20 @@ function fetchRealTimeData(code) {
       var items = res && res.result && res.result.data;
       if (items && items.length) {
         // Prefer annual report (年报), fallback to latest available
-        for (var i = 0; i < items.length; i++) {
-          if (items[i].DATATYPE && items[i].DATATYPE.indexOf('年报') >= 0 && items[i].WEIGHTAVG_ROE != null) {
-            var v = parseFloat(items[i].WEIGHTAVG_ROE);
-            if (!isNaN(v) && v > 0) { roeVal = +v.toFixed(2); break; }
-          }
-        }
-        if (roeVal === null) {
           for (var i = 0; i < items.length; i++) {
-            if (items[i].WEIGHTAVG_ROE != null) {
+            if (items[i].DATATYPE && items[i].DATATYPE.indexOf('年报') >= 0 && items[i].WEIGHTAVG_ROE != null) {
               var v = parseFloat(items[i].WEIGHTAVG_ROE);
-              if (!isNaN(v) && v > 0) { roeVal = +v.toFixed(2); break; }
+              if (!isNaN(v) && v !== 0) { roeVal = v; break; }
             }
           }
-        }
+          if (roeVal === null) {
+            for (var i = 0; i < items.length; i++) {
+              if (items[i].WEIGHTAVG_ROE != null) {
+                var v = parseFloat(items[i].WEIGHTAVG_ROE);
+              if (!isNaN(v) && v > 0) { roeVal = v; break; }
+              }
+            }
+          }
       }
     } catch(e) {}
     done();
