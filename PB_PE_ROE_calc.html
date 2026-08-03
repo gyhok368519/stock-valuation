@@ -11485,10 +11485,10 @@ function startApiFetch() {
           var d = items[0];
           if (d.SECURITY_NAME_ABBR) abbr = d.SECURITY_NAME_ABBR;
           if (d.TOTAL_MARKET_CAP != null) mktCap = +(d.TOTAL_MARKET_CAP / 1e8).toFixed(2);
-          if (d.PE_TTM != null && d.PE_TTM > 0) peVal = +parseFloat(d.PE_TTM).toFixed(2);
+          if (d.PE_TTM != null) peVal = +parseFloat(d.PE_TTM).toFixed(2);
           if (d.PB_MRQ != null && d.PB_MRQ > 0) pbVal = +parseFloat(d.PB_MRQ).toFixed(2);
           if (d.PEG_CAR != null) pegVal = +parseFloat(d.PEG_CAR).toFixed(2);
-          if (d.PS_TTM != null && d.PS_TTM > 0) psVal = +parseFloat(d.PS_TTM).toFixed(2);
+          if (d.PS_TTM != null) psVal = +parseFloat(d.PS_TTM).toFixed(2);
           if (d.CLOSE_PRICE != null) closePrice = +parseFloat(d.CLOSE_PRICE).toFixed(2);
         }
       } catch(e) {}
@@ -11508,7 +11508,7 @@ function startApiFetch() {
             for (var i = 0; i < items2.length; i++) {
               if (items2[i].WEIGHTAVG_ROE != null) {
                 var v = parseFloat(items2[i].WEIGHTAVG_ROE);
-                if (!isNaN(v) && v > 0) { roeVal = +v.toFixed(2); break; }
+              if (!isNaN(v)) { roeVal = +v.toFixed(2); break; }
               }
             }
           }
@@ -11516,7 +11516,7 @@ function startApiFetch() {
           for (var i = 0; i < items2.length; i++) {
             if (items2[i].XSMLL != null) {
               var gm = parseFloat(items2[i].XSMLL);
-              if (!isNaN(gm) && gm > 0) { grossMargin = +(gm / 100).toFixed(6); break; }
+              if (!isNaN(gm)) { grossMargin = +(gm / 100).toFixed(6); break; }
             }
           }
         }
@@ -11635,8 +11635,13 @@ function startApiFetch() {
         // 股利支付率 = 分红/净利润 (if both available)
         if (row[13] != null && netProfit && netProfit > 0) {
           var dividendYuan = row[13] * 1e8; // convert back to yuan
-          row[16] = +(dividendYuan / netProfit).toFixed(6); // 股利支付率
-          if (row[16] > 1) row[16] = null; // cap at 100%
+          var _dpr = dividendYuan / netProfit;
+          if (_dpr > 0 && _dpr <= 1.5) row[16] = +Math.min(_dpr, 1).toFixed(6); // 股利支付率 cap at 100%
+        }
+        // 股息率近似 = 分红(亿)/市值(亿) (if closePrice not available)
+        if (row[13] != null && row[3] != null && row[3] > 0 && (row[17] == null || row[17] === undefined)) {
+          var _dy = row[13] / row[3];
+          if (_dy > 0 && _dy < 0.2) row[17] = +_dy.toFixed(6); // 股息率
         }
       } catch(e) {}
     }).catch(function(){});
@@ -11649,12 +11654,9 @@ function startApiFetch() {
           if (jb.ORG_PROFILE) row[20] = jb.ORG_PROFILE.substring(0, 200).trim();
           // 控股股东名称: extract from ORG_PROFILE ("控股股东为XXX")
           if (jb.ORG_PROFILE) {
-            var cm = jb.ORG_PROFILE.match(/控股股东为(.+?)[，。,\.]/);
-            if (cm && cm[1]) row[19] = cm[1].trim();
-            else {
-              var cm2 = jb.ORG_PROFILE.match(/控股股东(?:为)?(.+?)(?:，|。|,|\.)/);
-              if (cm2 && cm2[1]) row[19] = cm2[1].trim();
-            }
+            var _p = jb.ORG_PROFILE;
+            var _cm = _p.match(/控股股东为(.+?)[，。,；\n]/) || _p.match(/控股股东是(.+?)[，。,；\n]/) || _p.match(/控股股东[：:]\s*(.+?)[，。,；\n]/) || _p.match(/实际控制人为(.+?)[，。,；\n]/) || _p.match(/实际控制人[：:]\s*(.+?)[，。,；\n]/);
+            if (_cm && _cm[1]) row[19] = _cm[1].trim();
           }
         }
       } catch(e) {}
