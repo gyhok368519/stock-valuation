@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.6';</script>
+<script>var APP_VER='2.7';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -11085,6 +11085,9 @@ var PINYIN_IDX = {
 </script>
 <script>
 
+// HTML escape utility (XSS prevention)
+function _esc(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
 // ===== Dark Mode =====
 var _isDarkMode = false;
 // SVG theme icons: sun-moon combined icon per design spec
@@ -11157,8 +11160,35 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
 // ===== Auth System (GitHub Cloud) =====
 const SESSION_KEY = 'current_user';
 const DEV_PASS = 'xxjqc2026';
+const PASS_SALT = 'pb_calc_2026'; // Salt for password hashing
+
+// Async SHA-256 hash: returns hex string of SHA-256(salt + password)
+async function hashPassword(pass) {
+  const data = new TextEncoder().encode(PASS_SALT + pass);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+// Synchronous quick check: plain text match (backward compat)
+function _passMatch(stored, input) {
+  if (stored === input) return true;
+  return false;
+}
+// Async full check: supports both plain and hashed passwords, auto-upgrade on match
+async function _passMatchAsync(stored, input) {
+  // Plain text match (old user, will auto-upgrade)
+  if (stored === input) return true;
+  // SHA-256 hash match
+  if (stored.length === 64 && /^[a-f0-9]+$/.test(stored)) {
+    const hashed = await hashPassword(input);
+    return stored === hashed;
+  }
+  return false;
+}
 
 // Token encryption (XOR with dev password)
+// SECURITY NOTE: Token is XOR-encrypted in source but still client-visible at runtime.
+// This is acceptable for a public GitHub Pages app with no sensitive server access.
+// For production apps, use server-side proxy or GitHub Apps with server-stored secrets.
 const _ET = [31,16,26,46,90,0,72,70,78,47,43,37,53,86,116,5,83,65,75,59,60,43,7,75,116,5,99,32,79,61,65,38,123,106,0,71,49,48,90,70]; // XOR encrypted token
 function _xorDec(enc, key) {
   const k = key || DEV_PASS;
@@ -11290,7 +11320,7 @@ async function doRegister() {
     for (const [u, d] of Object.entries(db)) {
       if (d.phone === phone) { err.textContent = '该手机号已注册，请直接登录'; btn.textContent = '注册'; btn.disabled = false; return; }
     }
-    db[user] = { phone: phone, pass: pass, time: bjTime() };
+    db[user] = { phone: phone, pass: await hashPassword(pass), time: bjTime() };
     _saveCache(db); // update cache immediately
     localStorage.setItem(SESSION_KEY, user);
     document.getElementById('authOverlay').classList.add('hidden');
@@ -11312,13 +11342,34 @@ async function doLogin() {
 
   // Check cache first for instant login
   const cached = getCachedDB();
-  if (cached && cached[user] && cached[user].pass === pass) {
-    localStorage.setItem(SESSION_KEY, user);
-    document.getElementById('authOverlay').classList.add('hidden');
-    updateMenuUser();
-    // Background cloud validation
-    ghGet().then(db => { if (db && db[user] && db[user].pass === pass) return; if (db !== null) { doLogout(); } });
-    return;
+  if (cached && cached[user]) {
+    const matched = await _passMatchAsync(cached[user].pass, pass);
+    if (matched) {
+      // Auto-upgrade: if cached password is old plain text, replace with hash
+      if (cached[user].pass === pass) {
+        cached[user].pass = await hashPassword(pass);
+        _saveCache(cached);
+        saveAuthDB(cached); // fire-and-forget sync to cloud
+      }
+      localStorage.setItem(SESSION_KEY, user);
+      document.getElementById('authOverlay').classList.add('hidden');
+      updateMenuUser();
+      // Background cloud validation
+      ghGet().then(async db => {
+        if (!db || !db[user]) { if (db !== null) doLogout(); return; }
+        const cloudMatch = await _passMatchAsync(db[user].pass, pass);
+        if (cloudMatch) {
+          // Auto-upgrade cloud password if still plain
+          if (db[user].pass === pass) {
+            db[user].pass = await hashPassword(pass);
+            saveAuthDB(db);
+          }
+          return;
+        }
+        if (db !== null) doLogout();
+      });
+      return;
+    }
   }
 
   btn.textContent = '登录中...'; btn.disabled = true;
@@ -11326,7 +11377,14 @@ async function doLogin() {
     const db = await getAuthDB();
     if (db === null) { err.textContent = '网络连接失败，请检查网络后重试'; btn.textContent = '登录'; btn.disabled = false; return; }
     if (!db || !db[user]) { err.textContent = '用户名不存在，请先注册'; btn.textContent = '登录'; btn.disabled = false; return; }
-    if (db[user].pass !== pass) { err.textContent = '密码错误，请重新输入'; btn.textContent = '登录'; btn.disabled = false; return; }
+    const matched = await _passMatchAsync(db[user].pass, pass);
+    if (!matched) { err.textContent = '密码错误，请重新输入'; btn.textContent = '登录'; btn.disabled = false; return; }
+    // Auto-upgrade: if cloud password is old plain text, replace with hash
+    if (db[user].pass === pass) {
+      db[user].pass = await hashPassword(pass);
+      _saveCache(db);
+      saveAuthDB(db); // fire-and-forget upgrade
+    }
     localStorage.setItem(SESSION_KEY, user);
     document.getElementById('authOverlay').classList.add('hidden');
     updateMenuUser();
@@ -11355,7 +11413,7 @@ async function doResetPassword() {
     if (!db || !db[user]) { err.textContent = '用户名不存在，请先注册'; btn.textContent = '重置密码'; btn.disabled = false; return; }
     if (db[user].phone !== phone) { err.textContent = '手机号与注册时不一致'; btn.textContent = '重置密码'; btn.disabled = false; return; }
     // Phone verified, update password
-    db[user].pass = pass;
+    db[user].pass = await hashPassword(pass);
     db[user].time = db[user].time; // keep original registration time
     _saveCache(db);
     const ok = await saveAuthDB(db);
@@ -11542,132 +11600,144 @@ function startApiFetch() {
 
   function apiLog(msg) { log.innerHTML += msg + '<br>'; log.scrollTop = log.scrollHeight; }
 
-  function fetchOne(code) {
-    // Determine market prefix for emweb API
+  // --- Extracted: Build 4 API URLs for a given stock code ---
+  function buildApiUrls(code) {
     var mkt = (code.charAt(0) === '6') ? 'SH' : 'SZ';
     var secCode = mkt + code;
+    return {
+      mkt: mkt,
+      valUrl: 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_VALUEANALYSIS_DET&columns=SECURITY_CODE,SECURITY_NAME_ABBR,PE_TTM,PB_MRQ,PS_TTM,PEG_CAR,TOTAL_MARKET_CAP,CLOSE_PRICE&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=1&source=WEB&client=WEB&callback=__CALLBACK__',
+      finUrl: 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_LICO_FN_CPD&columns=SECURITY_CODE,WEIGHTAVG_ROE,XSMLL,BPS,YSHZ,SJLHZ,QDATE,DATATYPE&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=8&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB&callback=__CALLBACK__',
+      mainUrl: 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=SECURITY_CODE,XSJLL,ZCFZL,TOTALOPERATEREVE,PARENTNETPROFIT,REPORT_DATE_NAME&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=4&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB&callback=__CALLBACK__',
+      holderUrl: 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_EH_HOLDERNUM&columns=SECURITY_CODE,HOLDER_RATIO_TOTAL&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=3&sortColumns=END_DATE&sortTypes=-1&source=WEB&client=WEB&callback=__CALLBACK__'
+    };
+  }
 
-    // API 1: Valuation (简称, 市值, PE, PB, PEG, PS)
-    var valUrl = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_VALUEANALYSIS_DET&columns=SECURITY_CODE,SECURITY_NAME_ABBR,PE_TTM,PB_MRQ,PS_TTM,PEG_CAR,TOTAL_MARKET_CAP,CLOSE_PRICE&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=1&source=WEB&client=WEB&callback=__CALLBACK__';
-    // API 2: Financial indicators (毛利率, ROE)
-    var finUrl = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_LICO_FN_CPD&columns=SECURITY_CODE,WEIGHTAVG_ROE,XSMLL,BPS,YSHZ,SJLHZ,QDATE,DATATYPE&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=8&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB&callback=__CALLBACK__';
-    // API 3: Main financial data (净利率, 负债率, 总收入)
-    var mainUrl = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=SECURITY_CODE,XSJLL,ZCFZL,TOTALOPERATEREVE,PARENTNETPROFIT,REPORT_DATE_NAME&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=4&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB&callback=__CALLBACK__';
-    // API 4: Top10 holders ratio
-    var holderUrl = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_EH_HOLDERNUM&columns=SECURITY_CODE,HOLDER_RATIO_TOTAL&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=3&sortColumns=END_DATE&sortTypes=-1&source=WEB&client=WEB&callback=__CALLBACK__';
+  // --- Extracted: Parse valuation API response ---
+  function parseValuation(valRes) {
+    var r = { abbr: null, mktCap: null, peVal: null, pbVal: null, pegVal: null, psVal: null, closePrice: null };
+    try {
+      var items = valRes && valRes.result && valRes.result.data;
+      if (items && items.length) {
+        var d = items[0];
+        if (d.SECURITY_NAME_ABBR) r.abbr = d.SECURITY_NAME_ABBR;
+        if (d.TOTAL_MARKET_CAP != null) r.mktCap = +(d.TOTAL_MARKET_CAP / 1e8).toFixed(2);
+        if (d.PE_TTM != null) r.peVal = +parseFloat(d.PE_TTM).toFixed(2);
+        if (d.PB_MRQ != null && d.PB_MRQ > 0) r.pbVal = +parseFloat(d.PB_MRQ).toFixed(2);
+        if (d.PEG_CAR != null) r.pegVal = +parseFloat(d.PEG_CAR).toFixed(2);
+        if (d.PS_TTM != null) r.psVal = +parseFloat(d.PS_TTM).toFixed(2);
+        if (d.CLOSE_PRICE != null) r.closePrice = +parseFloat(d.CLOSE_PRICE).toFixed(2);
+      }
+    } catch(e) { console.warn('err:', e.message); }
+    return r;
+  }
+
+  // --- Extracted: Parse financial indicators API response (ROE, 毛利率) ---
+  function parseFinancial(finRes) {
+    var r = { grossMargin: null, roeVal: null };
+    try {
+      var items = finRes && finRes.result && finRes.result.data;
+      if (items && items.length) {
+        // ROE: prefer annual report
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].DATATYPE && items[i].DATATYPE.indexOf('年报') >= 0 && items[i].WEIGHTAVG_ROE != null) {
+            var v = parseFloat(items[i].WEIGHTAVG_ROE);
+            if (!isNaN(v) && v !== 0) { r.roeVal = v; break; }
+          }
+        }
+        if (r.roeVal === null) {
+          for (var i = 0; i < items.length; i++) {
+            if (items[i].WEIGHTAVG_ROE != null) {
+              var v = parseFloat(items[i].WEIGHTAVG_ROE);
+              if (!isNaN(v)) { r.roeVal = v; break; }
+            }
+          }
+        }
+        // Gross margin (毛利率): latest non-null
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].XSMLL != null) {
+            var gm = parseFloat(items[i].XSMLL);
+            if (!isNaN(gm)) { r.grossMargin = +(gm / 100).toFixed(6); break; }
+          }
+        }
+      }
+    } catch(e) { console.warn('err:', e.message); }
+    return r;
+  }
+
+  // --- Extracted: Parse main financial data API response (净利率, 负债率, 总收入, 净利润) ---
+  function parseMainData(mainRes) {
+    var r = { netMargin: null, debtRatio: null, totalRev: null, netProfit: null };
+    try {
+      var items = mainRes && mainRes.result && mainRes.result.data;
+      if (items && items.length) {
+        var d3 = items[0];
+        if (d3.XSJLL != null) { var nm = parseFloat(d3.XSJLL); if (!isNaN(nm)) r.netMargin = +(nm / 100).toFixed(6); }
+        if (d3.ZCFZL != null) { var dr = parseFloat(d3.ZCFZL); if (!isNaN(dr)) r.debtRatio = +(dr / 100).toFixed(6); }
+        if (d3.TOTALOPERATEREVE != null) r.totalRev = +(d3.TOTALOPERATEREVE / 1e8).toFixed(2);
+        if (d3.PARENTNETPROFIT != null) r.netProfit = d3.PARENTNETPROFIT;
+      }
+    } catch(e) { console.warn('err:', e.message); }
+    return r;
+  }
+
+  // --- Extracted: Parse top10 holder ratio API response ---
+  function parseHolders(holderRes) {
+    var holderRatio = null;
+    try {
+      var items = holderRes && holderRes.result && holderRes.result.data;
+      if (items && items.length) {
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].HOLDER_RATIO_TOTAL != null) {
+            holderRatio = +(parseFloat(items[i].HOLDER_RATIO_TOTAL) / 100).toFixed(6);
+            break;
+          }
+        }
+      }
+    } catch(e) { console.warn('err:', e.message); }
+    return holderRatio;
+  }
+
+  function fetchOne(code) {
+    var urls = buildApiUrls(code);
 
     return Promise.all([
-      _jsonp(valUrl, 6000).catch(function(){return null}),
-      _jsonp(finUrl, 6000).catch(function(){return null}),
-      _jsonp(mainUrl, 6000).catch(function(){return null}),
-      _jsonp(holderUrl, 6000).catch(function(){return null})
+      _jsonp(urls.valUrl, 6000).catch(function(){return null}),
+      _jsonp(urls.finUrl, 6000).catch(function(){return null}),
+      _jsonp(urls.mainUrl, 6000).catch(function(){return null}),
+      _jsonp(urls.holderUrl, 6000).catch(function(){return null})
     ]).then(function(results) {
       var valRes = results[0], finRes = results[1], mainRes = results[2], holderRes = results[3];
 
-      // Field defaults
-      var abbr = null, mktCap = null, totalRev = null;
-      var peVal = null, pbVal = null, pegVal = null, psVal = null;
-      var grossMargin = null, netMargin = null, roeVal = null, debtRatio = null;
-      var holderRatio = null, closePrice = null, netProfit = null;
+      // Parse each API response via extracted functions
+      var val = parseValuation(valRes);
+      var fin = parseFinancial(finRes);
+      var main = parseMainData(mainRes);
+      var holderRatio = parseHolders(holderRes);
 
-      // Parse API 1: Valuation
-      try {
-        var items = valRes && valRes.result && valRes.result.data;
-        if (items && items.length) {
-          var d = items[0];
-          if (d.SECURITY_NAME_ABBR) abbr = d.SECURITY_NAME_ABBR;
-          if (d.TOTAL_MARKET_CAP != null) mktCap = +(d.TOTAL_MARKET_CAP / 1e8).toFixed(2);
-          if (d.PE_TTM != null) peVal = +parseFloat(d.PE_TTM).toFixed(2);
-          if (d.PB_MRQ != null && d.PB_MRQ > 0) pbVal = +parseFloat(d.PB_MRQ).toFixed(2);
-          if (d.PEG_CAR != null) pegVal = +parseFloat(d.PEG_CAR).toFixed(2);
-          if (d.PS_TTM != null) psVal = +parseFloat(d.PS_TTM).toFixed(2);
-          if (d.CLOSE_PRICE != null) closePrice = +parseFloat(d.CLOSE_PRICE).toFixed(2);
-        }
-      } catch(e) { console.warn('err:', e.message); }
-
-      // Parse API 2: Financial indicators (ROE, 毛利率)
-      try {
-        var items2 = finRes && finRes.result && finRes.result.data;
-        if (items2 && items2.length) {
-          // ROE: prefer annual report
-          for (var i = 0; i < items2.length; i++) {
-            if (items2[i].DATATYPE && items2[i].DATATYPE.indexOf('年报') >= 0 && items2[i].WEIGHTAVG_ROE != null) {
-              var v = parseFloat(items2[i].WEIGHTAVG_ROE);
-              if (!isNaN(v) && v !== 0) { roeVal = v; break; }
-            }
-          }
-          if (roeVal === null) {
-            for (var i = 0; i < items2.length; i++) {
-              if (items2[i].WEIGHTAVG_ROE != null) {
-                var v = parseFloat(items2[i].WEIGHTAVG_ROE);
-              if (!isNaN(v)) { roeVal = v; break; }
-              }
-            }
-          }
-          // Gross margin (毛利率): latest non-null
-          for (var i = 0; i < items2.length; i++) {
-            if (items2[i].XSMLL != null) {
-              var gm = parseFloat(items2[i].XSMLL);
-              if (!isNaN(gm)) { grossMargin = +(gm / 100).toFixed(6); break; }
-            }
-          }
-        }
-      } catch(e) { console.warn('err:', e.message); }
-
-      // Parse API 3: Main financial data (净利率, 负债率, 总收入, 净利润)
-      try {
-        var items3 = mainRes && mainRes.result && mainRes.result.data;
-        if (items3 && items3.length) {
-          var d3 = items3[0]; // latest
-          if (d3.XSJLL != null) { var nm = parseFloat(d3.XSJLL); if (!isNaN(nm)) netMargin = +(nm / 100).toFixed(6); }
-          if (d3.ZCFZL != null) { var dr = parseFloat(d3.ZCFZL); if (!isNaN(dr)) debtRatio = +(dr / 100).toFixed(6); }
-          if (d3.TOTALOPERATEREVE != null) totalRev = +(d3.TOTALOPERATEREVE / 1e8).toFixed(2);
-          if (d3.PARENTNETPROFIT != null) netProfit = d3.PARENTNETPROFIT;
-        }
-      } catch(e) { console.warn('err:', e.message); }
-
-      // Parse API 4: Top10 holder ratio
-      try {
-        var items4 = holderRes && holderRes.result && holderRes.result.data;
-        if (items4 && items4.length) {
-          for (var i = 0; i < items4.length; i++) {
-            if (items4[i].HOLDER_RATIO_TOTAL != null) {
-              holderRatio = +(parseFloat(items4[i].HOLDER_RATIO_TOTAL) / 100).toFixed(6);
-              break;
-            }
-          }
-        }
-      } catch(e) { console.warn('err:', e.message); }
-
-      // Calculate derived fields: 股利支付率, 股息率
-      // Will be filled from emweb BonusFinancing (async fetch below)
-      var dividendAmt = null, raiseAmt = null, cashPayAmt = null;
-      var dividendPayoutRatio = null, dividendYield = null;
-      var controllerName = null, mainBusiness = null;
-
-      // Update DB_DATA with JSONP data first
-      var hasData = peVal !== null || pbVal !== null || roeVal !== null;
+      // Update DB_DATA with parsed data
+      var hasData = val.peVal !== null || val.pbVal !== null || fin.roeVal !== null;
       if (hasData) {
         if (!DB_DATA[code]) DB_DATA[code] = [code, STOCK_MAP[code] || '', '', null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
-        if (abbr !== null) DB_DATA[code][2] = abbr;             // 股票简称
-        if (mktCap !== null) DB_DATA[code][3] = mktCap;         // 市值(亿)
-        if (totalRev !== null) DB_DATA[code][4] = totalRev;     // 总收入(亿)
-        if (peVal !== null) DB_DATA[code][5] = peVal;           // PE
-        if (pbVal !== null) DB_DATA[code][6] = pbVal;           // PB
-        if (pegVal !== null) DB_DATA[code][7] = pegVal;         // PEG
-        if (psVal !== null) DB_DATA[code][8] = psVal;           // PS
-        if (grossMargin !== null) DB_DATA[code][9] = grossMargin; // 毛利率
-        if (netMargin !== null) DB_DATA[code][10] = netMargin;    // 净利率
-        if (roeVal !== null) DB_DATA[code][11] = +(roeVal / 100).toFixed(6);  // ROE (百分比→小数)
-        if (debtRatio !== null) DB_DATA[code][12] = debtRatio;    // 负债率
-        if (holderRatio !== null) DB_DATA[code][18] = holderRatio; // 十大股东持股比例
+        if (val.abbr !== null) DB_DATA[code][2] = val.abbr;
+        if (val.mktCap !== null) DB_DATA[code][3] = val.mktCap;
+        if (main.totalRev !== null) DB_DATA[code][4] = main.totalRev;
+        if (val.peVal !== null) DB_DATA[code][5] = val.peVal;
+        if (val.pbVal !== null) DB_DATA[code][6] = val.pbVal;
+        if (val.pegVal !== null) DB_DATA[code][7] = val.pegVal;
+        if (val.psVal !== null) DB_DATA[code][8] = val.psVal;
+        if (fin.grossMargin !== null) DB_DATA[code][9] = fin.grossMargin;
+        if (main.netMargin !== null) DB_DATA[code][10] = main.netMargin;
+        if (fin.roeVal !== null) DB_DATA[code][11] = +(fin.roeVal / 100).toFixed(6);
+        if (main.debtRatio !== null) DB_DATA[code][12] = main.debtRatio;
+        if (holderRatio !== null) DB_DATA[code][18] = holderRatio;
         updated++;
       } else {
         failed++;
       }
 
-      // Async: fetch emweb APIs for bonus & company info (no-CORS fetch, may fail silently)
-      return fetchEmwebData(code, mkt, DB_DATA[code], closePrice, netProfit).then(function() {
+      // Async: fetch emweb APIs for bonus & company info
+      return fetchEmwebData(code, urls.mkt, DB_DATA[code], val.closePrice, main.netProfit).then(function() {
         return hasData;
       });
     });
@@ -12158,7 +12228,7 @@ function _doStockSearch(query, acList, onSelectFn) {
     acList.innerHTML = '<div class="ac-empty">未找到匹配股票</div>';
   } else {
     acList.innerHTML = results.map(function(r) {
-      return '<div class="ac-item" data-code="'+r.code+'" data-name="'+r.name+'" onclick="'+onSelectFn+'(this)"><span class="ac-code">'+r.code+'</span><span><span class="ac-name">'+r.name+'</span><span class="ac-pinyin">'+(r.pi||'')+'</span></span></div>';
+      return '<div class="ac-item" data-code="'+_esc(r.code)+'" data-name="'+_esc(r.name)+'" onclick="'+onSelectFn+'(this)"><span class="ac-code">'+_esc(r.code)+'</span><span><span class="ac-name">'+_esc(r.name)+'</span><span class="ac-pinyin">'+_esc(r.pi||'')+'</span></span></div>';
     }).join('');
   }
   acList.classList.add('show');
@@ -12216,8 +12286,8 @@ function showDBDetail(code) {
 
   // Stock header card
   html += `<div class="db-stock-header">
-    <div class="left"><div><span class="code">${code}</span><span class="name">${name}</span></div></div>
-    <div class="db-go-calc" onclick="goCalc('${code}')">&#x1F4CA; 去计算</div>
+    <div class="left"><div><span class="code">${_esc(code)}</span><span class="name">${_esc(name)}</span></div></div>
+    <div class="db-go-calc" onclick="goCalc('${_esc(code)}')">&#x1F4CA; 去计算</div>
   </div>`;
 
   if (rowData) {
@@ -12246,18 +12316,18 @@ function showDBDetail(code) {
       if (!hasLong && sec.fields.length > 2) {
         html += `<div class="db-grid-2">`;
         for (const f of sec.fields) {
-          html += `<div class="db-row"><span class="label">${f.header}</span><span class="value">${formatVal(f.header, f.value)}</span></div>`;
+          html += `<div class="db-row"><span class="label">${_esc(f.header)}</span><span class="value">${formatVal(f.header, f.value)}</span></div>`;
         }
         html += `</div>`;
       } else {
         for (const f of sec.fields) {
           if (LONG_TEXT_FIELDS.includes(f.header)) {
             html += `<div class="db-long-text-row">
-              <div style="font-size:13px;color:var(--text2);margin-bottom:6px;">${f.header}</div>
-              <div class="db-text-scroll">${f.value !== null && f.value !== undefined ? f.value : '<span style="color:#ccc">-</span>'}</div>
+              <div style="font-size:13px;color:var(--text2);margin-bottom:6px;">${_esc(f.header)}</div>
+              <div class="db-text-scroll">${f.value !== null && f.value !== undefined ? _esc(f.value) : '<span style="color:#ccc">-</span>'}</div>
             </div>`;
           } else {
-            html += `<div class="db-row"><span class="label">${f.header}</span><span class="value">${formatVal(f.header, f.value)}</span></div>`;
+            html += `<div class="db-row"><span class="label">${_esc(f.header)}</span><span class="value">${formatVal(f.header, f.value)}</span></div>`;
           }
         }
       }
@@ -12472,13 +12542,40 @@ const STORAGE_KEY = 'pb_calc_history';
 function getHistory() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
 function saveHistory(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
 
+// Safe math expression parser (recursive descent, no eval/new Function)
 function calcExpr(str) {
   if (!str) return NaN;
   str = str.trim();
   if (/^-?[\d.]+$/.test(str)) return parseFloat(str);
-  if (!/^[\d+\-*/.() ]+$/.test(str)) return NaN;
-  try { const r = new Function('return (' + str + ')')(); return (typeof r === 'number' && isFinite(r)) ? r : NaN; }
-  catch(e) { return NaN; }
+  var pos = 0;
+  function peek() { return pos < str.length ? str[pos] : ''; }
+  function eat(c) { if (peek() === c) { pos++; return true; } return false; }
+  function skip() { while (peek() === ' ') pos++; }
+  function parseNum() {
+    skip(); var s = pos, neg = false;
+    if (eat('-')) { neg = true; skip(); }
+    if (eat('+')) skip();
+    while (pos < str.length && ((str[pos] >= '0' && str[pos] <= '9') || str[pos] === '.')) pos++;
+    var v = parseFloat(str.substring(s, pos));
+    return neg && !isNaN(v) ? -v : (isNaN(v) ? NaN : v);
+  }
+  function parseAtom() {
+    skip();
+    if (eat('(')) { var v = parseExpr(); skip(); if (!eat(')')) return NaN; return v; }
+    return parseNum();
+  }
+  function parseMul() {
+    var v = parseAtom(); if (isNaN(v)) return NaN;
+    for (;;) { skip(); if (eat('*')) { var r = parseAtom(); v = v * r; } else if (eat('/')) { var r2 = parseAtom(); if (r2 === 0) return NaN; v = v / r2; } else break; if (isNaN(v)) return NaN; }
+    return v;
+  }
+  function parseExpr() {
+    var v = parseMul(); if (isNaN(v)) return NaN;
+    for (;;) { skip(); if (eat('+')) { v = v + parseMul(); } else if (eat('-')) { v = v - parseMul(); } else break; if (isNaN(v)) return NaN; }
+    return v;
+  }
+  var result = parseExpr();
+  return (typeof result === 'number' && isFinite(result)) ? result : NaN;
 }
 
 function round2(n) { return Math.round(n * 100) / 100; }
@@ -12526,7 +12623,7 @@ function calculate() {
   else if (judgeClass === 'over') jd = '<div class="judge-detail">市场PB高于理论值 ' + (deviation*100).toFixed(1) + '%，含成长溢价</div>';
   else jd = '<div class="judge-detail">偏差在10%以内，估值合理</div>';
   jb.innerHTML = '&#x1F4CC; ' + judge + jd;
-  document.getElementById('formulaBox').innerHTML = '<span>' + (name||code) + '</span> | PE=' + peVal.toFixed(2) + ' &times; ROE=' + roeVal.toFixed(2) + '% = 计算PB <span>' + calcPB.toFixed(2) + '</span><br>市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
+  document.getElementById('formulaBox').innerHTML = '<span>' + _esc(name||code) + '</span> | PE=' + peVal.toFixed(2) + ' &times; ROE=' + roeVal.toFixed(2) + '% = 计算PB <span>' + calcPB.toFixed(2) + '</span><br>市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
   const record = { code, name:name||'-', pe:peVal, roe:roeVal, marketPB:pbVal, calcPB:+calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, time:new Date().toLocaleString('zh-CN') };
   const hist = getHistory(); hist.unshift(record); if (hist.length > MAX_HISTORY) hist.pop();
   saveHistory(hist); renderHistory();
@@ -12547,7 +12644,7 @@ function renderHistory() {
   count.textContent = hist.length + ' 条';
   if (!hist.length) { list.innerHTML = '<div class="empty-state">暂无记录</div>'; clearRow.style.display='none'; return; }
   clearRow.style.display = '';
-  list.innerHTML = hist.map((r,i) => '<div class="history-item"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+r.code+'</span><span class="history-name">'+r.name+'</span><div class="history-params">PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div>'+(r.time?'<div class="history-time">'+r.time+'</div>':'')+'</div><div class="history-right"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="delHistory('+i+')">&times;</button></div>').join('');
+  list.innerHTML = hist.map((r,i) => '<div class="history-item"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+_esc(r.code)+'</span><span class="history-name">'+_esc(r.name)+'</span><div class="history-params">PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div>'+(r.time?'<div class="history-time">'+_esc(r.time)+'</div>':'')+'</div><div class="history-right"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="delHistory('+i+')">&times;</button></div>').join('');
 }
 
 function loadHistory(idx) {
@@ -12635,7 +12732,7 @@ function _updateDBSubTitle() {
 
 if ('serviceWorker' in navigator) {
   // Register service worker (no force-unregister to avoid breaking in-flight fetches)
-  navigator.serviceWorker.register('./sw.js?v=20260804f').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260804g').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 
 // ===== Auto Update Check =====
