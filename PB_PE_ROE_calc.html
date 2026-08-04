@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.8.3';</script>
+<script>var APP_VER='2.8.4';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -13030,7 +13030,7 @@ function _updateDBSubTitle() {
 
 if ('serviceWorker' in navigator) {
   // Register service worker (no force-unregister to avoid breaking in-flight fetches)
-  navigator.serviceWorker.register('./sw.js?v=20260804k').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260804l').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 
 // ===== Auto Update Check =====
@@ -13052,7 +13052,7 @@ if ('serviceWorker' in navigator) {
       if (data && data[0] && data[0].commit) {
         var remoteMsg = data[0].commit.message || '';
         // Extract version from commit message like "v2.4: ..." or check the HTML directly
-        var verMatch = remoteMsg.match(/v(\d+\.\d+)/);
+        var verMatch = remoteMsg.match(/v(\d+\.\d+(?:\.\d+)?)/);
         if (verMatch && verMatch[1]) {
           var remoteVer = verMatch[1];
           if (remoteVer !== localVer) {
@@ -13062,7 +13062,7 @@ if ('serviceWorker' in navigator) {
             // Unregister SW
             if (navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
             // Reload with cache-bust
-            location.reload(true);
+            location.replace(location.pathname + '?v=' + APP_VER + '&_t=' + Date.now());
           } else {
             console.log('Version check (API): up-to-date (v' + localVer + ')');
           }
