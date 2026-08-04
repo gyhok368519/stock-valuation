@@ -164,9 +164,37 @@ body {
 [data-theme="dark"] .db-long-text-row { border-bottom-color: #2d2d44; }
 
 
-.no-data-hint { text-align: center; padding: 60px 20px; color: #bbb; }
+.no-data-hint { text-align: center; padding: 60px 20px; color: var(--text3); }
 .no-data-hint .icon { font-size: 48px; margin-bottom: 12px; }
 .no-data-hint p { font-size: 14px; line-height: 1.8; }
+
+/* Toast */
+.toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 10000; pointer-events: none; opacity: 0; transition: opacity 0.25s; max-width: 280px; text-align: center; }
+.toast.show { opacity: 1; }
+
+/* Search clear button */
+.search-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border: none; background: #ccc; color: #fff; border-radius: 50%; font-size: 14px; line-height: 1; cursor: pointer; display: none; padding: 0; align-items: center; justify-content: center; }
+.search-clear.show { display: flex; }
+
+/* DB back button */
+.db-back { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 16px; padding: 6px 14px; font-size: 13px; cursor: pointer; margin-bottom: 10px; }
+.db-back:active { background: rgba(255,255,255,0.3); }
+
+/* Loading spinner */
+.db-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--gray-light); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Load fail */
+.db-load-fail { text-align: center; padding: 40px 20px; }
+.db-load-fail p { color: var(--text2); font-size: 14px; margin-bottom: 12px; }
+.db-retry-btn { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 8px 20px; font-size: 14px; cursor: pointer; }
+.db-retry-btn:active { transform: scale(0.97); }
+
+/* History item clickable */
+.history-left { cursor: pointer; }
+
+/* Dark theme additions */
+[data-theme="dark"] .db-back { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
 
 /* ===== Calculator Styles ===== */
 .card {
@@ -466,11 +494,13 @@ body {
     <div class="search-bar ac-wrap">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="dbSearch" placeholder="输入代码/名称/拼音搜索" autocomplete="off">
+      <button class="search-clear" id="dbSearchClear" onclick="dbSearch.value='';this.classList.remove('show');dbSearch.focus();document.getElementById('dbContent').innerHTML=document.getElementById('dbPlaceholder').innerHTML;">&times;</button>
       <div class="ac-list" id="dbAcList"></div>
     </div>
     <div id="dbContent">
-      <div id="dbLoadHint" style="display:none;text-align:center;padding:20px;color:var(--text2);font-size:13px;">&#8987; 正在加载数据库...</div>
-      <div class="no-data-hint">
+      <div id="dbLoadHint" style="display:none;text-align:center;padding:30px 20px;"><div class="db-spinner"></div><p style="margin-top:12px;color:var(--text2);font-size:13px;">正在加载数据库...</p></div>
+      <div id="dbPlaceholder" style="display:none;"><div class="no-data-hint"><div class="icon">&#128269;</div><p>搜索股票代码或名称<br>查看完整财务数据</p></div></div>
+      <div class="no-data-hint" id="dbDefaultHint">
         <div class="icon">&#128269;</div>
         <p>搜索股票代码或名称<br>查看完整财务数据</p>
       </div>
@@ -503,9 +533,9 @@ body {
         </div>
       </div>
       <div class="form-row three">
-        <div class="form-group"><label>PE(TTM)</label><input type="text" id="pe" placeholder="7.49 或 100/13" inputmode="text" autocomplete="off"></div>
-        <div class="form-group"><label>ROE(%)</label><input type="text" id="roe" placeholder="13.63 或 50-36" inputmode="text" autocomplete="off"></div>
-        <div class="form-group"><label>市场PB</label><input type="text" id="pb" placeholder="0.70 或 2.1/3" inputmode="text" autocomplete="off"></div>
+        <div class="form-group"><label>PE(TTM)</label><input type="text" id="pe" placeholder="7.49 或 100/13" inputmode="decimal" autocomplete="off"></div>
+        <div class="form-group"><label>ROE(%)</label><input type="text" id="roe" placeholder="13.63 或 50-36" inputmode="decimal" autocomplete="off"></div>
+        <div class="form-group"><label>市场PB</label><input type="text" id="pb" placeholder="0.70 或 2.1/3" inputmode="decimal" autocomplete="off"></div>
       </div>
       <div class="btn-row">
         <button class="btn btn-primary" onclick="calculate()">&#x1F4CA; 计 算</button>
@@ -541,6 +571,7 @@ body {
     <span>计算器</span>
   </div>
 </div>
+<div class="toast" id="toast"></div>
 <div class="safe-bottom"></div>
 
 <!-- Info Menu -->
@@ -11403,12 +11434,12 @@ try { updateMenuUser(); } catch(e) { console.warn('updateMenuUser error:', e); }
 async function showCustomerDB() {
   const pwd = prompt('请输入开发者密码：');
   if (pwd === null) return;
-  if (pwd !== DEV_PASS) { alert('密码错误，无权访问'); return; }
+  if (pwd !== DEV_PASS) { showToast('密码错误，无权访问'); return; }
   try {
     const db = await getAuthDB();
-    if (db === null) { alert('网络连接失败，无法读取云端数据'); return; }
+    if (db === null) { showToast('网络连接失败，无法读取云端数据'); return; }
     const keys = Object.keys(db || {});
-    if (!keys.length) { alert('客户数据库为空，暂无注册用户'); return; }
+    if (!keys.length) { showToast('客户数据库为空，暂无注册用户'); return; }
     let msg = '【云端customer_db】共 ' + keys.length + ' 位注册用户\n\n';
     keys.forEach((u, i) => {
       const d = (db || {})[u];
@@ -11417,7 +11448,7 @@ async function showCustomerDB() {
       msg += (i+1) + '. 用户: ' + u + '\n   手机: ' + phone + '\n   注册: ' + time + '\n\n';
     });
     alert(msg);
-  } catch(e) { alert('网络错误，无法读取云端数据'); }
+  } catch(e) { showToast('网络错误，无法读取云端数据'); }
 }
 
 // ===== DB Updater =====
@@ -11427,7 +11458,7 @@ function showDBUpdater() {
   if (!_updaterVerified) {
     const pwd = prompt('请输入开发者密码：');
     if (pwd === null) return;
-    if (pwd !== DEV_PASS) { alert('密码错误，无权访问'); return; }
+    if (pwd !== DEV_PASS) { showToast('密码错误，无权访问'); return; }
     _updaterVerified = true;
   }
   toggleInfoMenu();
@@ -17197,7 +17228,7 @@ function dbDoSearch(query) {
     dbAcList.innerHTML = '<div class="ac-empty">未找到匹配股票</div>';
   } else {
     dbAcList.innerHTML = results.map(function(r) {
-      return '<div class="ac-item" data-code="'+r.code+'" data-name="'+r.name+'" ontouchstart="dbSelect(this)" onclick="dbSelect(this)"><span class="ac-code">'+r.code+'</span><span><span class="ac-name">'+r.name+'</span><span class="ac-pinyin">'+(r.pi||'')+'</span></span></div>';
+      return '<div class="ac-item" data-code="'+r.code+'" data-name="'+r.name+'" onclick="dbSelect(this)"><span class="ac-code">'+r.code+'</span><span><span class="ac-name">'+r.name+'</span><span class="ac-pinyin">'+(r.pi||'')+'</span></span></div>';
     }).join('');
   }
   dbAcList.classList.add('show');
@@ -17210,6 +17241,27 @@ function dbSelect(el) {
   showDBDetail(code);
 }
 
+// Toast helper
+var _toastTimer = null;
+function showToast(msg, dur) {
+  var t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function() { t.classList.remove('show'); }, dur || 2000);
+}
+
+// Debounce helper
+function _debounce(fn, ms) {
+  var timer = null;
+  return function() {
+    var ctx = this, args = arguments;
+    clearTimeout(timer);
+    timer = setTimeout(function() { fn.apply(ctx, args); }, ms || 300);
+  };
+}
+
 function showDBDetail(code) {
   const container = document.getElementById('dbContent');
   const name = STOCK_MAP[code] || '';
@@ -17218,11 +17270,12 @@ function showDBDetail(code) {
     if (_dbDataLoading || dbCount() === 0) {
       container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">数据库正在加载，请稍后重试</div>';
     } else {
-      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">该股票暂无数据库记录<br><span style="font-size:12px;color:var(--text3, #aaa)">可在计算器页面手动输入数据</span></div>';
+      container.innerHTML = '<div class="db-back" onclick="dbBackToSearch()">&#x2190; 返回搜索</div><div style="text-align:center;padding:40px;color:var(--text2);">该股票暂无数据库记录<br><span style="font-size:12px;color:var(--text3, #aaa)">可在计算器页面手动输入数据</span></div>';
     }
+    container.scrollIntoView({behavior:'smooth', block:'start'});
     return;
   }
-  let html = '';
+  let html = '<div class="db-back" onclick="dbBackToSearch()">&#x2190; 返回搜索</div>';
 
   // Stock header card
   html += `<div class="db-stock-header">
@@ -17279,6 +17332,18 @@ function showDBDetail(code) {
   }
 
   container.innerHTML = html;
+  container.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function dbBackToSearch() {
+  var container = document.getElementById('dbContent');
+  var placeholder = document.getElementById('dbPlaceholder');
+  if (placeholder) {
+    container.innerHTML = placeholder.innerHTML;
+  } else {
+    container.innerHTML = '<div class="no-data-hint"><div class="icon">&#128269;</div><p>搜索股票代码或名称<br>查看完整财务数据</p></div>';
+  }
+  dbSearch.focus();
 }
 
 function getFieldVal(fieldName, rowData) {
@@ -17371,8 +17436,7 @@ function fetchRealTimeData(code) {
     } else {
       rtStatus.innerHTML = '<span style="color:var(--red);">&#10007; 实时数据获取失败，请手动输入</span>';
     }
-    setTimeout(function() { rtStatus.style.display = 'none'; }, 5000);
-    document.getElementById('roe').focus();
+    setTimeout(function() { rtStatus.style.display = 'none'; }, 6000);
   }
 
   _jsonp(valUrl, 6000).then(function(res) {
@@ -17424,10 +17488,17 @@ function goCalc(code) {
   fetchRealTimeData(code);
 }
 
-dbSearch.addEventListener('input', function() {
-  const v = this.value.trim();
+// Debounced search
+var _dbSearchDebounced = _debounce(function(v) {
   if (/^\d{6}$/.test(v) && STOCK_MAP[v]) { dbAcList.classList.remove('show'); showDBDetail(v); }
   else { dbDoSearch(v); }
+}, 300);
+
+dbSearch.addEventListener('input', function() {
+  var v = this.value.trim();
+  var clr = document.getElementById('dbSearchClear');
+  if (clr) clr.classList.toggle('show', v.length > 0);
+  _dbSearchDebounced(v);
 });
 dbSearch.addEventListener('focus', function() { if (this.value.trim()) dbDoSearch(this.value.trim()); });
 document.addEventListener('click', function(e) {
@@ -17457,7 +17528,7 @@ function calcDoSearch(query) {
     calcAcList.innerHTML = '<div class="ac-empty">未找到匹配股票</div>';
   } else {
     calcAcList.innerHTML = results.map(function(r) {
-      return '<div class="ac-item" data-code="'+r.code+'" data-name="'+r.name+'" ontouchstart="calcSelect(this)" onclick="calcSelect(this)"><span class="ac-code">'+r.code+'</span><span><span class="ac-name">'+r.name+'</span><span class="ac-pinyin">'+(r.pi||'')+'</span></span></div>';
+      return '<div class="ac-item" data-code="'+r.code+'" data-name="'+r.name+'" onclick="calcSelect(this)"><span class="ac-code">'+r.code+'</span><span><span class="ac-name">'+r.name+'</span><span class="ac-pinyin">'+(r.pi||'')+'</span></span></div>';
     }).join('');
   }
   calcAcList.classList.add('show');
@@ -17474,18 +17545,21 @@ function calcSelect(el) {
   fetchRealTimeData(el.dataset.code);
 }
 
-codeInput.addEventListener('input', function() {
-  const v = this.value.trim();
+// Debounced search for calculator
+var _calcSearchDebounced = _debounce(function(v) {
   if (/^\d{6}$/.test(v) && STOCK_MAP[v]) {
     nameInput.value = STOCK_MAP[v];
     calcAcList.classList.remove('show');
-    // Auto-fill real-time data when 6-digit code entered directly
     document.getElementById('pe').value = '';
     document.getElementById('pb').value = '';
     document.getElementById('roe').value = '';
     fetchRealTimeData(v);
   }
   else { nameInput.value = ''; calcDoSearch(v); }
+}, 300);
+
+codeInput.addEventListener('input', function() {
+  _calcSearchDebounced(this.value.trim());
 });
 codeInput.addEventListener('focus', function() { if (this.value.trim()) calcDoSearch(this.value.trim()); });
 
@@ -17521,10 +17595,10 @@ function calculate() {
   const peVal = getCalcVal('pe');
   const roeVal = getCalcVal('roe');
   const pbVal = getCalcVal('pb');
-  if (!code) { alert('请输入股票代码'); return; }
-  if (isNaN(peVal) || peVal <= 0) { alert('请输入有效的PE（支持四则运算，如 100/13）'); return; }
-  if (isNaN(roeVal) || roeVal <= 0) { alert('请输入有效的ROE（支持四则运算，如 50-36）'); return; }
-  if (isNaN(pbVal) || pbVal <= 0) { alert('请输入有效的市场PB（支持四则运算，如 2.1/3）'); return; }
+  if (!code) { showToast('请输入股票代码'); return; }
+  if (isNaN(peVal) || peVal <= 0) { showToast('请输入有效的PE（支持四则运算，如 100/13）'); return; }
+  if (isNaN(roeVal) || roeVal <= 0) { showToast('请输入有效的ROE（支持四则运算，如 50-36）'); return; }
+  if (isNaN(pbVal) || pbVal <= 0) { showToast('请输入有效的市场PB（支持四则运算，如 2.1/3）'); return; }
   const roeDecimal = roeVal / 100;
   const calcPB = peVal * roeDecimal;
   const deviation = (pbVal - calcPB) / calcPB;
@@ -17549,6 +17623,10 @@ function calculate() {
   const record = { code, name:name||'-', pe:peVal, roe:roeVal, marketPB:pbVal, calcPB:+calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, time:new Date().toLocaleString('zh-CN') };
   const hist = getHistory(); hist.unshift(record); if (hist.length > 50) hist.pop();
   saveHistory(hist); renderHistory();
+  // Scroll result into view
+  setTimeout(function() { document.getElementById('resultCard').scrollIntoView({behavior:'smooth', block:'nearest'}); }, 100);
+  // Dismiss keyboard
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
 }
 
 function clearForm() {
@@ -17562,11 +17640,25 @@ function renderHistory() {
   count.textContent = hist.length + ' 条';
   if (!hist.length) { list.innerHTML = '<div class="empty-state">暂无记录</div>'; clearRow.style.display='none'; return; }
   clearRow.style.display = '';
-  list.innerHTML = hist.map((r,i) => '<div class="history-item"><div class="history-left"><span class="history-code">'+r.code+'</span><span class="history-name">'+r.name+'</span><div class="history-params">PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div></div><div class="history-right"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="delHistory('+i+')">&times;</button></div>').join('');
+  list.innerHTML = hist.map((r,i) => '<div class="history-item"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+r.code+'</span><span class="history-name">'+r.name+'</span><div class="history-params">PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div></div><div class="history-right"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="delHistory('+i+')">&times;</button></div>').join('');
+}
+
+function loadHistory(idx) {
+  const h = getHistory();
+  const r = h[idx];
+  if (!r) return;
+  switchTab('calc');
+  codeInput.value = r.code;
+  nameInput.value = r.name === '-' ? '' : r.name;
+  document.getElementById('pe').value = r.pe;
+  document.getElementById('roe').value = r.roe;
+  document.getElementById('pb').value = r.marketPB;
+  document.getElementById('resultCard').classList.remove('show');
+  showToast('已加载，可修改后重新计算');
 }
 
 function delHistory(idx) { const h=getHistory(); h.splice(idx,1); saveHistory(h); renderHistory(); }
-function clearHistory() { if(confirm('确定清空全部历史？')){localStorage.removeItem(STORAGE_KEY);renderHistory();} }
+function clearHistory() { if(confirm('确定清空全部历史记录？')){localStorage.removeItem(STORAGE_KEY);renderHistory();showToast('已清空全部历史');} }
 renderHistory();
 document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') calculate(); }));
 
@@ -17595,6 +17687,11 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
     if (dbHint) dbHint.style.display = 'none';
     _updateDBSubTitle();
     console.log('DB_DATA load failed');
+    // Show load failure with retry button
+    var container = document.getElementById('dbContent');
+    if (container && dbCount() === 0) {
+      container.innerHTML = '<div class="db-load-fail"><p>数据库加载失败</p><button class="db-retry-btn" onclick="location.reload()">点击重试</button></div>';
+    }
   });
 })();
 
@@ -17611,7 +17708,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => { regs.forEach(r => r.unregister()); });
   if (caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
   // Register new service worker with version param
-  navigator.serviceWorker.register('./sw.js?v=20260803g').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260804a').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 </script>
 </body>
