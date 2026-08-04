@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.2';</script>
+<script>var APP_VER='2.3';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -248,6 +248,7 @@ body {
 .history-code { font-size:14px; font-weight:600; }
 .history-name { font-size:12px; color:var(--text2); margin-left:6px; }
 .history-params { font-size:11px; color:var(--text2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.history-time { font-size:10px; color:var(--text3, #bbb); margin-top:2px; }
 .history-right { text-align:right; flex-shrink:0; }
 .history-pb { font-size:14px; font-weight:600; }
 .history-judge { font-size:11px; padding:2px 8px; border-radius:4px; margin-top:2px; display:inline-block; font-weight:600; }
@@ -395,6 +396,18 @@ body {
   [data-theme="dark"] .info-menu-row { border-bottom-color: #2d2d44; }
   [data-theme="dark"] .info-menu-divider { border-top-color: #2d2d44; }
   [data-theme="dark"] .db-text-scroll::-webkit-scrollbar-thumb { background: #444; }
+  [data-theme="dark"] .result-item { background: #12121f; }
+  [data-theme="dark"] .result-card { box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  [data-theme="dark"] .search-clear { background: #555; }
+  [data-theme="dark"] .db-retry-btn { background: var(--primary); }
+  [data-theme="dark"] .db-load-fail p { color: var(--text2); }
+  [data-theme="dark"] .db-spinner { border-color: #2d2d44; border-top-color: var(--primary); }
+  [data-theme="dark"] .db-updater-header { background: #1a1a2e; border-bottom-color: #2d2d44; }
+  [data-theme="dark"] .db-updater-tabs { border-bottom-color: #2d2d44; }
+  [data-theme="dark"] .db-updater-body { background: #0f0f1a; }
+  [data-theme="dark"] .history-card { box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  [data-theme="dark"] #dbLoadHint { background: transparent; }
+  [data-theme="dark"] .btn-secondary { background: #1e2a4a; }
 </style>
 </head>
 <body>
@@ -11286,7 +11299,7 @@ async function doRegister() {
     document.getElementById('authOverlay').classList.add('hidden');
     updateMenuUser();
     saveAuthDB(db).then(ok => { if (!ok) { _loadCache(); /* refresh cache on failure */ } }); // fire-and-forget write
-    alert('注册成功！欢迎使用股票估值计算器');
+    showToast('注册成功！欢迎使用股票估值计算器');
   } catch(e) { err.textContent = '网络错误，请稍后重试'; }
   btn.textContent = '注册'; btn.disabled = false;
 }
@@ -11350,7 +11363,7 @@ async function doResetPassword() {
     _saveCache(db);
     const ok = await saveAuthDB(db);
     if (!ok) { err.textContent = '保存失败，请重试'; btn.textContent = '重置密码'; btn.disabled = false; return; }
-    alert('密码重置成功！请使用新密码登录');
+    showToast('密码重置成功！请使用新密码登录');
     switchAuthTab('login');
     document.getElementById('loginUser').value = user;
     document.getElementById('loginPass').value = '';
@@ -11415,7 +11428,7 @@ async function doDeregister() {
   if (!confirm('注销后将清除您的所有账号数据，确定要注销吗？')) return;
   try {
     let db = await getAuthDB();
-    if (db === null) { alert('网络连接失败，请稍后重试'); return; }
+    if (db === null) {     showToast('网络连接失败，请稍后重试'); return; }
     if (!db) db = {};
     delete db[session];
     _saveCache(db);
@@ -11428,9 +11441,9 @@ async function doDeregister() {
     document.getElementById('regPass').value = '';
     document.getElementById('regPass2').value = '';
     document.getElementById('regError').textContent = '';
-    alert('账号已注销');
+    showToast('账号已注销');
     saveAuthDB(db); // background write to cloud
-  } catch(e) { alert('注销失败，请稍后重试'); }
+  } catch(e) { showToast('注销失败，请稍后重试'); }
 }
 
 // Update menu user on load and after auth actions
@@ -17601,9 +17614,12 @@ function calculate() {
   const roeVal = getCalcVal('roe');
   const pbVal = getCalcVal('pb');
   if (!code) { showToast('请输入股票代码'); return; }
-  if (isNaN(peVal) || peVal <= 0) { showToast('请输入有效的PE（支持四则运算，如 100/13）'); return; }
-  if (isNaN(roeVal) || roeVal <= 0) { showToast('请输入有效的ROE（支持四则运算，如 50-36）'); return; }
-  if (isNaN(pbVal) || pbVal <= 0) { showToast('请输入有效的市场PB（支持四则运算，如 2.1/3）'); return; }
+  if (isNaN(peVal)) { showToast('请输入有效的PE（支持四则运算，如 100/13）'); return; }
+  if (peVal <= 0) { showToast('亏损公司PE为负值，PB=PE×ROE公式不适用'); return; }
+  if (isNaN(roeVal)) { showToast('请输入有效的ROE（支持四则运算，如 50-36）'); return; }
+  if (roeVal <= 0) { showToast('ROE为负值表示股东亏损，无法用此公式估值'); return; }
+  if (isNaN(pbVal)) { showToast('请输入有效的市场PB（支持四则运算，如 2.1/3）'); return; }
+  if (pbVal <= 0) { showToast('市场PB应大于0，破净股可参考其他估值方法'); return; }
   const roeDecimal = roeVal / 100;
   const calcPB = peVal * roeDecimal;
   const deviation = (pbVal - calcPB) / calcPB;
@@ -17645,7 +17661,7 @@ function renderHistory() {
   count.textContent = hist.length + ' 条';
   if (!hist.length) { list.innerHTML = '<div class="empty-state">暂无记录</div>'; clearRow.style.display='none'; return; }
   clearRow.style.display = '';
-  list.innerHTML = hist.map((r,i) => '<div class="history-item"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+r.code+'</span><span class="history-name">'+r.name+'</span><div class="history-params">PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div></div><div class="history-right"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="delHistory('+i+')">&times;</button></div>').join('');
+  list.innerHTML = hist.map((r,i) => '<div class="history-item"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+r.code+'</span><span class="history-name">'+r.name+'</span><div class="history-params">PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div>'+(r.time?'<div class="history-time">'+r.time+'</div>':'')+'</div><div class="history-right"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="delHistory('+i+')">&times;</button></div>').join('');
 }
 
 function loadHistory(idx) {
@@ -17663,7 +17679,22 @@ function loadHistory(idx) {
 }
 
 function delHistory(idx) { const h=getHistory(); h.splice(idx,1); saveHistory(h); renderHistory(); }
-function clearHistory() { if(confirm('确定清空全部历史记录？')){localStorage.removeItem(STORAGE_KEY);renderHistory();showToast('已清空全部历史');} }
+var _clearHistoryConfirm = false;
+var _clearHistoryTimer = null;
+function clearHistory() {
+  var btn = document.querySelector('#clearHistoryRow .btn');
+  if (!_clearHistoryConfirm) {
+    _clearHistoryConfirm = true;
+    if (btn) { btn.innerHTML = '&#x26A0; 再次点击确认清空'; btn.style.background = 'var(--red)'; btn.style.color = '#fff'; }
+    showToast('再次点击确认清空全部历史');
+    _clearHistoryTimer = setTimeout(function() { _clearHistoryConfirm = false; if (btn) { btn.innerHTML = '&#x1F5D1; 清空全部历史'; btn.style.background = ''; btn.style.color = ''; } }, 3000);
+  } else {
+    clearTimeout(_clearHistoryTimer);
+    _clearHistoryConfirm = false;
+    localStorage.removeItem(STORAGE_KEY); renderHistory();
+    showToast('已清空全部历史');
+  }
+}
 renderHistory();
 document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') calculate(); }));
 
@@ -17713,7 +17744,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => { regs.forEach(r => r.unregister()); });
   if (caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
   // Register new service worker with version param
-  navigator.serviceWorker.register('./sw.js?v=20260804b').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260804c').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 
 // ===== Auto Update Check =====
