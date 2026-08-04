@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.4';</script>
+<script>var APP_VER='2.5';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -11482,7 +11482,10 @@ function showDBUpdater() {
   panel.style.display = 'flex';
   switchUpdaterTab('api');
       document.getElementById('pushStockCount').textContent = dbCount();
-  document.getElementById('pushCacheStatus').textContent = localStorage.getItem('db_data_v' + (localStorage.getItem('db_data_ver_num') || '1')) ? '已缓存' : '无缓存';
+  document.getElementById('pushCacheStatus').textContent = '检查中...';
+  _dbLoad('db_data_v' + (localStorage.getItem('db_data_ver_num') || '1')).then(function(v) {
+    document.getElementById('pushCacheStatus').textContent = v ? '已缓存' : '无缓存';
+  });
   checkRemoteDB();
 }
 
@@ -11782,8 +11785,8 @@ function startApiFetch() {
       bar.style.width = '100%';
       barText.textContent = '完成';
       apiLog('抓取完毕！更新 ' + updated + ' 只，失败 ' + failed + ' 只');
-      // Save to localStorage
-      try { var _v = _bumpDBVersion(); localStorage.setItem('db_data_v' + _v, JSON.stringify(DB_DATA)); apiLog('已保存到本地缓存(v' + _v + ')'); } catch(e) { apiLog('本地缓存保存失败（数据过大）'); }
+      // Save to IndexedDB
+      try { var _v = _bumpDBVersion(); _dbSave('db_data_v' + _v, DB_DATA).then(function() { apiLog('已保存到本地缓存(v' + _v + ')'); }); } catch(e) { apiLog('本地缓存保存失败'); }
       document.getElementById('pushStockCount').textContent = dbCount();
       return;
     }
@@ -11812,12 +11815,18 @@ function uploadDBFile() {
   reader.onload = function(e) {
     try {
       var data = JSON.parse(e.target.result);
-      var keys = Object.keys(data);
-      if (!keys.length) { status.innerHTML = '<span style="color:var(--red);">文件内容为空</span>'; return; }
-      DB_DATA = data;
-      try { localStorage.setItem('db_data_v' + (localStorage.getItem('db_data_ver_num') || '1'), JSON.stringify(data)); } catch(ex) {}
-      status.innerHTML = '<span style="color:var(--green);">导入成功！已加载 ' + keys.length + ' 只股票数据</span>';
-      document.getElementById('pushStockCount').textContent = keys.length;
+      if (!data || (typeof data !== 'object')) { status.innerHTML = '<span style="color:var(--red);">文件内容为空</span>'; return; }
+      // Support both old-format (map) and new-format (array) JSON
+      if (data && data.d && Array.isArray(data.d)) {
+        // New array format: convert to map for internal use
+        DB_DATA = _buildDBMap(data);
+      } else {
+        DB_DATA = data;
+      }
+      try { var _uv = localStorage.getItem('db_data_ver_num') || '1'; _dbSave('db_data_v' + _uv, DB_DATA); } catch(ex) {}
+      var count = dbCount();
+      status.innerHTML = '<span style="color:var(--green);">导入成功！已加载 ' + count + ' 只股票数据</span>';
+      document.getElementById('pushStockCount').textContent = count;
     } catch(ex) {
       status.innerHTML = '<span style="color:var(--red);">JSON解析失败: ' + ex.message + '</span>';
     }
@@ -11835,9 +11844,10 @@ function pushToGitHub() {
 
   // Embed _meta with version for cache invalidation
   var pushVer = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10) + 1;
-  var pushData = {};
-  for (var k in DB_DATA) { if (k !== '_meta') pushData[k] = DB_DATA[k]; }
-  pushData._meta = { v: pushVer, t: Date.now(), c: dbCount() };
+  // Convert DB_DATA map to compact array format for push
+  var pushArr = [];
+  for (var k in DB_DATA) { if (k !== '_meta') pushArr.push(DB_DATA[k]); }
+  var pushData = { d: pushArr, _meta: { v: pushVer, t: Date.now(), c: pushArr.length } };
   var content = JSON.stringify(pushData);
   var contentB64 = btoa(unescape(encodeURIComponent(content)));
 
@@ -11877,7 +11887,7 @@ function uploadToGitHub(sha, contentB64, log, btn, pushVer, retryCount) {
     if (xhr.status === 200 || xhr.status === 201) {
       // Bump version so other devices/users will reload fresh data
       localStorage.setItem('db_data_ver_num', pushVer);
-      try { localStorage.setItem('db_data_v' + pushVer, JSON.stringify(DB_DATA)); } catch(e) {}
+      try { _dbSave('db_data_v' + pushVer, DB_DATA); } catch(e) {}
       log.innerHTML += '<span style="color:var(--green);">推送成功！线上数据库已更新（v' + pushVer + '）</span>';
       btn.textContent = '一键推送到线上';
       btn.disabled = false;
@@ -17117,7 +17127,107 @@ const DB_GROUPS = ["基础信息", null, null, null, null, "估值指标", null,
 let DB_DATA = {};
 let _dbDataLoading = false; // flag: remote fetch in progress
 
-const DB_DATA_VER = 'db_data_v' + (localStorage.getItem('db_data_ver_num') || '1');
+// === IndexedDB Storage Layer ===
+var _idb = null; // cached IDBDatabase
+function _openIDB() {
+  if (_idb) return Promise.resolve(_idb);
+  return new Promise(function(resolve, reject) {
+    try {
+      var req = indexedDB.open('StockDB', 1);
+      req.onupgradeneeded = function(e) { e.target.result.createObjectStore('data'); };
+      req.onsuccess = function(e) { _idb = e.target.result; resolve(_idb); };
+      req.onerror = function(e) { reject(e.target.error); };
+    } catch(e) { reject(e); }
+  });
+}
+function _dbSave(key, value) {
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('data', 'readwrite');
+      tx.objectStore('data').put(value, key);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+function _dbLoad(key) {
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('data', 'readonly');
+      var req = tx.objectStore('data').get(key);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+function _dbDelete(key) {
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('data', 'readwrite');
+      tx.objectStore('data').delete(key);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+function _dbClearAll() {
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('data', 'readwrite');
+      tx.objectStore('data').clear();
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+// === DB_DATA helpers ===
+// Convert array format (db_data.json v2+) to DB_DATA[code] map
+function _buildDBMap(data) {
+  var map = {};
+  if (Array.isArray(data)) {
+    // Old format: already a map stored as-is
+    for (var i = 0; i < data.length; i++) {
+      if (data[i] && data[i][0]) map[data[i][0]] = data[i];
+    }
+    return map;
+  }
+  if (data && data.d && Array.isArray(data.d)) {
+    // New format: {d: [[...],...], _meta: {...}}
+    for (var j = 0; j < data.d.length; j++) {
+      if (data.d[j] && data.d[j][0]) map[data.d[j][0]] = data.d[j];
+    }
+    return map;
+  }
+  // Already a map (old format from cache)
+  return data || {};
+}
+
+// === One-time migration: localStorage cache → IndexedDB ===
+function _migrateLS2IDB() {
+  try {
+    var ver = localStorage.getItem('db_data_ver_num');
+    if (!ver) return;
+    var cached = localStorage.getItem('db_data_v' + ver);
+    if (!cached) return;
+    // Migrate existing localStorage cache to IndexedDB
+    var data = JSON.parse(cached);
+    if (data) {
+      _dbSave('db_data_v' + ver, data).then(function() {
+        // Clean up old localStorage caches after successful migration
+        var keys = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.startsWith('db_data_v')) keys.push(k);
+        }
+        keys.forEach(function(k) { localStorage.removeItem(k); });
+        console.log('Migrated localStorage DB cache → IndexedDB, cleaned ' + keys.length + ' entries');
+      }).catch(function() {});
+    }
+  } catch(e) { console.log('LS→IDB migration skip:', e.message); }
+}
+_migrateLS2IDB();
+
 function _bumpDBVersion() {
   var v = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10) + 1;
   localStorage.setItem('db_data_ver_num', v);
@@ -17125,37 +17235,27 @@ function _bumpDBVersion() {
 }
 function dbCount() { return Object.keys(DB_DATA).filter(function(k) { return k !== '_meta'; }).length; }
 
-// Clear all old db_data localStorage entries (housekeeping)
-function _clearOldDBCache(keepVer) {
-  try {
-    var keys = [];
-    for (var i = 0; i < localStorage.length; i++) {
-      var k = localStorage.key(i);
-      if (k && k.startsWith('db_data_v') && k !== 'db_data_v' + keepVer) keys.push(k);
-    }
-    keys.forEach(function(k) { localStorage.removeItem(k); });
-  } catch(e) {}
-}
-
 function loadDBData() {
   var localVer = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10);
-  var cacheKey = 'db_data_v' + localVer;
 
-  // 1. Try localStorage cache (fast display)
+  // 1. Try IndexedDB cache (fast display)
   var hasCache = false;
-  try {
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      var parsed = JSON.parse(cached);
-      if (parsed && typeof parsed === 'object') { DB_DATA = parsed; hasCache = true; }
+  var cachePromise = _dbLoad('db_data_v' + localVer).then(function(cached) {
+    if (cached && typeof cached === 'object') {
+      // cached is already a DB_DATA map (stored after _buildDBMap)
+      DB_DATA = cached;
+      hasCache = true;
+      console.log('DB cache hit v' + localVer + ': ' + Object.keys(DB_DATA).length + ' stocks');
     }
-  } catch(e) { console.log('DB cache parse error:', e.message); }
+    return hasCache;
+  }).catch(function(e) {
+    console.log('IDB cache read error:', e.message);
+    return false;
+  });
 
   // 2. Always check remote for updates (with timeout)
   function fetchRemote() {
     _dbDataLoading = true;
-    // 8s timeout if we have cache (background refresh, fail silently)
-    // 15s timeout if no cache (must wait for data)
     var timeout = hasCache ? 8000 : 15000;
     var controller = new AbortController();
     var timer = setTimeout(function() { controller.abort(); }, timeout);
@@ -17163,31 +17263,32 @@ function loadDBData() {
       clearTimeout(timer);
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
-    }).then(function(data) {
-      if (!data || typeof data !== 'object') throw new Error('Invalid data');
+    }).then(function(raw) {
+      if (!raw || typeof raw !== 'object') throw new Error('Invalid data');
       // Extract version from remote _meta
-      var remoteVer = (data._meta && data._meta.v) ? data._meta.v : 0;
-      // Clean _meta from data before storing
-      delete data._meta;
+      var remoteVer = (raw._meta && raw._meta.v) ? raw._meta.v : 0;
+      // Build DB_DATA map from array or map format
+      var newMap = _buildDBMap(raw);
       // If cache exists and remote version is same or older, skip update
       if (hasCache && remoteVer <= localVer) {
         console.log('DB remote version ' + remoteVer + ' <= local ' + localVer + ', skip update');
         _dbDataLoading = false;
         return;
       }
-      // Always update DB_DATA with latest remote data
-      DB_DATA = data;
+      // Update DB_DATA with latest
+      DB_DATA = newMap;
       var newVer = remoteVer > localVer ? remoteVer : localVer + 1;
       localStorage.setItem('db_data_ver_num', newVer);
-      try { localStorage.setItem('db_data_v' + newVer, JSON.stringify(data)); } catch(e) {
-        // localStorage quota exceeded - try to clear old caches and retry
-        _clearOldDBCache(newVer);
-        try { localStorage.setItem('db_data_v' + newVer, JSON.stringify(data)); } catch(e2) {
-          console.log('DB cache still too large, skip caching');
-        }
-      }
-      _clearOldDBCache(newVer);
-      console.log('DB updated v' + localVer + ' -> v' + newVer + ': ' + Object.keys(data).length + ' stocks');
+      // Save to IndexedDB (no size limit!)
+      _dbSave('db_data_v' + newVer, newMap).then(function() {
+        // Clean old version caches
+        _dbLoad('db_data_v' + localVer).then(function(old) {
+          if (old && localVer !== newVer) _dbDelete('db_data_v' + localVer);
+        }).catch(function() {});
+        console.log('DB saved to IndexedDB v' + newVer + ': ' + Object.keys(newMap).length + ' stocks');
+      }).catch(function(e) {
+        console.log('IDB save error:', e.message);
+      });
       _dbDataLoading = false;
     }).catch(function(e) {
       clearTimeout(timer);
@@ -17196,14 +17297,16 @@ function loadDBData() {
     });
   }
 
-  if (hasCache) {
-    // Return immediately with cache, then silently refresh in background
-    fetchRemote();
-    return Promise.resolve(); // don't block UI
-  } else {
-    // No cache: must wait for remote
-    return fetchRemote();
-  }
+  return cachePromise.then(function(cached) {
+    if (cached) {
+      // Return immediately with cache, then silently refresh in background
+      fetchRemote();
+      return Promise.resolve(); // don't block UI
+    } else {
+      // No cache: must wait for remote
+      return fetchRemote();
+    }
+  });
 }
 
 const GROUP_COLORS = {'基础信息':'#1a5276','估值指标':'#1e8449','盈利能力':'#b7950b','财务健康':'#ca6f1e','股东回报':'#7d3c98','股权结构':'#c0392b','业务概览':'#1a5276'};
@@ -17704,8 +17807,10 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
   // Do NOT clear old version caches on startup - keep them for fast display
   // Old caches will be cleaned up after successful remote fetch
   var curVer = localStorage.getItem('db_data_ver_num') || '1';
-  // Show hint if no cache at all
-  try { if (!localStorage.getItem('db_data_v' + curVer) && dbHint) dbHint.style.display = 'block'; } catch(e) {}
+  // Check IndexedDB cache for hint display (async, non-blocking)
+  _dbLoad('db_data_v' + curVer).then(function(v) {
+    if (!v && dbHint) dbHint.style.display = 'block';
+  }).catch(function() { if (dbHint) dbHint.style.display = 'block'; });
   
   // Safety: always hide loading hint after 20s max (even if fetch hangs)
   var safetyTimer = setTimeout(function() {
@@ -17747,7 +17852,7 @@ function _updateDBSubTitle() {
 
 if ('serviceWorker' in navigator) {
   // Register service worker (no force-unregister to avoid breaking in-flight fetches)
-  navigator.serviceWorker.register('./sw.js?v=20260804d').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260804e').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 
 // ===== Auto Update Check =====
