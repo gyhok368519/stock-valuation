@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pb-calc-v25';
+const CACHE_NAME = 'pb-calc-v26';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './db_data.json',
@@ -27,7 +27,6 @@ self.addEventListener('fetch', e => {
   var url = e.request.url;
   
   // Proxy emweb API: match same-origin path containing /emweb-proxy/
-  // e.g. https://gyhok368519.github.io/stock-valuation/emweb-proxy/BonusFinancing/PageAjax?code=SH600519
   if (url.indexOf('/emweb-proxy/') !== -1) {
     var proxyIdx = url.indexOf('/emweb-proxy/');
     var afterProxy = url.substring(proxyIdx + '/emweb-proxy/'.length);
@@ -48,6 +47,20 @@ self.addEventListener('fetch', e => {
             status: 502,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
           });
+        })
+    );
+    return;
+  }
+
+  // Update check requests: bypass all caches, force fresh from network
+  if (url.indexOf('_update=') !== -1) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' })
+        .then(function(response) {
+          return response;
+        })
+        .catch(function() {
+          return caches.match(e.request);
         })
     );
     return;
