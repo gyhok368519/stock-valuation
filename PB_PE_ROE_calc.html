@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.9';</script>
+<script>var APP_VER='2.9.1';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -442,6 +442,17 @@ body {
   [data-theme="dark"] .fav-add-group { border-color: #2d2d44; }
   [data-theme="dark"] .fav-add-group:active { background: #1e2a4a; }
   [data-theme="dark"] .fav-group-actions span:active { background: #1e2a4a; }
+
+  /* Quick Access (Recent Visits) */
+  .quick-access { margin-bottom: 12px; }
+  .quick-access-title { font-size: 12px; color: var(--text3); margin-bottom: 6px; padding-left: 2px; }
+  .quick-access-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .quick-access-item { display: flex; align-items: center; gap: 4px; background: var(--card); border: 1px solid var(--gray-light); border-radius: 16px; padding: 4px 10px 4px 8px; cursor: pointer; transition: background 0.2s; }
+  .quick-access-item:active { background: var(--gray-light); }
+  .quick-access-item .qa-code { font-size: 12px; font-weight: 600; color: var(--primary); }
+  .quick-access-item .qa-name { font-size: 11px; color: var(--text2); max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  [data-theme="dark"] .quick-access-item { border-color: #2d2d44; }
+  [data-theme="dark"] .quick-access-item:active { background: #1e2a4a; }
 </style>
 </head>
 <body>
@@ -545,6 +556,7 @@ body {
       <button class="search-clear" id="dbSearchClear" onclick="dbSearch.value='';this.classList.remove('show');dbSearch.focus();document.getElementById('dbContent').innerHTML=document.getElementById('dbPlaceholder').innerHTML;">&times;</button>
       <div class="ac-list" id="dbAcList"></div>
     </div>
+    <div class="quick-access" id="quickAccess"></div>
     <div id="dbContent">
       <div id="dbLoadHint" style="display:none;text-align:center;padding:30px 20px;"><div class="db-spinner"></div><p style="margin-top:12px;color:var(--text2);font-size:13px;">正在加载数据库...</p></div>
       <div id="dbPlaceholder" style="display:none;"><div class="no-data-hint"><div class="icon">&#128269;</div><p>搜索股票代码或名称<br>查看完整财务数据</p></div></div>
@@ -12308,6 +12320,42 @@ function deleteFavGroup(groupName) {
   showToast('分组已删除');
 }
 
+// ===== Quick Access (Recent Visits) =====
+var RECENT_VISIT_KEY = 'pb_calc_recent_visits';
+var MAX_RECENT_VISITS = 8;
+
+function getRecentVisits() {
+  try { return JSON.parse(localStorage.getItem(RECENT_VISIT_KEY)) || []; } catch(e) { return []; }
+}
+function saveRecentVisits(list) {
+  localStorage.setItem(RECENT_VISIT_KEY, JSON.stringify(list));
+}
+function addRecentVisit(code, name) {
+  if (!code) return;
+  var list = getRecentVisits();
+  // Remove if already exists (to move to top)
+  list = list.filter(function(item) { return item.code !== code; });
+  list.unshift({code: code, name: name || STOCK_MAP[code] || '', time: Date.now()});
+  if (list.length > MAX_RECENT_VISITS) list = list.slice(0, MAX_RECENT_VISITS);
+  saveRecentVisits(list);
+  renderQuickAccess();
+}
+function renderQuickAccess() {
+  var container = document.getElementById('quickAccess');
+  if (!container) return;
+  var list = getRecentVisits();
+  if (list.length === 0) { container.innerHTML = ''; return; }
+  var html = '<div class="quick-access-title">最近访问</div><div class="quick-access-list">';
+  list.forEach(function(item) {
+    html += '<div class="quick-access-item" onclick="showDBDetail(\'' + _esc(item.code) + '\')">';
+    html += '<span class="qa-code">' + _esc(item.code) + '</span>';
+    html += '<span class="qa-name">' + _esc(item.name) + '</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
 // === DB_DATA helpers ===
 // Convert array format (db_data.json v2+) to DB_DATA[code] map
 function _buildDBMap(data) {
@@ -12527,6 +12575,7 @@ function _debounce(fn, ms) {
 function showDBDetail(code) {
   const container = document.getElementById('dbContent');
   const name = STOCK_MAP[code] || '';
+  addRecentVisit(code, name); // Record visit for quick access
   const rowData = DB_DATA[code];
   if (!rowData) {
     if (_dbDataLoading || dbCount() === 0) {
@@ -12975,6 +13024,7 @@ function clearHistory() {
   }
 }
 renderHistory();
+renderQuickAccess();
 document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') calculate(); }));
 
 // Load DB_DATA (async, with localStorage cache)
@@ -13030,7 +13080,7 @@ function _updateDBSubTitle() {
 
 if ('serviceWorker' in navigator) {
   // Register service worker (no force-unregister to avoid breaking in-flight fetches)
-  navigator.serviceWorker.register('./sw.js?v=20260804m').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260804n').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 
 // ===== Auto Update Check =====
