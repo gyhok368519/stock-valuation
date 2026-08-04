@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.8.2';</script>
+<script>var APP_VER='2.8.3';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -12549,7 +12549,7 @@ function showDBDetail(code) {
   var _favStar = isFav(code) ? '★' : '☆';
   html += `<div class="db-stock-header">
     <div class="left"><div><span class="code">${_esc(code)}</span><span class="name">${_esc(name)}</span></div></div>
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;gap:16px;">
       <span class="db-fav-star ${_favActive}" data-code="${_esc(code)}" onclick="toggleFav('${_esc(code)}')">${_favStar}</span>
       <div class="db-go-calc" onclick="goCalc('${_esc(code)}')">去计算</div>
     </div>
@@ -12951,6 +12951,9 @@ function loadHistory(idx) {
   document.getElementById('roe').value = r.roe;
   document.getElementById('pb').value = r.marketPB;
   document.getElementById('resultCard').classList.remove('show');
+  // Sync input fav star for this code
+  var inputBtn = document.getElementById('calcInputFavBtn');
+  if (inputBtn && r.code) { var f = isFav(r.code); inputBtn.classList.toggle('active', f); inputBtn.textContent = f ? '★' : '☆'; }
   showToast('已加载，可修改后重新计算');
 }
 
@@ -13027,7 +13030,7 @@ function _updateDBSubTitle() {
 
 if ('serviceWorker' in navigator) {
   // Register service worker (no force-unregister to avoid breaking in-flight fetches)
-  navigator.serviceWorker.register('./sw.js?v=20260804j').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260804k').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 
 // ===== Auto Update Check =====
