@@ -11628,6 +11628,7 @@ function startApiFetch() {
   function fetchEmwebData(code, mkt, row, closePrice, netProfit) {
     var bonusUrl = './emweb-proxy/BonusFinancing/PageAjax?code=' + mkt + code;
     var companyUrl = './emweb-proxy/CompanySurvey/PageAjax?code=' + mkt + code;
+    var holderUrl = './emweb-proxy/ShareholderResearch/PageAjax?code=' + mkt + code;
 
     var p1 = fetch(bonusUrl).then(function(r) { return r.json(); }).then(function(data) {
       try {
@@ -11689,14 +11690,15 @@ function startApiFetch() {
       } catch(e) {}
     }).catch(function(){});
 
+    // p2: CompanySurvey — 主营业务内容 + ORG_PROFILE正则兜底
     var p2 = fetch(companyUrl, {mode: 'cors'}).then(function(r) { return r.json(); }).then(function(data) {
       try {
         if (data.jbzl && data.jbzl.length > 0) {
           var jb = data.jbzl[0];
           // 主营业务内容: ORG_PROFILE (truncated to 200 chars)
           if (jb.ORG_PROFILE) row[20] = jb.ORG_PROFILE.substring(0, 200).trim();
-          // 控股股东名称: extract from ORG_PROFILE ("控股股东为XXX")
-          if (jb.ORG_PROFILE) {
+          // 控股股东名称: ORG_PROFILE正则提取（仅作为兜底，p3优先级更高）
+          if (jb.ORG_PROFILE && !row[19]) {
             var _p = jb.ORG_PROFILE;
             var _cm = _p.match(/控股股东为(.+?)[，。,；\n]/) || _p.match(/控股股东是(.+?)[，。,；\n]/) || _p.match(/控股股东[：:]\s*(.+?)[，。,；\n]/) || _p.match(/实际控制人为(.+?)[，。,；\n]/) || _p.match(/实际控制人[：:]\s*(.+?)[，。,；\n]/);
             if (_cm && _cm[1]) row[19] = _cm[1].trim();
@@ -11705,7 +11707,24 @@ function startApiFetch() {
       } catch(e) {}
     }).catch(function(){});
 
-    return Promise.all([p1, p2]);
+    // p3: ShareholderResearch — 三级优先填充控股股东名称
+    //   优先级1: sjkzr[0].HOLDER_NAME (实际控制人)
+    //   优先级2: sdgd[0].HOLDER_NAME (十大股东第1名)
+    //   优先级3: ORG_PROFILE正则 (已在p2中处理)
+    var p3 = fetch(holderUrl).then(function(r) { return r.json(); }).then(function(data) {
+      try {
+        // 优先级1: 实际控制人
+        if (data.sjkzr && data.sjkzr.length > 0 && data.sjkzr[0].HOLDER_NAME) {
+          row[19] = data.sjkzr[0].HOLDER_NAME.trim();
+        }
+        // 优先级2: 十大股东第1名（仅当sjkzr为空且row[19]仍为空时）
+        if ((!row[19] || row[19] === null) && data.sdgd && data.sdgd.length > 0 && data.sdgd[0].HOLDER_NAME) {
+          row[19] = data.sdgd[0].HOLDER_NAME.trim();
+        }
+      } catch(e) {}
+    }).catch(function(){});
+
+    return Promise.all([p1, p2, p3]);
   }
 
   // Process in batches
