@@ -17769,26 +17769,51 @@ if ('serviceWorker' in navigator) {
   var localVer = APP_VER || '0';
   var key = '_app_ver_last_check';
   var now = Date.now();
-  // Check at most once per 60s (avoid loop)
+  // Check at most once per 30s (avoid loop but allow reasonable re-check)
   var lastCheck = parseInt(localStorage.getItem(key) || '0', 10);
-  if (now - lastCheck < 60000) return; // checked recently
+  if (now - lastCheck < 30000) return; // checked recently
   localStorage.setItem(key, String(now));
-  // Fetch online HTML with no-cache
-  fetch('./PB_PE_ROE_calc.html?t=' + now, {cache: 'no-cache'})
-    .then(function(r) { return r.text(); })
-    .then(function(html) {
-      var m = html.match(/var APP_VER='([^']+)'/);
-      if (m && m[1] && m[1] !== localVer) {
-        console.log('New version detected: ' + m[1] + ' (current: ' + localVer + '), reloading...');
-        // Clear SW caches only (keep localStorage DB cache for fast reload)
-        if (caches) caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
-        // Unregister SW so new version picks up fresh sw.js
-        if (navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
-        // Reload
-        location.reload(true);
-      } else {
-        console.log('Version check: up-to-date (' + localVer + ')');
+  // Fetch online HTML with cache-busting timestamp param
+  // Use GitHub API to get latest commit for the file - bypasses CDN cache entirely
+  var apiUrl = 'https://api.github.com/repos/gyhok368519/stock-valuation/commits?path=PB_PE_ROE_calc.html&per_page=1&_t=' + now;
+  fetch(apiUrl, {cache: 'no-store'})
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data && data[0] && data[0].commit) {
+        var remoteMsg = data[0].commit.message || '';
+        // Extract version from commit message like "v2.4: ..." or check the HTML directly
+        var verMatch = remoteMsg.match(/v(\d+\.\d+)/);
+        if (verMatch && verMatch[1]) {
+          var remoteVer = verMatch[1];
+          if (remoteVer !== localVer) {
+            console.log('New version detected via API: v' + remoteVer + ' (current: v' + localVer + '), reloading...');
+            // Clear SW caches
+            if (caches) caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
+            // Unregister SW
+            if (navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
+            // Reload with cache-bust
+            location.reload(true);
+          } else {
+            console.log('Version check (API): up-to-date (v' + localVer + ')');
+          }
+          return;
+        }
       }
+      // Fallback: fetch the HTML directly with cache-bust
+      console.log('API version check failed, falling back to HTML fetch...');
+      return fetch('./PB_PE_ROE_calc.html?nocache=' + now, {cache: 'no-store'})
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+          var m = html.match(/var APP_VER='([^']+)'/);
+          if (m && m[1] && m[1] !== localVer) {
+            console.log('New version detected (HTML): v' + m[1] + ' (current: v' + localVer + '), reloading...');
+            if (caches) caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
+            if (navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
+            location.reload(true);
+          } else {
+            console.log('Version check (HTML): up-to-date (v' + localVer + ')');
+          }
+        });
     })
     .catch(function(e) { console.log('Version check failed:', e.message); });
 })();
