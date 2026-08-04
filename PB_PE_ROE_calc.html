@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.8.1';</script>
+<script>var APP_VER='2.8.2';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -99,7 +99,7 @@ body {
 .db-stock-header .sub { font-size: 12px; opacity: 0.7; margin-top: 4px; }
 .db-go-calc {
   background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.4);
-  border-radius: 20px; padding: 8px 16px; font-size: 13px; font-weight: 600;
+  border-radius: 20px; padding: 6px 12px; font-size: 12px; font-weight: 600;
   cursor: pointer; white-space: nowrap; transition: background 0.2s;
 }
 .db-go-calc:active { background: rgba(255,255,255,0.35); }
@@ -566,7 +566,7 @@ body {
   </div>
   <div class="container">
     <div class="card">
-      <div class="card-title">&#x1F4DD; 录入数据</div>
+      <div class="card-title" style="position:relative;">&#x1F4DD; 录入数据<span class="calc-fav-btn" id="calcInputFavBtn" style="display:block;position:absolute;right:0;top:50%;transform:translateY(-50%);" onclick="toggleFavCalc()">☆</span></div>
       <div class="form-row">
         <div class="form-group">
           <label>股票代码</label>
@@ -12200,10 +12200,12 @@ function updateFavStar(code, active) {
     el.classList.toggle('active', active);
     el.textContent = active ? '★' : '☆';
   });
-  var calcBtn = document.getElementById('calcFavBtn');
-  if (calcBtn && codeInput && codeInput.value.trim() === code) {
-    calcBtn.classList.toggle('active', active);
-    calcBtn.textContent = active ? '★' : '☆';
+  // Sync calc page fav buttons
+  if (codeInput && codeInput.value.trim() === code) {
+    var calcBtn = document.getElementById('calcFavBtn');
+    if (calcBtn) { calcBtn.classList.toggle('active', active); calcBtn.textContent = active ? '★' : '☆'; }
+    var inputBtn = document.getElementById('calcInputFavBtn');
+    if (inputBtn) { inputBtn.classList.toggle('active', active); inputBtn.textContent = active ? '★' : '☆'; }
   }
 }
 // Update fav count in subtitle
@@ -12549,7 +12551,7 @@ function showDBDetail(code) {
     <div class="left"><div><span class="code">${_esc(code)}</span><span class="name">${_esc(name)}</span></div></div>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="db-fav-star ${_favActive}" data-code="${_esc(code)}" onclick="toggleFav('${_esc(code)}')">${_favStar}</span>
-      <div class="db-go-calc" onclick="goCalc('${_esc(code)}')">&#x1F4CA; 去计算</div>
+      <div class="db-go-calc" onclick="goCalc('${_esc(code)}')">去计算</div>
     </div>
   </div>`;
 
@@ -12790,9 +12792,18 @@ var _calcSearchDebounced = _debounce(function(v) {
     document.getElementById('pe').value = '';
     document.getElementById('pb').value = '';
     document.getElementById('roe').value = '';
+    // Sync input fav star
+    var inputBtn = document.getElementById('calcInputFavBtn');
+    if (inputBtn) { var f = isFav(v); inputBtn.classList.toggle('active', f); inputBtn.textContent = f ? '★' : '☆'; }
     fetchRealTimeData(v);
   }
-  else { nameInput.value = ''; calcDoSearch(v); }
+  else {
+    nameInput.value = '';
+    calcDoSearch(v);
+    // Clear input fav star when code is incomplete
+    var inputBtn = document.getElementById('calcInputFavBtn');
+    if (inputBtn) { inputBtn.classList.remove('active'); inputBtn.textContent = '☆'; }
+  }
 }, 300);
 
 codeInput.addEventListener('input', function() {
@@ -12909,6 +12920,8 @@ function clearForm() {
   document.getElementById('resultCard').classList.remove('show');
   var calcFavBtn = document.getElementById('calcFavBtn');
   if (calcFavBtn) { calcFavBtn.style.display = 'none'; calcFavBtn.classList.remove('active'); }
+  var inputBtn = document.getElementById('calcInputFavBtn');
+  if (inputBtn) { inputBtn.classList.remove('active'); inputBtn.textContent = '☆'; }
   codeInput.focus();
 }
 
@@ -13014,7 +13027,7 @@ function _updateDBSubTitle() {
 
 if ('serviceWorker' in navigator) {
   // Register service worker (no force-unregister to avoid breaking in-flight fetches)
-  navigator.serviceWorker.register('./sw.js?v=20260804i').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260804j').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 
 // ===== Auto Update Check =====
