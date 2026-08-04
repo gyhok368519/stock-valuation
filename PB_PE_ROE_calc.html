@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.3';</script>
+<script>var APP_VER='2.4';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -17156,9 +17156,11 @@ function loadDBData() {
   // 2. Always check remote for updates (with timeout)
   function fetchRemote() {
     _dbDataLoading = true;
-    // Add 15s timeout for slow mobile networks
+    // 8s timeout if we have cache (background refresh, fail silently)
+    // 15s timeout if no cache (must wait for data)
+    var timeout = hasCache ? 8000 : 15000;
     var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, 15000);
+    var timer = setTimeout(function() { controller.abort(); }, timeout);
     return fetch('./db_data.json', {cache: 'no-cache', signal: controller.signal}).then(function(r) {
       clearTimeout(timer);
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -17169,6 +17171,12 @@ function loadDBData() {
       var remoteVer = (data._meta && data._meta.v) ? data._meta.v : 0;
       // Clean _meta from data before storing
       delete data._meta;
+      // If cache exists and remote version is same or older, skip update
+      if (hasCache && remoteVer <= localVer) {
+        console.log('DB remote version ' + remoteVer + ' <= local ' + localVer + ', skip update');
+        _dbDataLoading = false;
+        return;
+      }
       // Always update DB_DATA with latest remote data
       DB_DATA = data;
       var newVer = remoteVer > localVer ? remoteVer : localVer + 1;
@@ -17286,7 +17294,12 @@ function showDBDetail(code) {
   const rowData = DB_DATA[code];
   if (!rowData) {
     if (_dbDataLoading || dbCount() === 0) {
-      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);">数据库正在加载，请稍后重试</div>';
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);"><div class="db-spinner" style="margin-bottom:12px;"></div>数据库正在加载...</div>';
+      // Auto-retry: wait for DB to load, then re-render
+      if (!window._dbPendingDetail) window._dbPendingDetail = [];
+      var exist = window._dbPendingDetail.findIndex(function(x) { return x.code === code; });
+      if (exist >= 0) window._dbPendingDetail[exist] = { code: code, name: name };
+      else window._dbPendingDetail.push({ code: code, name: name });
     } else {
       container.innerHTML = '<div class="db-back" onclick="dbBackToSearch()">&#x2190; 返回搜索</div><div style="text-align:center;padding:40px;color:var(--text2);">该股票暂无数据库记录<br><span style="font-size:12px;color:var(--text3, #aaa)">可在计算器页面手动输入数据</span></div>';
     }
@@ -17701,10 +17714,10 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
 // Load DB_DATA (async, with localStorage cache)
 (function initDB() {
   var dbHint = document.getElementById('dbLoadHint');
-  // Clear all old version caches on startup
+  // Do NOT clear old version caches on startup - keep them for fast display
+  // Old caches will be cleaned up after successful remote fetch
   var curVer = localStorage.getItem('db_data_ver_num') || '1';
-  _clearOldDBCache(curVer);
-  // Show hint if no cache
+  // Show hint if no cache at all
   try { if (!localStorage.getItem('db_data_v' + curVer) && dbHint) dbHint.style.display = 'block'; } catch(e) {}
   
   // Safety: always hide loading hint after 20s max (even if fetch hangs)
@@ -17718,6 +17731,12 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
     if (dbHint) dbHint.style.display = 'none';
     _updateDBSubTitle();
     console.log('DB_DATA loaded: ' + dbCount() + ' stocks');
+    // Process pending detail requests
+    if (window._dbPendingDetail && window._dbPendingDetail.length) {
+      var pending = window._dbPendingDetail;
+      window._dbPendingDetail = [];
+      pending.forEach(function(p) { showDBDetail(p.code); });
+    }
   }).catch(function() {
     clearTimeout(safetyTimer);
     if (dbHint) dbHint.style.display = 'none';
@@ -17740,11 +17759,8 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  // Force unregister old service workers and clear all caches
-  navigator.serviceWorker.getRegistrations().then(regs => { regs.forEach(r => r.unregister()); });
-  if (caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-  // Register new service worker with version param
-  navigator.serviceWorker.register('./sw.js?v=20260804c').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  // Register service worker (no force-unregister to avoid breaking in-flight fetches)
+  navigator.serviceWorker.register('./sw.js?v=20260804d').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 
 // ===== Auto Update Check =====
@@ -17764,9 +17780,9 @@ if ('serviceWorker' in navigator) {
       var m = html.match(/var APP_VER='([^']+)'/);
       if (m && m[1] && m[1] !== localVer) {
         console.log('New version detected: ' + m[1] + ' (current: ' + localVer + '), reloading...');
-        // Clear all caches
+        // Clear SW caches only (keep localStorage DB cache for fast reload)
         if (caches) caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
-        // Unregister SW
+        // Unregister SW so new version picks up fresh sw.js
         if (navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
         // Reload
         location.reload(true);
