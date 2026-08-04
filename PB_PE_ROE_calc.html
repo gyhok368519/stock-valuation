@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.7';</script>
+<script>var APP_VER='2.8';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -405,6 +405,43 @@ body {
   [data-theme="dark"] .history-card { box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
   [data-theme="dark"] #dbLoadHint { background: transparent; }
   [data-theme="dark"] .btn-secondary { background: #1e2a4a; }
+
+  /* ===== Favorites Page ===== */
+  .fav-group-header { display:flex; align-items:center; justify-content:space-between; padding:8px 4px; margin-top:12px; font-size:13px; font-weight:600; color:var(--text2); }
+  .fav-group-header:first-child { margin-top:0; }
+  .fav-group-name { display:flex; align-items:center; gap:6px; }
+  .fav-group-dot { width:8px; height:8px; border-radius:50%; }
+  .fav-group-actions { display:flex; gap:8px; }
+  .fav-group-actions span { font-size:11px; color:var(--text3); cursor:pointer; padding:2px 6px; border-radius:4px; }
+  .fav-group-actions span:active { background:var(--gray-light); }
+  .fav-item { display:flex; align-items:center; padding:10px 12px; margin:4px 0; background:var(--card); border-radius:var(--radius); box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+  .fav-item:active { background:var(--gray-light); }
+  .fav-star { font-size:18px; color:#f5a623; cursor:pointer; flex-shrink:0; margin-right:10px; -webkit-user-select:none; user-select:none; }
+  .fav-info { flex:1; min-width:0; cursor:pointer; }
+  .fav-info-top { display:flex; align-items:baseline; gap:6px; }
+  .fav-code { font-size:15px; font-weight:700; color:var(--text); }
+  .fav-name { font-size:13px; color:var(--text2); }
+  .fav-metrics { display:flex; gap:12px; margin-top:4px; font-size:11px; color:var(--text3); }
+  .fav-metric-val { font-weight:600; color:var(--text2); }
+  .fav-go { font-size:16px; color:var(--text3); padding:4px 8px; cursor:pointer; flex-shrink:0; }
+  .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
+  .fav-empty-icon { font-size:48px; margin-bottom:12px; }
+  .fav-empty p { font-size:14px; margin-bottom:6px; }
+  .fav-empty small { font-size:12px; color:var(--text3); }
+  .fav-add-group { display:flex; align-items:center; gap:6px; margin-top:16px; padding:10px; border:1px dashed var(--gray-light); border-radius:var(--radius); color:var(--text3); font-size:13px; cursor:pointer; justify-content:center; }
+  .fav-add-group:active { background:var(--gray-light); }
+  .fav-count-badge { font-size:11px; background:var(--primary); color:#fff; border-radius:10px; padding:1px 7px; margin-left:4px; }
+  .db-fav-star { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:22px; color:#ccc; cursor:pointer; transition:color 0.2s; -webkit-user-select:none; user-select:none; }
+  .db-fav-star.active { color:#f5a623; }
+  .db-fav-star:active { transform:translateY(-50%) scale(1.3); }
+  .calc-fav-btn { display:none; position:absolute; right:16px; top:50%; transform:translateY(-50%); font-size:20px; color:#ccc; cursor:pointer; transition:color 0.2s; -webkit-user-select:none; user-select:none; }
+  .calc-fav-btn.active { color:#f5a623; }
+  .calc-fav-btn:active { transform:translateY(-50%) scale(1.3); }
+  [data-theme="dark"] .fav-item { box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  [data-theme="dark"] .fav-item:active { background: #1e1e30; }
+  [data-theme="dark"] .fav-add-group { border-color: #2d2d44; }
+  [data-theme="dark"] .fav-add-group:active { background: #1e2a4a; }
+  [data-theme="dark"] .fav-group-actions span:active { background: #1e2a4a; }
 </style>
 </head>
 <body>
@@ -554,8 +591,9 @@ body {
       </div>
       <div id="rtStatus" style="display:none;text-align:center;padding:4px 0;font-size:12px;color:var(--text2);"></div>
     </div>
-    <div class="result-card" id="resultCard">
+    <div class="result-card" id="resultCard" style="position:relative;">
       <div class="card-title">&#x1F4C8; 计算结果</div>
+      <span class="calc-fav-btn" id="calcFavBtn" onclick="toggleFavCalc()">\u2606</span>
       <div class="result-grid">
         <div class="result-item"><div class="label">计算PB (PE x ROE)</div><div class="value" id="calcPB">-</div></div>
         <div class="result-item"><div class="label">市场PB</div><div class="value" id="marketPB">-</div></div>
@@ -571,15 +609,38 @@ body {
   </div>
 </div>
 
+<!-- ========== PAGE 3: Favorites ========== -->
+<div class="page" id="pageFav">
+  <div class="header" style="position:relative;">
+    <h1>\u2B50 我的收藏</h1>
+    <p id="favSubTitle">0 只股票</p>
+    <button class="info-btn" style="right:12px;" id="themeBtnFav" onclick="toggleTheme()" title="\u5207\u6362\u6DF1\u8272\u6A21\u5F0F"><span id="themeIconFav"></span></button>
+  </div>
+  <div class="container">
+    <div id="favContent">
+      <div class="fav-empty">
+        <div class="fav-empty-icon">\u2B50</div>
+        <p>\u8FD8\u6CA1\u6709\u6536\u85CF\u7684\u80A1\u7968</p>
+        <small>\u5728\u6570\u636E\u5E93\u6216\u8BA1\u7B97\u5668\u4E2D\u70B9\u51FB\u2605\u6536\u85CF</small>
+      </div>
+    </div>
+    <div class="fav-add-group" onclick="addFavGroup()">+ \u65B0\u5EFA\u5206\u7EC4</div>
+  </div>
+</div>
+
 <!-- Tab Bar -->
 <div class="tab-bar">
   <div class="tab-item active" onclick="switchTab('db')">
     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-    <span>数据库</span>
+    <span>\u6570\u636E\u5E93</span>
   </div>
   <div class="tab-item" onclick="switchTab('calc')">
     <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm4 11H8v-1c0-1.7 2.7-2.5 4-2.5s4 .8 4 2.5v1z"/></svg>
-    <span>计算器</span>
+    <span>\u8BA1\u7B97\u5668</span>
+  </div>
+  <div class="tab-item" onclick="switchTab('fav')">
+    <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+    <span>\u6536\u85CF</span>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -11118,12 +11179,16 @@ function _updateThemeIcons() {
   var title = _isDarkMode ? '切换浅色模式' : '切换深色模式';
   var dbBtn = document.getElementById('themeIconDB');
   var calcBtn = document.getElementById('themeIconCalc');
+  var favBtn = document.getElementById('themeIconFav');
   if (dbBtn) { dbBtn.innerHTML = icon; }
   if (calcBtn) { calcBtn.innerHTML = icon; }
+  if (favBtn) { favBtn.innerHTML = icon; }
   var dbBtnP = document.getElementById('themeBtnDB');
   var calcBtnP = document.getElementById('themeBtnCalc');
+  var favBtnP = document.getElementById('themeBtnFav');
   if (dbBtnP) dbBtnP.title = title;
   if (calcBtnP) calcBtnP.title = title;
+  if (favBtnP) favBtnP.title = title;
 }
 (function initTheme() {
   var saved = localStorage.getItem('pb_calc_theme');
@@ -12002,8 +12067,12 @@ function _openIDB() {
   if (_idb) return Promise.resolve(_idb);
   return new Promise(function(resolve, reject) {
     try {
-      var req = indexedDB.open('StockDB', 1);
-      req.onupgradeneeded = function(e) { e.target.result.createObjectStore('data'); };
+      var req = indexedDB.open('StockDB', 2);
+      req.onupgradeneeded = function(e) {
+        var db = e.target.result;
+        if (!db.objectStoreNames.contains('data')) db.createObjectStore('data');
+        if (!db.objectStoreNames.contains('fav')) db.createObjectStore('fav', {keyPath: 'code'});
+      };
       req.onsuccess = function(e) { _idb = e.target.result; resolve(_idb); };
       req.onerror = function(e) { reject(e.target.error); };
     } catch(e) { reject(e); }
@@ -12048,6 +12117,193 @@ function _dbClearAll() {
       tx.onerror = function(e) { reject(e.target.error); };
     });
   });
+}
+
+// ===== Favorites API =====
+var _favCache = null; // in-memory cache: { code: {code, name, group, time} }
+var _favGroups = ['默认']; // group names
+
+function _favSave(obj) {
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('fav', 'readwrite');
+      tx.objectStore('fav').put(obj);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+function _favDelete(code) {
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('fav', 'readwrite');
+      tx.objectStore('fav').delete(code);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+function _favLoadAll() {
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('fav', 'readonly');
+      var req = tx.objectStore('fav').getAll();
+      req.onsuccess = function() { resolve(req.result || []); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+// Load favorites into memory cache
+function loadFavCache() {
+  return _favLoadAll().then(function(list) {
+    _favCache = {};
+    var groups = {};
+    list.forEach(function(item) {
+      _favCache[item.code] = item;
+      if (item.group) groups[item.group] = true;
+    });
+    // Ensure default group exists
+    groups['默认'] = true;
+    _favGroups = Object.keys(groups);
+    if (_favGroups.indexOf('默认') !== 0) {
+      _favGroups.splice(_favGroups.indexOf('默认'), 1);
+      _favGroups.unshift('默认');
+    }
+    return _favCache;
+  }).catch(function() { _favCache = {}; _favGroups = ['默认']; return _favCache; });
+}
+// Check if a stock is favorited
+function isFav(code) {
+  if (!_favCache) return false;
+  return !!_favCache[code];
+}
+// Toggle favorite
+function toggleFav(code) {
+  var name = STOCK_MAP[code] || '';
+  if (isFav(code)) {
+    delete _favCache[code];
+    _favDelete(code);
+    updateFavStar(code, false);
+    showToast('已取消收藏 ' + name);
+  } else {
+    var obj = {code: code, name: name, group: '默认', time: Date.now()};
+    _favCache[code] = obj;
+    _favSave(obj);
+    updateFavStar(code, true);
+    showToast('已收藏 ' + name);
+  }
+  updateFavCount();
+}
+// Update all fav star icons for a given code
+function updateFavStar(code, active) {
+  document.querySelectorAll('.db-fav-star[data-code="'+code+'"]').forEach(function(el) {
+    el.classList.toggle('active', active);
+    el.textContent = active ? '\u2605' : '\u2606';
+  });
+  var calcBtn = document.getElementById('calcFavBtn');
+  if (calcBtn && codeInput && codeInput.value.trim() === code) {
+    calcBtn.classList.toggle('active', active);
+    calcBtn.textContent = active ? '\u2605' : '\u2606';
+  }
+}
+// Update fav count in subtitle
+function updateFavCount() {
+  var count = _favCache ? Object.keys(_favCache).length : 0;
+  var sub = document.getElementById('favSubTitle');
+  if (sub) sub.textContent = count + ' 只股票';
+}
+// Render favorites list
+function renderFavList() {
+  var container = document.getElementById('favContent');
+  if (!_favCache || Object.keys(_favCache).length === 0) {
+    container.innerHTML = '<div class="fav-empty"><div class="fav-empty-icon">\u2B50</div><p>还没有收藏的股票</p><small>在数据库或计算器中点击\u2605收藏</small></div>';
+    updateFavCount();
+    return;
+  }
+  // Group by _favGroups order
+  var grouped = {};
+  _favGroups.forEach(function(g) { grouped[g] = []; });
+  for (var code in _favCache) {
+    var item = _favCache[code];
+    var g = item.group || '默认';
+    if (!grouped[g]) grouped[g] = [];
+    grouped[g].push(item);
+  }
+  var html = '';
+  var GROUP_COLORS_ARR = ['#1a5276','#1e8449','#b7950b','#ca6f1e','#7d3c98','#c0392b','#2e86c1'];
+  _favGroups.forEach(function(group, gi) {
+    var items = grouped[group];
+    if (!items || items.length === 0) return;
+    var color = GROUP_COLORS_ARR[gi % GROUP_COLORS_ARR.length];
+    html += '<div class="fav-group-header"><div class="fav-group-name"><span class="fav-group-dot" style="background:'+color+'"></span>'+_esc(group)+'<span class="fav-count-badge">'+items.length+'</span></div>';
+    if (group !== '默认') {
+      html += '<div class="fav-group-actions"><span onclick="renameFavGroup(\''+_esc(group)+'\')">重命名</span><span onclick="deleteFavGroup(\''+_esc(group)+'\')">删除分组</span></div>';
+    }
+    html += '</div>';
+    items.forEach(function(item) {
+      var row = DB_DATA[item.code];
+      var pe = row ? getFieldVal('PE', row) : '-';
+      var pb = row ? getFieldVal('PB', row) : '-';
+      var roe = row ? getFieldVal('ROE', row) : '-';
+      html += '<div class="fav-item">';
+      html += '<span class="fav-star" onclick="toggleFav(\''+_esc(item.code)+'\');renderFavList();">\u2605</span>';
+      html += '<div class="fav-info" onclick="goToFavDetail(\''+_esc(item.code)+'\')">';
+      html += '<div class="fav-info-top"><span class="fav-code">'+_esc(item.code)+'</span><span class="fav-name">'+_esc(item.name)+'</span></div>';
+      html += '<div class="fav-metrics"><span>PE <span class="fav-metric-val">'+pe+'</span></span><span>PB <span class="fav-metric-val">'+pb+'</span></span><span>ROE <span class="fav-metric-val">'+roe+'</span></span></div>';
+      html += '</div>';
+      html += '<span class="fav-go" onclick="goCalc(\''+_esc(item.code)+'\')">\u203A</span>';
+      html += '</div>';
+    });
+  });
+  container.innerHTML = html;
+  updateFavCount();
+}
+// Navigate to DB detail from favorites
+function goToFavDetail(code) {
+  switchTab('db');
+  document.getElementById('dbSearch').value = code;
+  showDBDetail(code);
+}
+// Add new group
+function addFavGroup() {
+  var name = prompt('请输入新分组名称：');
+  if (!name || !name.trim()) return;
+  name = name.trim();
+  if (_favGroups.indexOf(name) >= 0) { showToast('分组已存在'); return; }
+  _favGroups.push(name);
+  renderFavList();
+  showToast('已添加分组: ' + name);
+}
+// Rename group
+function renameFavGroup(oldName) {
+  var newName = prompt('请输入新名称：', oldName);
+  if (!newName || !newName.trim() || newName.trim() === oldName) return;
+  newName = newName.trim();
+  // Update all items in this group
+  for (var code in _favCache) {
+    if (_favCache[code].group === oldName) {
+      _favCache[code].group = newName;
+      _favSave(_favCache[code]);
+    }
+  }
+  var idx = _favGroups.indexOf(oldName);
+  if (idx >= 0) _favGroups[idx] = newName;
+  renderFavList();
+  showToast('分组已重命名');
+}
+// Delete group (move items to default)
+function deleteFavGroup(groupName) {
+  if (!confirm('确定删除分组「'+groupName+'」？股票将移至默认分组')) return;
+  for (var code in _favCache) {
+    if (_favCache[code].group === groupName) {
+      _favCache[code].group = '默认';
+      _favSave(_favCache[code]);
+    }
+  }
+  var idx = _favGroups.indexOf(groupName);
+  if (idx >= 0) _favGroups.splice(idx, 1);
+  renderFavList();
+  showToast('分组已删除');
 }
 
 // === DB_DATA helpers ===
@@ -12190,8 +12446,10 @@ const LONG_TEXT_FIELDS = ['主营业务内容','控股股东名称'];
 function switchTab(tab) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-  if (tab === 'db') { document.getElementById('pageDB').classList.add('active'); document.querySelectorAll('.tab-item')[0].classList.add('active'); }
-  else { document.getElementById('pageCalc').classList.add('active'); document.querySelectorAll('.tab-item')[1].classList.add('active'); }
+  var tabs = document.querySelectorAll('.tab-item');
+  if (tab === 'db') { document.getElementById('pageDB').classList.add('active'); tabs[0].classList.add('active'); }
+  else if (tab === 'calc') { document.getElementById('pageCalc').classList.add('active'); tabs[1].classList.add('active'); }
+  else if (tab === 'fav') { document.getElementById('pageFav').classList.add('active'); tabs[2].classList.add('active'); renderFavList(); }
 }
 
 // ===== Build search indexes (with pinyin) =====
@@ -12285,9 +12543,14 @@ function showDBDetail(code) {
   let html = '';
 
   // Stock header card
-  html += `<div class="db-stock-header">
+  var _favActive = isFav(code) ? 'active' : '';
+  var _favStar = isFav(code) ? '\u2605' : '\u2606';
+  html += `<div class="db-stock-header" style="position:relative;">
     <div class="left"><div><span class="code">${_esc(code)}</span><span class="name">${_esc(name)}</span></div></div>
-    <div class="db-go-calc" onclick="goCalc('${_esc(code)}')">&#x1F4CA; 去计算</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="db-fav-star ${_favActive}" data-code="${_esc(code)}" onclick="toggleFav('${_esc(code)}')">${_favStar}</span>
+      <div class="db-go-calc" onclick="goCalc('${_esc(code)}')">&#x1F4CA; 去计算</div>
+    </div>
   </div>`;
 
   if (rowData) {
@@ -12611,6 +12874,14 @@ function calculate() {
   else if (deviation > DEVIATION_THRESHOLD) { judge = '高估'; judgeClass = 'over'; }
   else { judge = '合理'; judgeClass = 'fair'; }
   document.getElementById('resultCard').classList.add('show');
+  // Update calc favorite button
+  var calcFavBtn = document.getElementById('calcFavBtn');
+  if (calcFavBtn) {
+    calcFavBtn.style.display = 'block';
+    var fav = isFav(code);
+    calcFavBtn.classList.toggle('active', fav);
+    calcFavBtn.textContent = fav ? '\u2605' : '\u2606';
+  }
   document.getElementById('calcPB').textContent = calcPB.toFixed(2);
   document.getElementById('marketPB').textContent = pbVal.toFixed(2);
   const devEl = document.getElementById('deviation');
@@ -12635,7 +12906,16 @@ function calculate() {
 
 function clearForm() {
   ['code','name','pe','roe','pb'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('resultCard').classList.remove('show'); codeInput.focus();
+  document.getElementById('resultCard').classList.remove('show');
+  var calcFavBtn = document.getElementById('calcFavBtn');
+  if (calcFavBtn) { calcFavBtn.style.display = 'none'; calcFavBtn.classList.remove('active'); }
+  codeInput.focus();
+}
+
+function toggleFavCalc() {
+  var code = codeInput ? codeInput.value.trim() : '';
+  if (!code) return;
+  toggleFav(code);
 }
 
 function renderHistory() {
@@ -12720,6 +13000,8 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
       container.innerHTML = '<div class="db-load-fail"><p>数据库加载失败</p><button class="db-retry-btn" onclick="location.reload()">点击重试</button></div>';
     }
   });
+  // Load favorites cache (non-blocking)
+  loadFavCache().then(function() { updateFavCount(); console.log('Favorites loaded: ' + Object.keys(_favCache).length); });
 })();
 
 function _updateDBSubTitle() {
@@ -12732,7 +13014,7 @@ function _updateDBSubTitle() {
 
 if ('serviceWorker' in navigator) {
   // Register service worker (no force-unregister to avoid breaking in-flight fetches)
-  navigator.serviceWorker.register('./sw.js?v=20260804g').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260804h').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
 
 // ===== Auto Update Check =====
