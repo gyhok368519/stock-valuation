@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
+<script>var APP_VER='2.2';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -580,7 +581,7 @@ body {
   <div class="info-menu-card">
     <div class="info-menu-header">
       <div class="app-name">股票估值计算器</div>
-      <div class="app-ver">v2.1</div>
+      <div class="app-ver" id="appVerHeader">v2.2</div>
     </div>
     <div class="info-menu-body">
       <div class="info-menu-row"><span class="row-label">用户</span><span class="row-value" id="menuUser">-</span></div>
@@ -590,7 +591,7 @@ body {
     <div class="info-menu-divider"></div>
     <div class="info-menu-body">
       <div class="info-menu-row"><span class="row-label">名称</span><span class="row-value">股票估值计算器</span></div>
-      <div class="info-menu-row"><span class="row-label">版本</span><span class="row-value">v2.1</span></div>
+      <div class="info-menu-row"><span class="row-label">版本</span><span class="row-value" id="appVerMenu">v2.2</span></div>
       <div class="info-menu-row"><span class="row-label">作者(微信同名)</span><span class="row-value">小小金钱草</span></div>
       <div class="info-menu-row"><span class="row-label">联系作者</span><span class="row-value"><a href="tel:15029164832" style="color:var(--primary)">15029164832</a></span></div>
       <div class="info-menu-row" style="cursor:pointer;" onclick="showCustomerDB()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 查看客户数据</span><span class="row-value">&#x1F527;</span></div>
@@ -11392,6 +11393,10 @@ function updateMenuUser() {
   const session = localStorage.getItem(SESSION_KEY);
   const el = document.getElementById('menuUser');
   if (el) el.textContent = session || '-';
+  // Update version display
+  var verText = 'v' + (typeof APP_VER !== 'undefined' ? APP_VER : '2.2');
+  var h = document.getElementById('appVerHeader'); if (h) h.textContent = verText;
+  var m = document.getElementById('appVerMenu'); if (m) m.textContent = verText;
 }
 
 function doLogout() {
@@ -17708,8 +17713,38 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => { regs.forEach(r => r.unregister()); });
   if (caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
   // Register new service worker with version param
-  navigator.serviceWorker.register('./sw.js?v=20260804a').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260804b').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
 }
+
+// ===== Auto Update Check =====
+// On load: fetch online HTML, extract APP_VER, if newer -> clear all caches + reload
+(function checkUpdate() {
+  var localVer = APP_VER || '0';
+  var key = '_app_ver_last_check';
+  var now = Date.now();
+  // Check at most once per 60s (avoid loop)
+  var lastCheck = parseInt(localStorage.getItem(key) || '0', 10);
+  if (now - lastCheck < 60000) return; // checked recently
+  localStorage.setItem(key, String(now));
+  // Fetch online HTML with no-cache
+  fetch('./PB_PE_ROE_calc.html?t=' + now, {cache: 'no-cache'})
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+      var m = html.match(/var APP_VER='([^']+)'/);
+      if (m && m[1] && m[1] !== localVer) {
+        console.log('New version detected: ' + m[1] + ' (current: ' + localVer + '), reloading...');
+        // Clear all caches
+        if (caches) caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
+        // Unregister SW
+        if (navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
+        // Reload
+        location.reload(true);
+      } else {
+        console.log('Version check: up-to-date (' + localVer + ')');
+      }
+    })
+    .catch(function(e) { console.log('Version check failed:', e.message); });
+})();
 </script>
 </body>
 </html>
