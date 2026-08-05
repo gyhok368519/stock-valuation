@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.9.3';</script>
+<script>var APP_VER='2.9.4';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -432,6 +432,8 @@ body {
   .fav-metrics { display:flex; gap:12px; margin-top:4px; font-size:11px; color:var(--text3); }
   .fav-metric-val { font-weight:600; color:var(--text2); }
   .fav-go { font-size:16px; color:var(--text3); padding:4px 8px; cursor:pointer; flex-shrink:0; }
+  .fav-group-tag { font-size:11px; color:var(--primary); background:var(--primary-light); border-radius:10px; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+  .fav-group-tag:active { background:var(--gray-light); }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
   .fav-empty p { font-size:14px; margin-bottom:6px; }
@@ -443,6 +445,7 @@ body {
   [data-theme="dark"] .fav-item { box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
   [data-theme="dark"] .fav-item:active { background: #1e1e30; }
   [data-theme="dark"] .fav-tab:active { background: #1e2a4a; }
+  [data-theme="dark"] .fav-group-tag { background: #1e2a4a; }
   [data-theme="dark"] .fav-group-actions span:active { background: #1e2a4a; }
 
 
@@ -12213,11 +12216,12 @@ function toggleFav(code) {
     updateFavStar(code, false);
     showToast('已取消收藏 ' + name);
   } else {
-    var obj = {code: code, name: name, group: '默认', time: Date.now()};
+    var group = _favGroups.length > 1 ? _pickGroupForFav(code, name) : '默认';
+    var obj = {code: code, name: name, group: group, time: Date.now()};
     _favCache[code] = obj;
     _favSave(obj);
     updateFavStar(code, true);
-    showToast('已收藏 ' + name);
+    showToast('已收藏 ' + name + (group !== '默认' ? ' → ' + group : ''));
   }
   updateFavCount();
 }
@@ -12298,12 +12302,14 @@ function renderFavList() {
     var pe = row ? getFieldVal('PE', row) : '-';
     var pb = row ? getFieldVal('PB', row) : '-';
     var roe = row ? getFieldVal('ROE', row) : '-';
+    var groupLabel = item.group || '默认';
     html += '<div class="fav-item">';
     html += '<span class="fav-star" onclick="toggleFav(\''+_esc(item.code)+'\');renderFavList();">★</span>';
     html += '<div class="fav-info" onclick="goToFavDetail(\''+_esc(item.code)+'\')">';
     html += '<div class="fav-info-top"><span class="fav-code">'+_esc(item.code)+'</span><span class="fav-name">'+_esc(item.name)+'</span></div>';
     html += '<div class="fav-metrics"><span>PE <span class="fav-metric-val">'+pe+'</span></span><span>PB <span class="fav-metric-val">'+pb+'</span></span><span>ROE <span class="fav-metric-val">'+roe+'</span></span></div>';
     html += '</div>';
+    html += '<span class="fav-group-tag" onclick="moveToGroup(\''+_esc(item.code)+'\')">'+_esc(groupLabel)+'</span>';
     html += '<span class="fav-go" onclick="goCalc(\''+_esc(item.code)+'\')">›</span>';
     html += '</div>';
   });
@@ -12315,6 +12321,36 @@ function renderFavList() {
 function switchFavTab(tab) {
   _favActiveTab = tab;
   renderFavList();
+}
+
+// Move a stock to a different group
+function moveToGroup(code) {
+  var item = _favCache[code];
+  if (!item) return;
+  var groups = ['默认'];
+  _favGroups.forEach(function(g) { if (g !== '默认') groups.push(g); });
+  var currentGroup = item.group || '默认';
+  var groupList = groups.map(function(g) { return (g === currentGroup ? '✓ ' : '  ') + g; }).join('\n');
+  var choice = prompt('移动「' + (item.name || code) + '」到分组：\n\n' + groupList + '\n\n请输入分组名称：');
+  if (!choice || !choice.trim()) return;
+  choice = choice.trim();
+  if (choice === currentGroup) return;
+  if (_favGroups.indexOf(choice) < 0) { showToast('分组不存在，请先新建'); return; }
+  item.group = choice;
+  _favSave(item);
+  renderFavList();
+  showToast('已移动到「' + choice + '」');
+}
+
+// Show group picker for new favorite
+function _pickGroupForFav(code, name) {
+  if (_favGroups.length <= 1) return '默认';
+  var groupList = _favGroups.map(function(g, i) { return (i + 1) + '. ' + g; }).join('\n');
+  var choice = prompt('选择收藏分组：\n\n' + groupList + '\n\n输入分组名（留空=默认）：');
+  if (!choice || !choice.trim()) return '默认';
+  choice = choice.trim();
+  if (_favGroups.indexOf(choice) < 0) { showToast('分组不存在，存入默认'); return '默认'; }
+  return choice;
 }
 
 // Show group management menu (long press / contextmenu)
