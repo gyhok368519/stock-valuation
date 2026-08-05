@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.1.7';</script>
+<script>var APP_VER='3.1.8';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -12818,7 +12818,7 @@ function showRadarChart(code) {
   }
 
   // Labels with enough margin (r+30)
-  var labels = ['盈利性', '毛利率', '估值', '安全性', '资产估值'];
+  var labels = ['ROE', '毛利率', 'EY', '安全性', '资产估值'];
   var rawVals = [roe, gpr, pe, dpr, pb];
   var fmtFns = [
     function(v){ return v !== null && v !== undefined ? (v*100).toFixed(1)+'%' : '-'; },
@@ -12840,12 +12840,8 @@ function showRadarChart(code) {
   // Build HTML with canvas image
   var imgData = canvas.toDataURL();
   var html = '<div style="text-align:center;">';
-  html += '<div style="font-size:15px;font-weight:700;margin-bottom:4px;">' + _esc(name) + '</div>';
-  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">关键指标雷达图</div>';
+  html += '<div style="font-size:15px;font-weight:700;margin-bottom:10px;">' + _esc(name) + '</div>';
   html += '<img src="' + imgData + '" style="width:300px;height:300px;" />';
-  html += '<div style="display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:11px;color:var(--text2);">';
-  html += '<span style="color:var(--green);">&#9632; 低估/优质</span><span style="color:var(--red);">&#9632; 高估/风险</span>';
-  html += '</div>';
   html += '</div>';
 
   _devAlert('指标雷达', html);
