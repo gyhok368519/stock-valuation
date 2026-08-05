@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.1.6';</script>
+<script>var APP_VER='3.1.7';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -639,7 +639,7 @@ body {
       <!-- 估值速览 -->
       <div id="quickView" style="display:none;margin-top:12px;">
         <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">估值速览</div>
-        <div id="quickViewContent" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+        <div id="quickViewContent" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
       </div>
     </div>
     <div class="section-title"><span>&#x1F4CB; 历史记录</span><span class="count" id="historyCount">0 条</span></div>
@@ -12760,15 +12760,6 @@ function showRadarChart(code) {
   // DB indices: PE=5, PB=6, ROE=11, 毛利率=9, 负债率=12
   var pe = row[5], pb = row[6], roe = row[11], gpr = row[9], dpr = row[12];
 
-  // Draw radar on a canvas, then show in devAlert
-  var dims = [
-    { label: '盈利性', value: roe !== null && roe !== undefined ? roe : 0, max: 0.3, raw: roe, fmt: function(v){ return v !== null ? (v*100).toFixed(1)+'%' : '-'; } },
-    { label: '毛利率', value: gpr !== null && gpr !== undefined ? gpr : 0, max: 1, raw: gpr, fmt: function(v){ return v !== null ? (v*100).toFixed(1)+'%' : '-'; } },
-    { label: '估值', value: pe && pe > 0 ? Math.min(pe / 50, 1) : 0, max: 1, raw: pe, fmt: function(v){ return v !== null ? v.toFixed(1) : '-'; }, invert: true },
-    { label: '安全性', value: dpr !== null && dpr !== undefined ? 1 - dpr : 0, max: 1, raw: dpr, fmt: function(v){ return v !== null ? (v*100).toFixed(1)+'%' : '-'; } },
-    { label: '资产价值', value: pb && pb > 0 ? Math.min(pb / 5, 1) : 0, max: 1, raw: pb, fmt: function(v){ return v !== null ? v.toFixed(2) : '-'; } }
-  ];
-
   // Normalize for drawing (0~1)
   var normVals = [
     roe !== null && roe !== undefined ? Math.min(Math.max(roe / 0.3, 0), 1) : 0,
@@ -12778,8 +12769,8 @@ function showRadarChart(code) {
     pb && pb > 0 ? Math.min(Math.max(pb / 5, 0), 1) : 0
   ];
 
-  // Draw canvas
-  var size = 220, cx = size/2, cy = size/2, r = size/2 - 30;
+  // Draw canvas (300x300 for better label space)
+  var size = 300, cx = size/2, cy = size/2, r = 90;
   var canvas = document.createElement('canvas');
   canvas.width = size; canvas.height = size;
   var ctx = canvas.getContext('2d');
@@ -12826,9 +12817,8 @@ function showRadarChart(code) {
     ctx.fillStyle = '#1a73e8'; ctx.fill();
   }
 
-  // Labels
-  ctx.font = '12px sans-serif'; ctx.fillStyle = '#333'; ctx.textAlign = 'center';
-  var labels = ['盈利性', '毛利率', '估值', '安全性', '资产价值'];
+  // Labels with enough margin (r+30)
+  var labels = ['盈利性', '毛利率', '估值', '安全性', '资产估值'];
   var rawVals = [roe, gpr, pe, dpr, pb];
   var fmtFns = [
     function(v){ return v !== null && v !== undefined ? (v*100).toFixed(1)+'%' : '-'; },
@@ -12839,21 +12829,20 @@ function showRadarChart(code) {
   ];
   for (var i = 0; i < 5; i++) {
     var angle = -Math.PI/2 + (2*Math.PI*i/5);
-    var lx = cx + (r + 18) * Math.cos(angle), ly = cy + (r + 18) * Math.sin(angle);
+    var lx = cx + (r + 32) * Math.cos(angle), ly = cy + (r + 32) * Math.sin(angle);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#333';
-    ctx.fillText(labels[i], lx, ly - 7);
+    ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#333';
+    ctx.fillText(labels[i], lx, ly - 8);
     ctx.font = '11px sans-serif'; ctx.fillStyle = '#1a73e8';
-    ctx.fillText(fmtFns[i](rawVals[i]), lx, ly + 7);
+    ctx.fillText(fmtFns[i](rawVals[i]), lx, ly + 8);
   }
 
-  // Build HTML with canvas image + metric table
+  // Build HTML with canvas image
   var imgData = canvas.toDataURL();
   var html = '<div style="text-align:center;">';
   html += '<div style="font-size:15px;font-weight:700;margin-bottom:4px;">' + _esc(name) + '</div>';
   html += '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">关键指标雷达图</div>';
-  html += '<img src="' + imgData + '" style="width:220px;height:220px;" />';
-  // Color legend
+  html += '<img src="' + imgData + '" style="width:300px;height:300px;" />';
   html += '<div style="display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:11px;color:var(--text2);">';
   html += '<span style="color:var(--green);">&#9632; 低估/优质</span><span style="color:var(--red);">&#9632; 高估/风险</span>';
   html += '</div>';
@@ -13532,16 +13521,14 @@ function _renderQuickView(code) {
   if (!qv || !qvc) return;
   var row = DB_DATA[code];
   if (!row) { qv.style.display = 'none'; return; }
-  // DB_HEADERS: 市值(亿)=3, 总收入(亿)=4, PEG=7, PS=8, 毛利率=9, 净利率=10, 负债率=12, 股利支付率=16, 股息率=17
+  // DB_HEADERS: PEG=7, PS=8, 毛利率=9, 净利率=10, 负债率=12, 股息率=17
   var items = [
-    { label: '市值', value: getFieldVal('市值(亿)', row), unit: '亿' },
-    { label: '总收入', value: getFieldVal('总收入(亿)', row), unit: '亿' },
-    { label: 'PEG', value: getFieldVal('PEG', row), unit: '' },
-    { label: 'PS', value: getFieldVal('PS', row), unit: '' },
-    { label: '毛利率', value: getFieldVal('毛利率', row), unit: '' },
-    { label: '净利率', value: getFieldVal('净利率', row), unit: '' },
-    { label: '负债率', value: getFieldVal('负债率', row), unit: '' },
-    { label: '股息率', value: getFieldVal('股息率', row), unit: '' }
+    { label: 'PEG', value: getFieldVal('PEG', row) },
+    { label: 'PS', value: getFieldVal('PS', row) },
+    { label: '毛利率', value: getFieldVal('毛利率', row) },
+    { label: '净利率', value: getFieldVal('净利率', row) },
+    { label: '负债率', value: getFieldVal('负债率', row) },
+    { label: '股息率', value: getFieldVal('股息率', row) }
   ];
   var html = '';
   items.forEach(function(it) {
