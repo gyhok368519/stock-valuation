@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.2.1';</script>
+<script>var APP_VER='3.2.2';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -12780,8 +12780,8 @@ function showRadarChart(code) {
     pb && pb > 0 ? 1 - logNorm(pb, 0.2, 100) : 0
   ];
 
-  // Draw canvas (300x300 for better label space)
-  var size = 300, cx = size/2, cy = size/2, r = 90;
+  // Draw canvas (340x340 for 3-line labels: name + value + description)
+  var size = 340, cx = size/2, cy = size/2, r = 90;
   var canvas = document.createElement('canvas');
   canvas.width = size; canvas.height = size;
   var ctx = canvas.getContext('2d');
@@ -12843,14 +12843,33 @@ function showRadarChart(code) {
     // 资产估值: show PB
     function(v){ return v !== null && v !== undefined ? v.toFixed(2)+'倍' : '-'; }
   ];
+  // Dimension description words based on normVals (0~1, bigger=better)
+  var dimDescRules = [
+    // ROE: 优秀/良好/一般/较差
+    [['优秀','#1a73e8'],['良好','#2e7d32'],['一般','#f9a825'],['较差','#c62828']],
+    // 毛利率: 优秀/良好/一般/较差
+    [['优秀','#1a73e8'],['良好','#2e7d32'],['一般','#f9a825'],['较差','#c62828']],
+    // EY: 低估/合理/偏高/高估
+    [['低估','#2e7d32'],['合理','#1a73e8'],['偏高','#f9a825'],['高估','#c62828']],
+    // 安全性: 安全/较安全/一般/风险
+    [['安全','#2e7d32'],['较安全','#1a73e8'],['一般','#f9a825'],['风险','#c62828']],
+    // 资产估值: 低估/合理/偏高/高估
+    [['低估','#2e7d32'],['合理','#1a73e8'],['偏高','#f9a825'],['高估','#c62828']]
+  ];
   for (var i = 0; i < 5; i++) {
     var angle = -Math.PI/2 + (2*Math.PI*i/5);
-    var lx = cx + (r + 32) * Math.cos(angle), ly = cy + (r + 32) * Math.sin(angle);
+    var lx = cx + (r + 38) * Math.cos(angle), ly = cy + (r + 38) * Math.sin(angle);
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#333';
-    ctx.fillText(labels[i], lx, ly - 8);
+    ctx.fillText(labels[i], lx, ly - 14);
     ctx.font = '11px sans-serif'; ctx.fillStyle = '#1a73e8';
-    ctx.fillText(fmtFns[i](rawVals[i]), lx, ly + 8);
+    ctx.fillText(fmtFns[i](rawVals[i]), lx, ly);
+    // Description word below value
+    var nv = normVals[i];
+    var descIdx = nv >= 0.75 ? 0 : nv >= 0.5 ? 1 : nv >= 0.25 ? 2 : 3;
+    var descRule = dimDescRules[i][descIdx];
+    ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = descRule[1];
+    ctx.fillText(descRule[0], lx, ly + 12);
   }
 
   // Build HTML with canvas image + valuation result
@@ -12866,7 +12885,7 @@ function showRadarChart(code) {
   }
   var html = '<div style="text-align:center;">';
   html += '<div style="font-size:15px;font-weight:700;margin-bottom:10px;">' + _esc(name) + '</div>';
-  html += '<img src="' + imgData + '" style="width:300px;height:300px;" />';
+  html += '<img src="' + imgData + '" style="width:340px;height:340px;" />';
   // Valuation result below chart
   if (calcPB !== null && pb > 0) {
     html += '<div style="margin-top:12px;background:var(--bg);border-radius:8px;padding:12px;">';
