@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.1.5';</script>
+<script>var APP_VER='3.1.6';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -636,6 +636,11 @@ body {
       </div>
       <div class="judge-box" id="judgeBox">-</div>
       <div class="formula-box" id="formulaBox"></div>
+      <!-- 估值速览 -->
+      <div id="quickView" style="display:none;margin-top:12px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">估值速览</div>
+        <div id="quickViewContent" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+      </div>
     </div>
     <div class="section-title"><span>&#x1F4CB; 历史记录</span><span class="count" id="historyCount">0 条</span></div>
     <div class="history-card" id="historyList"><div class="empty-state">暂无记录</div></div>
@@ -12540,7 +12545,7 @@ function renderFavList() {
     html += '<div class="fav-metrics"><span>PE <span class="fav-metric-val">'+pe+'</span></span><span>PB <span class="fav-metric-val">'+pb+'</span></span><span>ROE <span class="fav-metric-val">'+roe+'</span></span></div>';
     html += '</div>';
     html += '<span class="fav-group-tag" onclick="moveToGroup(\''+_esc(item.code)+'\')">'+_esc(groupLabel)+'</span>';
-    html += '<span class="fav-go" onclick="goCalc(\''+_esc(item.code)+'\')">›</span>';
+    html += '<span class="fav-go" onclick="showRadarChart(\''+_esc(item.code)+'\')">›</span>';
     html += '</div>';
   });
   container.innerHTML = html;
@@ -12745,6 +12750,116 @@ function goToFavDetail(code) {
   switchTab('db');
   document.getElementById('dbSearch').value = code;
   showDBDetail(code);
+}
+
+// Radar chart: 5 dimensions from local DB, zero latency
+function showRadarChart(code) {
+  var row = DB_DATA[code];
+  if (!row) { showToast('该股票无数据库记录'); return; }
+  var name = STOCK_MAP[code] || code;
+  // DB indices: PE=5, PB=6, ROE=11, 毛利率=9, 负债率=12
+  var pe = row[5], pb = row[6], roe = row[11], gpr = row[9], dpr = row[12];
+
+  // Draw radar on a canvas, then show in devAlert
+  var dims = [
+    { label: '盈利性', value: roe !== null && roe !== undefined ? roe : 0, max: 0.3, raw: roe, fmt: function(v){ return v !== null ? (v*100).toFixed(1)+'%' : '-'; } },
+    { label: '毛利率', value: gpr !== null && gpr !== undefined ? gpr : 0, max: 1, raw: gpr, fmt: function(v){ return v !== null ? (v*100).toFixed(1)+'%' : '-'; } },
+    { label: '估值', value: pe && pe > 0 ? Math.min(pe / 50, 1) : 0, max: 1, raw: pe, fmt: function(v){ return v !== null ? v.toFixed(1) : '-'; }, invert: true },
+    { label: '安全性', value: dpr !== null && dpr !== undefined ? 1 - dpr : 0, max: 1, raw: dpr, fmt: function(v){ return v !== null ? (v*100).toFixed(1)+'%' : '-'; } },
+    { label: '资产价值', value: pb && pb > 0 ? Math.min(pb / 5, 1) : 0, max: 1, raw: pb, fmt: function(v){ return v !== null ? v.toFixed(2) : '-'; } }
+  ];
+
+  // Normalize for drawing (0~1)
+  var normVals = [
+    roe !== null && roe !== undefined ? Math.min(Math.max(roe / 0.3, 0), 1) : 0,
+    gpr !== null && gpr !== undefined ? Math.min(Math.max(gpr, 0), 1) : 0,
+    pe && pe > 0 ? Math.min(Math.max(1 - pe / 50, 0), 1) : 0,
+    dpr !== null && dpr !== undefined ? Math.min(Math.max(1 - dpr, 0), 1) : 0,
+    pb && pb > 0 ? Math.min(Math.max(pb / 5, 0), 1) : 0
+  ];
+
+  // Draw canvas
+  var size = 220, cx = size/2, cy = size/2, r = size/2 - 30;
+  var canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  var ctx = canvas.getContext('2d');
+
+  // Background rings
+  for (var ring = 1; ring <= 3; ring++) {
+    var rr = r * ring / 3;
+    ctx.beginPath();
+    for (var i = 0; i < 5; i++) {
+      var angle = -Math.PI/2 + (2*Math.PI*i/5);
+      var x = cx + rr * Math.cos(angle), y = cy + rr * Math.sin(angle);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.5; ctx.stroke();
+  }
+
+  // Axes
+  for (var i = 0; i < 5; i++) {
+    var angle = -Math.PI/2 + (2*Math.PI*i/5);
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.5; ctx.stroke();
+  }
+
+  // Data polygon
+  ctx.beginPath();
+  for (var i = 0; i < 5; i++) {
+    var angle = -Math.PI/2 + (2*Math.PI*i/5);
+    var val = normVals[i];
+    var x = cx + r * val * Math.cos(angle), y = cy + r * val * Math.sin(angle);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(26,115,232,0.25)'; ctx.fill();
+  ctx.strokeStyle = '#1a73e8'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Data points
+  for (var i = 0; i < 5; i++) {
+    var angle = -Math.PI/2 + (2*Math.PI*i/5);
+    var val = normVals[i];
+    var x = cx + r * val * Math.cos(angle), y = cy + r * val * Math.sin(angle);
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#1a73e8'; ctx.fill();
+  }
+
+  // Labels
+  ctx.font = '12px sans-serif'; ctx.fillStyle = '#333'; ctx.textAlign = 'center';
+  var labels = ['盈利性', '毛利率', '估值', '安全性', '资产价值'];
+  var rawVals = [roe, gpr, pe, dpr, pb];
+  var fmtFns = [
+    function(v){ return v !== null && v !== undefined ? (v*100).toFixed(1)+'%' : '-'; },
+    function(v){ return v !== null && v !== undefined ? (v*100).toFixed(1)+'%' : '-'; },
+    function(v){ return v !== null && v !== undefined ? v.toFixed(1)+'倍' : '-'; },
+    function(v){ return v !== null && v !== undefined ? (v*100).toFixed(1)+'%' : '-'; },
+    function(v){ return v !== null && v !== undefined ? v.toFixed(2)+'倍' : '-'; }
+  ];
+  for (var i = 0; i < 5; i++) {
+    var angle = -Math.PI/2 + (2*Math.PI*i/5);
+    var lx = cx + (r + 18) * Math.cos(angle), ly = cy + (r + 18) * Math.sin(angle);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#333';
+    ctx.fillText(labels[i], lx, ly - 7);
+    ctx.font = '11px sans-serif'; ctx.fillStyle = '#1a73e8';
+    ctx.fillText(fmtFns[i](rawVals[i]), lx, ly + 7);
+  }
+
+  // Build HTML with canvas image + metric table
+  var imgData = canvas.toDataURL();
+  var html = '<div style="text-align:center;">';
+  html += '<div style="font-size:15px;font-weight:700;margin-bottom:4px;">' + _esc(name) + '</div>';
+  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">关键指标雷达图</div>';
+  html += '<img src="' + imgData + '" style="width:220px;height:220px;" />';
+  // Color legend
+  html += '<div style="display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:11px;color:var(--text2);">';
+  html += '<span style="color:var(--green);">&#9632; 低估/优质</span><span style="color:var(--red);">&#9632; 高估/风险</span>';
+  html += '</div>';
+  html += '</div>';
+
+  _devAlert('指标雷达', html);
 }
 
 // Add new group (from tab + button)
@@ -13402,15 +13517,49 @@ function calculate() {
   const record = { code, name:name||'-', pe:peVal, roe:roeVal, marketPB:pbVal, calcPB:+calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, time:new Date().toLocaleString('zh-CN') };
   const hist = getHistory(); hist.unshift(record); if (hist.length > MAX_HISTORY) hist.pop();
   saveHistory(hist); renderHistory();
+  // Render quick view from DB
+  _renderQuickView(code);
   // Scroll result into view
   setTimeout(function() { document.getElementById('resultCard').scrollIntoView({behavior:'smooth', block:'nearest'}); }, 100);
   // Dismiss keyboard
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
 }
 
+// Quick view: show key metrics from DB after calculation
+function _renderQuickView(code) {
+  var qv = document.getElementById('quickView');
+  var qvc = document.getElementById('quickViewContent');
+  if (!qv || !qvc) return;
+  var row = DB_DATA[code];
+  if (!row) { qv.style.display = 'none'; return; }
+  // DB_HEADERS: 市值(亿)=3, 总收入(亿)=4, PEG=7, PS=8, 毛利率=9, 净利率=10, 负债率=12, 股利支付率=16, 股息率=17
+  var items = [
+    { label: '市值', value: getFieldVal('市值(亿)', row), unit: '亿' },
+    { label: '总收入', value: getFieldVal('总收入(亿)', row), unit: '亿' },
+    { label: 'PEG', value: getFieldVal('PEG', row), unit: '' },
+    { label: 'PS', value: getFieldVal('PS', row), unit: '' },
+    { label: '毛利率', value: getFieldVal('毛利率', row), unit: '' },
+    { label: '净利率', value: getFieldVal('净利率', row), unit: '' },
+    { label: '负债率', value: getFieldVal('负债率', row), unit: '' },
+    { label: '股息率', value: getFieldVal('股息率', row), unit: '' }
+  ];
+  var html = '';
+  items.forEach(function(it) {
+    var v = it.value;
+    if (v === '-' || v === null || v === undefined) v = '<span style="color:#ccc">-</span>';
+    html += '<div style="background:var(--bg);border-radius:8px;padding:8px 10px;text-align:center;">';
+    html += '<div style="font-size:11px;color:var(--text2);margin-bottom:2px;">' + it.label + '</div>';
+    html += '<div style="font-size:15px;font-weight:700;color:var(--text);">' + v + '</div>';
+    html += '</div>';
+  });
+  qvc.innerHTML = html;
+  qv.style.display = 'block';
+}
+
 function clearForm() {
   ['code','name','pe','roe','pb'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('resultCard').classList.remove('show');
+  var qv = document.getElementById('quickView'); if (qv) qv.style.display = 'none';
   var inputBtn = document.getElementById('calcInputFavBtn');
   if (inputBtn) { inputBtn.classList.remove('active'); inputBtn.textContent = '☆'; }
   codeInput.focus();
