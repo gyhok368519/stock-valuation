@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.2.2';</script>
+<script>var APP_VER='3.2.3';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -692,9 +692,9 @@ body {
     <div id="devDialogBody" style="padding:0 4px;">
       <input class="gp-new-input" id="devDialogInput" type="password" placeholder="请输入开发者密码" maxlength="20" style="width:100%;box-sizing:border-box;" />
     </div>
-    <div style="display:flex;gap:8px;margin-top:16px;">
-      <button class="gp-new-btn" style="flex:1;background:var(--gray-light);color:var(--text2);" onclick="_devDialogCancel()">取消</button>
-      <button class="gp-new-btn" style="flex:1;" id="devDialogOk" onclick="_devDialogConfirm()">确认</button>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:center;">
+      <button class="gp-new-btn" style="min-width:80px;max-width:120px;background:var(--gray-light);color:var(--text2);" onclick="_devDialogCancel()">取消</button>
+      <button class="gp-new-btn" style="min-width:80px;max-width:120px;" id="devDialogOk" onclick="_devDialogConfirm()">确认</button>
     </div>
   </div>
 </div>
@@ -12886,21 +12886,6 @@ function showRadarChart(code) {
   var html = '<div style="text-align:center;">';
   html += '<div style="font-size:15px;font-weight:700;margin-bottom:10px;">' + _esc(name) + '</div>';
   html += '<img src="' + imgData + '" style="width:340px;height:340px;" />';
-  // Valuation result below chart
-  if (calcPB !== null && pb > 0) {
-    html += '<div style="margin-top:12px;background:var(--bg);border-radius:8px;padding:12px;">';
-    html += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">';
-    html += '<span style="color:var(--text2);">计算PB</span><span style="font-weight:700;">' + calcPB.toFixed(2) + '</span>';
-    html += '</div>';
-    html += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">';
-    html += '<span style="color:var(--text2);">市场PB</span><span style="font-weight:700;">' + pb.toFixed(2) + '</span>';
-    html += '</div>';
-    html += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">';
-    html += '<span style="color:var(--text2);">偏差</span><span style="font-weight:700;color:' + (deviation >= 0 ? 'var(--red)' : 'var(--green)') + ';">' + (deviation >= 0 ? '+' : '') + (deviation * 100).toFixed(1) + '%</span>';
-    html += '</div>';
-    html += '<div style="text-align:center;font-size:16px;font-weight:700;color:' + judgeColor + ';padding-top:6px;border-top:1px solid var(--border);">' + judge + '</div>';
-    html += '</div>';
-  }
   html += '</div>';
 
   _devAlert('指标雷达', html);
