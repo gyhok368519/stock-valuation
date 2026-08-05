@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.9.5';</script>
+<script>var APP_VER='2.9.6';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -437,7 +437,7 @@ body {
   /* Group Picker Modal */
   .gp-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; }
   .gp-overlay.show { display:flex; }
-  .gp-card { background:var(--card); border-radius:16px; width:85%; max-width:320px; padding:20px 16px 16px; box-shadow:0 8px 32px rgba(0,0,0,0.2); animation:gpIn 0.2s ease; }
+  .gp-card { background:var(--card); border-radius:16px; width:88%; max-width:320px; padding:20px 14px 14px; box-shadow:0 8px 32px rgba(0,0,0,0.2); animation:gpIn 0.2s ease; }
   @keyframes gpIn { from { transform:scale(0.9); opacity:0; } to { transform:scale(1); opacity:1; } }
   .gp-title { font-size:16px; font-weight:600; text-align:center; margin-bottom:14px; color:var(--text); }
   .gp-list { max-height:240px; overflow-y:auto; }
@@ -446,10 +446,10 @@ body {
   .gp-item.active { color:var(--primary); font-weight:600; }
   .gp-item-dot { width:8px; height:8px; border-radius:50%; margin-right:10px; flex-shrink:0; }
   .gp-item-check { margin-left:auto; font-size:16px; color:var(--primary); }
-  .gp-new-row { display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-light); }
-  .gp-new-input { flex:1; border:1px solid var(--gray-light); border-radius:8px; padding:8px 12px; font-size:13px; outline:none; background:var(--card); color:var(--text); }
+  .gp-new-row { display:flex; gap:6px; margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-light); }
+  .gp-new-input { flex:1; min-width:0; border:1px solid var(--gray-light); border-radius:8px; padding:8px 10px; font-size:13px; outline:none; background:var(--card); color:var(--text); }
   .gp-new-input:focus { border-color:var(--primary); }
-  .gp-new-btn { background:var(--primary); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; white-space:nowrap; }
+  .gp-new-btn { background:var(--primary); color:#fff; border:none; border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .gp-new-btn:active { opacity:0.8; }
   .gp-cancel { text-align:center; padding:10px 0 0; color:var(--text3); font-size:14px; cursor:pointer; }
   .gp-cancel:active { color:var(--text2); }
@@ -12166,7 +12166,7 @@ function _dbClearAll() {
 var _favCache = null; // in-memory cache: { code: {code, name, group, time} }
 var _favGroups = ['默认']; // group names
 var _favActiveTab = '全部'; // current active tab: '全部' or group name
-var MAX_FAV_GROUPS = 5; // max custom groups (excluding default)
+var MAX_FAV_GROUPS = 3; // max custom groups (excluding default)
 
 function _saveFavGroups() {
   try { localStorage.setItem('pb_calc_fav_groups', JSON.stringify(_favGroups)); } catch(e) {}
@@ -12466,9 +12466,34 @@ function _showGroupActionMenu(group) {
 
 function _gpRename(oldName) {
   document.getElementById('gpOverlay').classList.remove('show');
-  var newName = prompt('请输入新名称：', oldName);
-  if (!newName || !newName.trim() || newName.trim() === oldName) return;
-  newName = newName.trim();
+  // Show rename modal via gp overlay
+  var overlay = document.getElementById('gpOverlay');
+  var titleEl = document.getElementById('gpTitle');
+  var listEl = document.getElementById('gpList');
+  var newRow = document.getElementById('gpNewRow');
+  
+  titleEl.textContent = '重命名「' + oldName + '」';
+  newRow.style.display = 'none';
+  
+  var html = '<div style="padding:0 4px;">';
+  html += '<input class="gp-new-input" id="gpRenameInput" value="' + _esc(oldName) + '" maxlength="8" style="width:100%;margin-bottom:12px;" />';
+  html += '<div style="display:flex;gap:8px;">';
+  html += '<button class="gp-new-btn" style="flex:1;background:var(--primary);" onclick="_gpDoRename(\''+_esc(oldName)+'\')">确认</button>';
+  html += '<button class="gp-new-btn" style="flex:1;background:var(--gray-light);color:var(--text2);" onclick="_gpCancel()">取消</button>';
+  html += '</div></div>';
+  listEl.innerHTML = html;
+  
+  _gpCallback = null;
+  overlay.classList.add('show');
+  setTimeout(function() { var inp = document.getElementById('gpRenameInput'); if (inp) { inp.focus(); inp.select(); } }, 100);
+}
+
+function _gpDoRename(oldName) {
+  var input = document.getElementById('gpRenameInput');
+  var newName = input ? input.value.trim() : '';
+  document.getElementById('gpOverlay').classList.remove('show');
+  if (!newName || newName === oldName) return;
+  if (_favGroups.indexOf(newName) >= 0) { showToast('分组名已存在'); return; }
   for (var code in _favCache) {
     if (_favCache[code].group === oldName) {
       _favCache[code].group = newName;
@@ -12485,7 +12510,28 @@ function _gpRename(oldName) {
 
 function _gpDelete(groupName) {
   document.getElementById('gpOverlay').classList.remove('show');
-  if (!confirm('确定删除分组「'+groupName+'」？股票将移至默认分组')) return;
+  // Show delete confirm modal
+  var overlay = document.getElementById('gpOverlay');
+  var titleEl = document.getElementById('gpTitle');
+  var listEl = document.getElementById('gpList');
+  var newRow = document.getElementById('gpNewRow');
+  
+  titleEl.textContent = '删除分组「' + groupName + '」？';
+  newRow.style.display = 'none';
+  
+  var html = '<div style="text-align:center;color:var(--text2);font-size:13px;padding:4px 0 16px;">股票将移至默认分组</div>';
+  html += '<div style="display:flex;gap:8px;">';
+  html += '<button class="gp-new-btn" style="flex:1;background:#d93025;" onclick="_gpDoDelete(\''+_esc(groupName)+'\')">删除</button>';
+  html += '<button class="gp-new-btn" style="flex:1;background:var(--gray-light);color:var(--text2);" onclick="_gpCancel()">取消</button>';
+  html += '</div>';
+  listEl.innerHTML = html;
+  
+  _gpCallback = null;
+  overlay.classList.add('show');
+}
+
+function _gpDoDelete(groupName) {
+  document.getElementById('gpOverlay').classList.remove('show');
   for (var code in _favCache) {
     if (_favCache[code].group === groupName) {
       _favCache[code].group = '默认';
