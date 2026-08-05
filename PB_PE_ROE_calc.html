@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.2.3';</script>
+<script>var APP_VER='3.2.4';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -435,7 +435,7 @@ body {
   .fav-metrics { display:flex; gap:12px; margin-top:4px; font-size:11px; color:var(--text3); }
   .fav-metric-val { font-weight:600; color:var(--text2); }
   .fav-go { font-size:16px; color:var(--text3); padding:4px 8px; cursor:pointer; flex-shrink:0; }
-  .fav-group-tag { font-size:11px; color:var(--primary); background:var(--primary-light); border-radius:10px; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+  .fav-group-tag { font-size:11px; color:var(--primary); background:var(--primary-light); border-radius:10px; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0; margin-right:6px; }
   .fav-group-tag:active { background:var(--gray-light); }
   /* Group Picker Modal */
   .gp-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; }
@@ -692,7 +692,7 @@ body {
     <div id="devDialogBody" style="padding:0 4px;">
       <input class="gp-new-input" id="devDialogInput" type="password" placeholder="请输入开发者密码" maxlength="20" style="width:100%;box-sizing:border-box;" />
     </div>
-    <div style="display:flex;gap:8px;margin-top:16px;justify-content:center;">
+    <div style="display:flex;gap:16px;margin-top:16px;justify-content:center;">
       <button class="gp-new-btn" style="min-width:80px;max-width:120px;background:var(--gray-light);color:var(--text2);" onclick="_devDialogCancel()">取消</button>
       <button class="gp-new-btn" style="min-width:80px;max-width:120px;" id="devDialogOk" onclick="_devDialogConfirm()">确认</button>
     </div>
