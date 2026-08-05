@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.0.8';</script>
+<script>var APP_VER='3.0.9';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -724,7 +724,7 @@ body {
       <div class="info-menu-row"><span class="row-label">版本</span><span class="row-value" id="appVerMenu">v2.2</span></div>
       <div class="info-menu-row"><span class="row-label">数据库版本</span><span class="row-value" id="dbVerMenu">-</span></div>
       <div class="info-menu-row"><span class="row-label">开发者(微信同名)</span><span class="row-value">小小金钱草</span></div>
-      <div class="info-menu-row"><span class="row-label">联系开发者</span><span class="row-value"><a href="#" onclick="window.open('tel:15029164832','_blank');return false;" style="color:var(--primary)">15029164832</a></span></div>
+      <div class="info-menu-row"><span class="row-label">联系开发者</span><span class="row-value" style="color:var(--primary);cursor:pointer;" onclick="navigator.clipboard.writeText('15029164832').then(function(){showToast('已复制手机号：15029164832')}).catch(function(){showToast('手机号：15029164832')})">15029164832（点击复制）</span></div>
       <div class="info-menu-row" style="cursor:pointer;" onclick="showCustomerDB()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 查看客户数据</span><span class="row-value">&#x1F527;</span></div>
       <div class="info-menu-row" style="cursor:pointer;" onclick="showDBUpdater()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 更新数据库</span><span class="row-value">&#x1F4BE;</span></div>
     </div>
