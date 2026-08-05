@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.9.8';</script>
+<script>var APP_VER='3.0.0';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -675,6 +675,20 @@ body {
 <div class="toast" id="toast"></div>
 
 <!-- Group Picker Modal -->
+<!-- Dev Dialog (replaces prompt/alert) -->
+<div class="gp-overlay" id="devDialogOverlay" onclick="_devDialogCancel()">
+  <div class="gp-card" onclick="event.stopPropagation()">
+    <div class="gp-title" id="devDialogTitle">输入密码</div>
+    <div id="devDialogBody" style="padding:0 4px;">
+      <input class="gp-new-input" id="devDialogInput" type="password" placeholder="请输入开发者密码" maxlength="20" style="width:100%;box-sizing:border-box;" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="gp-new-btn" style="flex:1;background:var(--gray-light);color:var(--text2);" onclick="_devDialogCancel()">取消</button>
+      <button class="gp-new-btn" style="flex:1;" id="devDialogOk" onclick="_devDialogConfirm()">确认</button>
+    </div>
+  </div>
+</div>
+
 <div class="gp-overlay" id="gpOverlay" onclick="_gpCancel()">
   <div class="gp-card" onclick="event.stopPropagation()">
     <div class="gp-title" id="gpTitle">选择分组</div>
@@ -706,6 +720,7 @@ body {
     <div class="info-menu-body">
       <div class="info-menu-row"><span class="row-label">名称</span><span class="row-value">股票估值计算器</span></div>
       <div class="info-menu-row"><span class="row-label">版本</span><span class="row-value" id="appVerMenu">v2.2</span></div>
+      <div class="info-menu-row"><span class="row-label">数据库版本</span><span class="row-value" id="dbVerMenu">-</span></div>
       <div class="info-menu-row"><span class="row-label">作者(微信同名)</span><span class="row-value">小小金钱草</span></div>
       <div class="info-menu-row"><span class="row-label">联系作者</span><span class="row-value"><a href="tel:15029164832" style="color:var(--primary)">15029164832</a></span></div>
       <div class="info-menu-row" style="cursor:pointer;" onclick="showCustomerDB()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 查看客户数据</span><span class="row-value">&#x1F527;</span></div>
@@ -762,6 +777,7 @@ body {
       <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">将当前本地数据库推送到 GitHub Pages，线上用户下次访问即可获取新数据</p>
       <div style="background:var(--primary-light);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;">
         <div>当前库存：<b id="pushStockCount">0</b> 只</div>
+        <div>本地版本：<b id="pushLocalVer">-</b></div>
         <div>本地缓存：<b id="pushCacheStatus">-</b></div>
         <div>线上版本：<b id="pushRemoteStatus">检测中...</b></div>
       </div>
@@ -11573,6 +11589,12 @@ function updateMenuUser() {
   var verText = 'v' + (typeof APP_VER !== 'undefined' ? APP_VER : '?.?');
   var h = document.getElementById('appVerHeader'); if (h) h.textContent = verText;
   var m = document.getElementById('appVerMenu'); if (m) m.textContent = verText;
+  // Update DB version display
+  var dbVerEl = document.getElementById('dbVerMenu');
+  if (dbVerEl) {
+    var dbVerNum = localStorage.getItem('db_data_ver_num') || '-';
+    dbVerEl.textContent = 'v' + dbVerNum;
+  }
 }
 
 function doLogout() {
@@ -11612,8 +11634,47 @@ async function doDeregister() {
 // Update menu user on load and after auth actions
 try { updateMenuUser(); } catch(e) { console.warn('updateMenuUser error:', e); }
 
+var _devDialogResolve = null;
+function _devDialogCancel() {
+  var el = document.getElementById('devDialogOverlay');
+  el.classList.remove('show');
+  if (_devDialogResolve) { _devDialogResolve(null); _devDialogResolve = null; }
+}
+function _devDialogConfirm() {
+  var el = document.getElementById('devDialogOverlay');
+  var input = document.getElementById('devDialogInput');
+  el.classList.remove('show');
+  if (_devDialogResolve) { _devDialogResolve(input.value || ''); _devDialogResolve = null; }
+}
+function _devPrompt(title, placeholder, isPassword) {
+  return new Promise(function(resolve) {
+    _devDialogResolve = resolve;
+    document.getElementById('devDialogTitle').textContent = title || '输入';
+    var input = document.getElementById('devDialogInput');
+    input.type = isPassword ? 'password' : 'text';
+    input.placeholder = placeholder || '';
+    input.value = '';
+    document.getElementById('devDialogOverlay').classList.add('show');
+    setTimeout(function() { input.focus(); }, 100);
+  });
+}
+function _devAlert(title, msg) {
+  return new Promise(function(resolve) {
+    _devDialogResolve = resolve;
+    document.getElementById('devDialogTitle').textContent = title || '提示';
+    document.getElementById('devDialogInput').style.display = 'none';
+    document.getElementById('devDialogBody').innerHTML = '<div style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:300px;overflow-y:auto;">' + (msg||'') + '</div>';
+    document.getElementById('devDialogOk').textContent = '知道了';
+    document.getElementById('devDialogOverlay').classList.add('show');
+  }).then(function(v) {
+    document.getElementById('devDialogInput').style.display = '';
+    document.getElementById('devDialogOk').textContent = '确认';
+    return v;
+  });
+}
+
 async function showCustomerDB() {
-  const pwd = prompt('请输入开发者密码：');
+  const pwd = await _devPrompt('开发者验证', '请输入开发者密码', true);
   if (pwd === null) return;
   if (pwd !== DEV_PASS) { showToast('密码错误，无权访问'); return; }
   try {
@@ -11628,7 +11689,7 @@ async function showCustomerDB() {
       const time = d.time || '-';
       msg += (i+1) + '. 用户: ' + u + '\n   手机: ' + phone + '\n   注册: ' + time + '\n\n';
     });
-    alert(msg);
+    await _devAlert('客户数据', msg.replace(/\n/g, '<br>'));
   } catch(e) { showToast('网络错误，无法读取云端数据'); }
 }
 
@@ -11637,16 +11698,24 @@ var _updaterVerified = false;
 
 function showDBUpdater() {
   if (!_updaterVerified) {
-    const pwd = prompt('请输入开发者密码：');
-    if (pwd === null) return;
-    if (pwd !== DEV_PASS) { showToast('密码错误，无权访问'); return; }
-    _updaterVerified = true;
+    _devPrompt('开发者验证', '请输入开发者密码', true).then(function(pwd) {
+      if (pwd === null) return;
+      if (pwd !== DEV_PASS) { showToast('密码错误，无权访问'); return; }
+      _updaterVerified = true;
+      _openDBUpdater();
+    });
+    return;
   }
+  _openDBUpdater();
+}
+
+function _openDBUpdater() {
   toggleInfoMenu();
   var panel = document.getElementById('dbUpdaterPanel');
   panel.style.display = 'flex';
   switchUpdaterTab('api');
       document.getElementById('pushStockCount').textContent = dbCount();
+  document.getElementById('pushLocalVer').textContent = 'v' + (localStorage.getItem('db_data_ver_num') || '1');
   document.getElementById('pushCacheStatus').textContent = '检查中...';
   _dbLoad('db_data_v' + (localStorage.getItem('db_data_ver_num') || '1')).then(function(v) {
     document.getElementById('pushCacheStatus').textContent = v ? '已缓存' : '无缓存';
