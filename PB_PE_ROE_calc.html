@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.9.1';</script>
+<script>var APP_VER='2.9.2';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -146,7 +146,7 @@ body {
 .db-text-scroll {
   background: #f8f9fa; border-radius: 8px; padding: 10px 12px;
   font-size: 13px; line-height: 1.7; color: var(--text);
-  max-height: 120px; overflow-y: auto; white-space: pre-wrap;
+  max-height: 400px; overflow-y: auto; white-space: pre-wrap;
   -webkit-overflow-scrolling: touch;
 }
 .db-text-scroll::-webkit-scrollbar { width: 3px; }
@@ -443,16 +443,7 @@ body {
   [data-theme="dark"] .fav-add-group:active { background: #1e2a4a; }
   [data-theme="dark"] .fav-group-actions span:active { background: #1e2a4a; }
 
-  /* Quick Access (Recent Visits) */
-  .quick-access { margin-bottom: 12px; }
-  .quick-access-title { font-size: 12px; color: var(--text3); margin-bottom: 6px; padding-left: 2px; }
-  .quick-access-list { display: flex; flex-wrap: wrap; gap: 8px; }
-  .quick-access-item { display: flex; align-items: center; gap: 4px; background: var(--card); border: 1px solid var(--gray-light); border-radius: 16px; padding: 4px 10px 4px 8px; cursor: pointer; transition: background 0.2s; }
-  .quick-access-item:active { background: var(--gray-light); }
-  .quick-access-item .qa-code { font-size: 12px; font-weight: 600; color: var(--primary); }
-  .quick-access-item .qa-name { font-size: 11px; color: var(--text2); max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  [data-theme="dark"] .quick-access-item { border-color: #2d2d44; }
-  [data-theme="dark"] .quick-access-item:active { background: #1e2a4a; }
+
 </style>
 </head>
 <body>
@@ -556,7 +547,7 @@ body {
       <button class="search-clear" id="dbSearchClear" onclick="dbSearch.value='';this.classList.remove('show');dbSearch.focus();document.getElementById('dbContent').innerHTML=document.getElementById('dbPlaceholder').innerHTML;">&times;</button>
       <div class="ac-list" id="dbAcList"></div>
     </div>
-    <div class="quick-access" id="quickAccess"></div>
+
     <div id="dbContent">
       <div id="dbLoadHint" style="display:none;text-align:center;padding:30px 20px;"><div class="db-spinner"></div><p style="margin-top:12px;color:var(--text2);font-size:13px;">正在加载数据库...</p></div>
       <div id="dbPlaceholder" style="display:none;"><div class="no-data-hint"><div class="icon">&#128269;</div><p>搜索股票代码或名称<br>查看完整财务数据</p></div></div>
@@ -12135,6 +12126,17 @@ function _dbClearAll() {
 var _favCache = null; // in-memory cache: { code: {code, name, group, time} }
 var _favGroups = ['默认']; // group names
 
+function _saveFavGroups() {
+  try { localStorage.setItem('pb_calc_fav_groups', JSON.stringify(_favGroups)); } catch(e) {}
+}
+function _loadFavGroups() {
+  try {
+    var g = JSON.parse(localStorage.getItem('pb_calc_fav_groups'));
+    if (g && Array.isArray(g) && g.length > 0) _favGroups = g;
+  } catch(e) {}
+}
+_loadFavGroups();
+
 function _favSave(obj) {
   return _openIDB().then(function(db) {
     return new Promise(function(resolve, reject) {
@@ -12174,13 +12176,23 @@ function loadFavCache() {
       _favCache[item.code] = item;
       if (item.group) groups[item.group] = true;
     });
-    // Ensure default group exists
-    groups['默认'] = true;
-    _favGroups = Object.keys(groups);
-    if (_favGroups.indexOf('默认') !== 0) {
-      _favGroups.splice(_favGroups.indexOf('默认'), 1);
-      _favGroups.unshift('默认');
+    // Merge groups from localStorage and from fav items
+    var savedGroups = [];
+    try { savedGroups = JSON.parse(localStorage.getItem('pb_calc_fav_groups')) || []; } catch(e) {}
+    var mergedGroups = [];
+    var seen = {};
+    // First add saved groups (preserves user-created order, includes empty groups)
+    savedGroups.forEach(function(g) { if (!seen[g]) { mergedGroups.push(g); seen[g] = true; } });
+    // Then add any groups from fav items that weren't saved
+    Object.keys(groups).forEach(function(g) { if (!seen[g]) { mergedGroups.push(g); seen[g] = true; } });
+    // Ensure default group exists and is first
+    if (mergedGroups.indexOf('默认') < 0) mergedGroups.unshift('默认');
+    else if (mergedGroups.indexOf('默认') !== 0) {
+      mergedGroups.splice(mergedGroups.indexOf('默认'), 1);
+      mergedGroups.unshift('默认');
     }
+    _favGroups = mergedGroups;
+    _saveFavGroups();
     return _favCache;
   }).catch(function() { _favCache = {}; _favGroups = ['默认']; return _favCache; });
 }
@@ -12247,13 +12259,14 @@ function renderFavList() {
   var GROUP_COLORS_ARR = ['#1a5276','#1e8449','#b7950b','#ca6f1e','#7d3c98','#c0392b','#2e86c1'];
   _favGroups.forEach(function(group, gi) {
     var items = grouped[group];
-    if (!items || items.length === 0) return;
     var color = GROUP_COLORS_ARR[gi % GROUP_COLORS_ARR.length];
-    html += '<div class="fav-group-header"><div class="fav-group-name"><span class="fav-group-dot" style="background:'+color+'"></span>'+_esc(group)+'<span class="fav-count-badge">'+items.length+'</span></div>';
+    // Always render group header (even for empty groups)
+    html += '<div class="fav-group-header"><div class="fav-group-name"><span class="fav-group-dot" style="background:'+color+'"></span>'+_esc(group)+'<span class="fav-count-badge">'+(items ? items.length : 0)+'</span></div>';
     if (group !== '默认') {
       html += '<div class="fav-group-actions"><span onclick="renameFavGroup(\''+_esc(group)+'\')">重命名</span><span onclick="deleteFavGroup(\''+_esc(group)+'\')">删除分组</span></div>';
     }
     html += '</div>';
+    if (!items || items.length === 0) return;
     items.forEach(function(item) {
       var row = DB_DATA[item.code];
       var pe = row ? getFieldVal('PE', row) : '-';
@@ -12285,6 +12298,7 @@ function addFavGroup() {
   name = name.trim();
   if (_favGroups.indexOf(name) >= 0) { showToast('分组已存在'); return; }
   _favGroups.push(name);
+  _saveFavGroups();
   renderFavList();
   showToast('已添加分组: ' + name);
 }
@@ -12302,6 +12316,7 @@ function renameFavGroup(oldName) {
   }
   var idx = _favGroups.indexOf(oldName);
   if (idx >= 0) _favGroups[idx] = newName;
+  _saveFavGroups();
   renderFavList();
   showToast('分组已重命名');
 }
@@ -12316,45 +12331,11 @@ function deleteFavGroup(groupName) {
   }
   var idx = _favGroups.indexOf(groupName);
   if (idx >= 0) _favGroups.splice(idx, 1);
+  _saveFavGroups();
   renderFavList();
   showToast('分组已删除');
 }
 
-// ===== Quick Access (Recent Visits) =====
-var RECENT_VISIT_KEY = 'pb_calc_recent_visits';
-var MAX_RECENT_VISITS = 8;
-
-function getRecentVisits() {
-  try { return JSON.parse(localStorage.getItem(RECENT_VISIT_KEY)) || []; } catch(e) { return []; }
-}
-function saveRecentVisits(list) {
-  localStorage.setItem(RECENT_VISIT_KEY, JSON.stringify(list));
-}
-function addRecentVisit(code, name) {
-  if (!code) return;
-  var list = getRecentVisits();
-  // Remove if already exists (to move to top)
-  list = list.filter(function(item) { return item.code !== code; });
-  list.unshift({code: code, name: name || STOCK_MAP[code] || '', time: Date.now()});
-  if (list.length > MAX_RECENT_VISITS) list = list.slice(0, MAX_RECENT_VISITS);
-  saveRecentVisits(list);
-  renderQuickAccess();
-}
-function renderQuickAccess() {
-  var container = document.getElementById('quickAccess');
-  if (!container) return;
-  var list = getRecentVisits();
-  if (list.length === 0) { container.innerHTML = ''; return; }
-  var html = '<div class="quick-access-title">最近访问</div><div class="quick-access-list">';
-  list.forEach(function(item) {
-    html += '<div class="quick-access-item" onclick="showDBDetail(\'' + _esc(item.code) + '\')">';
-    html += '<span class="qa-code">' + _esc(item.code) + '</span>';
-    html += '<span class="qa-name">' + _esc(item.name) + '</span>';
-    html += '</div>';
-  });
-  html += '</div>';
-  container.innerHTML = html;
-}
 
 // === DB_DATA helpers ===
 // Convert array format (db_data.json v2+) to DB_DATA[code] map
@@ -12434,7 +12415,7 @@ function loadDBData() {
   // 2. Always check remote for updates (with timeout)
   function fetchRemote() {
     _dbDataLoading = true;
-    var timeout = hasCache ? 8000 : 15000;
+    var timeout = hasCache ? 8000 : 20000;
     var controller = new AbortController();
     var timer = setTimeout(function() { controller.abort(); }, timeout);
     return fetch('./db_data.json', {cache: 'no-cache', signal: controller.signal}).then(function(r) {
@@ -12451,7 +12432,7 @@ function loadDBData() {
       if (hasCache && remoteVer <= localVer) {
         console.log('DB remote version ' + remoteVer + ' <= local ' + localVer + ', skip update');
         _dbDataLoading = false;
-        return;
+        return Promise.resolve();
       }
       // Update DB_DATA with latest
       DB_DATA = newMap;
@@ -12469,10 +12450,12 @@ function loadDBData() {
         console.log('IDB save error:', e.message);
       });
       _dbDataLoading = false;
+      return Promise.resolve();
     }).catch(function(e) {
       clearTimeout(timer);
       console.log('Remote DB fetch failed:', e.message);
       _dbDataLoading = false;
+      return Promise.resolve();
     });
   }
 
@@ -12546,7 +12529,7 @@ function calcDoSearch(query) { _doStockSearch(query, calcAcList, 'calcSelect'); 
 
 function dbSelect(el) {
   const code = el.dataset.code;
-  dbSearch.value = code + ' ' + el.dataset.name;
+  dbSearch.value = code;
   dbAcList.classList.remove('show');
   showDBDetail(code);
 }
@@ -12575,7 +12558,6 @@ function _debounce(fn, ms) {
 function showDBDetail(code) {
   const container = document.getElementById('dbContent');
   const name = STOCK_MAP[code] || '';
-  addRecentVisit(code, name); // Record visit for quick access
   const rowData = DB_DATA[code];
   if (!rowData) {
     if (_dbDataLoading || dbCount() === 0) {
@@ -12831,6 +12813,9 @@ function calcSelect(el) {
   document.getElementById('pb').value = '';
   document.getElementById('roe').value = '';
   fetchRealTimeData(el.dataset.code);
+  // Sync result fav button
+  var cfBtn = document.getElementById('calcFavBtn');
+  if (cfBtn) { var cfFav = isFav(el.dataset.code); cfBtn.style.display = 'block'; cfBtn.classList.toggle('active', cfFav); cfBtn.textContent = cfFav ? '★' : '☆'; }
 }
 
 // Debounced search for calculator
@@ -12844,6 +12829,9 @@ var _calcSearchDebounced = _debounce(function(v) {
     // Sync input fav star
     var inputBtn = document.getElementById('calcInputFavBtn');
     if (inputBtn) { var f = isFav(v); inputBtn.classList.toggle('active', f); inputBtn.textContent = f ? '★' : '☆'; }
+    // Also show result-card fav button
+    var calcBtn = document.getElementById('calcFavBtn');
+    if (calcBtn) { calcBtn.style.display = 'block'; calcBtn.classList.toggle('active', f); calcBtn.textContent = f ? '★' : '☆'; }
     fetchRealTimeData(v);
   }
   else {
@@ -13024,25 +13012,28 @@ function clearHistory() {
   }
 }
 renderHistory();
-renderQuickAccess();
 document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') calculate(); }));
 
 // Load DB_DATA (async, with localStorage cache)
 (function initDB() {
   var dbHint = document.getElementById('dbLoadHint');
-  // Do NOT clear old version caches on startup - keep them for fast display
-  // Old caches will be cleaned up after successful remote fetch
   var curVer = localStorage.getItem('db_data_ver_num') || '1';
   // Check IndexedDB cache for hint display (async, non-blocking)
   _dbLoad('db_data_v' + curVer).then(function(v) {
     if (!v && dbHint) dbHint.style.display = 'block';
   }).catch(function() { if (dbHint) dbHint.style.display = 'block'; });
   
-  // Safety: always hide loading hint after 20s max (even if fetch hangs)
+  // Safety: always hide loading hint after 12s max (even if fetch hangs)
   var safetyTimer = setTimeout(function() {
     if (dbHint) dbHint.style.display = 'none';
     _dbDataLoading = false;
-  }, 20000);
+    _updateDBSubTitle();
+    console.log('DB safety timeout triggered');
+    if (dbCount() === 0) {
+      var container = document.getElementById('dbContent');
+      if (container) container.innerHTML = '<div class="db-load-fail"><p>数据库加载超时</p><button class="db-retry-btn" onclick="location.reload()">点击重试</button></div>';
+    }
+  }, 12000);
   
   loadDBData().then(function() {
     clearTimeout(safetyTimer);
@@ -13055,11 +13046,11 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
       window._dbPendingDetail = [];
       pending.forEach(function(p) { showDBDetail(p.code); });
     }
-  }).catch(function() {
+  }).catch(function(err) {
     clearTimeout(safetyTimer);
     if (dbHint) dbHint.style.display = 'none';
     _updateDBSubTitle();
-    console.log('DB_DATA load failed');
+    console.log('DB_DATA load failed:', err);
     // Show load failure with retry button
     var container = document.getElementById('dbContent');
     if (container && dbCount() === 0) {
@@ -13067,7 +13058,7 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
     }
   });
   // Load favorites cache (non-blocking)
-  loadFavCache().then(function() { updateFavCount(); console.log('Favorites loaded: ' + Object.keys(_favCache).length); });
+  loadFavCache().then(function() { updateFavCount(); console.log('Favorites loaded: ' + Object.keys(_favCache).length); }).catch(function() {});
 })();
 
 function _updateDBSubTitle() {
@@ -13079,8 +13070,21 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  // Register service worker (no force-unregister to avoid breaking in-flight fetches)
-  navigator.serviceWorker.register('./sw.js?v=20260804n').then(reg=>{ reg.update(); console.log('SW ok'); }).catch(e=>console.log('SW fail',e));
+  navigator.serviceWorker.register('./sw.js?v=20260805n').then(function(reg) {
+    // Force update: ensure latest SW is activated
+    if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
+    if (reg.installing) {
+      reg.installing.addEventListener('statechange', function() {
+        if (this.state === 'activated') {
+          // New SW activated, reload to use fresh cache
+          console.log('New SW activated, reloading...');
+          location.reload();
+        }
+      });
+    }
+    reg.update();
+    console.log('SW ok');
+  }).catch(function(e) { console.log('SW fail', e); });
 }
 
 // ===== Auto Update Check =====
@@ -13089,9 +13093,9 @@ if ('serviceWorker' in navigator) {
   var localVer = APP_VER || '0';
   var key = '_app_ver_last_check';
   var now = Date.now();
-  // Check at most once per 30s (avoid loop but allow reasonable re-check)
+  // Check at most once per 10s (avoid loop but allow reasonable re-check)
   var lastCheck = parseInt(localStorage.getItem(key) || '0', 10);
-  if (now - lastCheck < 30000) return; // checked recently
+  if (now - lastCheck < 10000) return; // checked recently
   localStorage.setItem(key, String(now));
   // Force update: fetch HTML with cache-bust, bypass CDN + SW
   var fetchUrl = './PB_PE_ROE_calc.html?_update=' + now;
@@ -13111,7 +13115,9 @@ if ('serviceWorker' in navigator) {
           navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
         }
         // Replace page with new version (force bypass all caches)
-        location.replace(location.pathname + '?v=' + remoteVer + '&_t=' + Date.now());
+        setTimeout(function() {
+          location.replace(location.pathname + '?v=' + remoteVer + '&_t=' + Date.now());
+        }, 500);
       } else {
         console.log('Version check: up-to-date (v' + localVer + ')');
       }
