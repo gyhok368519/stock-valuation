@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.9.4';</script>
+<script>var APP_VER='2.9.5';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -434,6 +434,25 @@ body {
   .fav-go { font-size:16px; color:var(--text3); padding:4px 8px; cursor:pointer; flex-shrink:0; }
   .fav-group-tag { font-size:11px; color:var(--primary); background:var(--primary-light); border-radius:10px; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .fav-group-tag:active { background:var(--gray-light); }
+  /* Group Picker Modal */
+  .gp-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; }
+  .gp-overlay.show { display:flex; }
+  .gp-card { background:var(--card); border-radius:16px; width:85%; max-width:320px; padding:20px 16px 16px; box-shadow:0 8px 32px rgba(0,0,0,0.2); animation:gpIn 0.2s ease; }
+  @keyframes gpIn { from { transform:scale(0.9); opacity:0; } to { transform:scale(1); opacity:1; } }
+  .gp-title { font-size:16px; font-weight:600; text-align:center; margin-bottom:14px; color:var(--text); }
+  .gp-list { max-height:240px; overflow-y:auto; }
+  .gp-item { display:flex; align-items:center; padding:12px 14px; border-radius:10px; cursor:pointer; transition:background 0.15s; font-size:14px; color:var(--text); }
+  .gp-item:active { background:var(--primary-light); }
+  .gp-item.active { color:var(--primary); font-weight:600; }
+  .gp-item-dot { width:8px; height:8px; border-radius:50%; margin-right:10px; flex-shrink:0; }
+  .gp-item-check { margin-left:auto; font-size:16px; color:var(--primary); }
+  .gp-new-row { display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-light); }
+  .gp-new-input { flex:1; border:1px solid var(--gray-light); border-radius:8px; padding:8px 12px; font-size:13px; outline:none; background:var(--card); color:var(--text); }
+  .gp-new-input:focus { border-color:var(--primary); }
+  .gp-new-btn { background:var(--primary); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; white-space:nowrap; }
+  .gp-new-btn:active { opacity:0.8; }
+  .gp-cancel { text-align:center; padding:10px 0 0; color:var(--text3); font-size:14px; cursor:pointer; }
+  .gp-cancel:active { color:var(--text2); }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
   .fav-empty p { font-size:14px; margin-bottom:6px; }
@@ -446,6 +465,9 @@ body {
   [data-theme="dark"] .fav-item:active { background: #1e1e30; }
   [data-theme="dark"] .fav-tab:active { background: #1e2a4a; }
   [data-theme="dark"] .fav-group-tag { background: #1e2a4a; }
+  [data-theme="dark"] .gp-card { background: #1a1a2e; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  [data-theme="dark"] .gp-new-input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
+  [data-theme="dark"] .gp-item:active { background: #1e2a4a; }
   [data-theme="dark"] .fav-group-actions span:active { background: #1e2a4a; }
 
 
@@ -651,6 +673,20 @@ body {
   </div>
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- Group Picker Modal -->
+<div class="gp-overlay" id="gpOverlay" onclick="_gpCancel()">
+  <div class="gp-card" onclick="event.stopPropagation()">
+    <div class="gp-title" id="gpTitle">选择分组</div>
+    <div class="gp-list" id="gpList"></div>
+    <div class="gp-new-row" id="gpNewRow">
+      <input class="gp-new-input" id="gpNewInput" placeholder="输入新分组名" maxlength="8" />
+      <button class="gp-new-btn" onclick="_gpCreateGroup()">创建</button>
+    </div>
+    <div class="gp-cancel" onclick="_gpCancel()">取消</div>
+  </div>
+</div>
+
 <div class="safe-bottom"></div>
 
 <!-- Info Menu -->
@@ -12215,15 +12251,18 @@ function toggleFav(code) {
     _favDelete(code);
     updateFavStar(code, false);
     showToast('已取消收藏 ' + name);
+    updateFavCount();
   } else {
-    var group = _favGroups.length > 1 ? _pickGroupForFav(code, name) : '默认';
-    var obj = {code: code, name: name, group: group, time: Date.now()};
-    _favCache[code] = obj;
-    _favSave(obj);
-    updateFavStar(code, true);
-    showToast('已收藏 ' + name + (group !== '默认' ? ' → ' + group : ''));
+    // Show group picker, then save
+    _showGroupPicker('收藏 ' + name, null, function(group) {
+      var obj = {code: code, name: name, group: group, time: Date.now()};
+      _favCache[code] = obj;
+      _favSave(obj);
+      updateFavStar(code, true);
+      showToast('已收藏 ' + name + (group !== '默认' ? ' → ' + group : ''));
+      updateFavCount();
+    });
   }
-  updateFavCount();
 }
 // Update all fav star icons for a given code
 function updateFavStar(code, active) {
@@ -12327,72 +12366,109 @@ function switchFavTab(tab) {
 function moveToGroup(code) {
   var item = _favCache[code];
   if (!item) return;
-  var groups = ['默认'];
-  _favGroups.forEach(function(g) { if (g !== '默认') groups.push(g); });
   var currentGroup = item.group || '默认';
-  var groupList = groups.map(function(g) { return (g === currentGroup ? '✓ ' : '  ') + g; }).join('\n');
-  var choice = prompt('移动「' + (item.name || code) + '」到分组：\n\n' + groupList + '\n\n请输入分组名称：');
-  if (!choice || !choice.trim()) return;
-  choice = choice.trim();
-  if (choice === currentGroup) return;
-  if (_favGroups.indexOf(choice) < 0) { showToast('分组不存在，请先新建'); return; }
-  item.group = choice;
-  _favSave(item);
-  renderFavList();
-  showToast('已移动到「' + choice + '」');
-}
-
-// Show group picker for new favorite
-function _pickGroupForFav(code, name) {
-  if (_favGroups.length <= 1) return '默认';
-  var groupList = _favGroups.map(function(g, i) { return (i + 1) + '. ' + g; }).join('\n');
-  var choice = prompt('选择收藏分组：\n\n' + groupList + '\n\n输入分组名（留空=默认）：');
-  if (!choice || !choice.trim()) return '默认';
-  choice = choice.trim();
-  if (_favGroups.indexOf(choice) < 0) { showToast('分组不存在，存入默认'); return '默认'; }
-  return choice;
+  _showGroupPicker('移动到分组', currentGroup, function(group) {
+    if (group === currentGroup) return;
+    item.group = group;
+    _favSave(item);
+    renderFavList();
+    showToast('已移动到「' + group + '」');
+  });
 }
 
 // Show group management menu (long press / contextmenu)
 function showGroupMenu(e, group) {
   e.preventDefault();
-  if (group === '默认') {
-    showToast('默认分组不可管理');
-    return;
-  }
-  var action = confirm('分组「' + group + '」管理：\n\n确定 = 重命名\n取消 = 删除分组');
-  if (action) {
-    renameFavGroup(group);
-  } else {
-    deleteFavGroup(group);
-  }
+  if (group === '默认') { showToast('默认分组不可管理'); return; }
+  _showGroupActionMenu(group);
 }
-// Navigate to DB detail from favorites
-function goToFavDetail(code) {
-  switchTab('db');
-  document.getElementById('dbSearch').value = code;
-  showDBDetail(code);
-}
-// Add new group
-function addFavGroup() {
+
+// ===== Group Picker Modal =====
+var _gpCallback = null;
+var _gpCurrentGroup = null;
+
+function _showGroupPicker(title, currentGroup, callback) {
+  var overlay = document.getElementById('gpOverlay');
+  var titleEl = document.getElementById('gpTitle');
+  var listEl = document.getElementById('gpList');
+  var newRow = document.getElementById('gpNewRow');
+  var newInput = document.getElementById('gpNewInput');
+  
+  _gpCallback = callback;
+  _gpCurrentGroup = currentGroup;
+  titleEl.textContent = title || '选择分组';
+  newInput.value = '';
+  
+  // Show "new group" row only if under limit
   var customCount = _favGroups.filter(function(g) { return g !== '默认'; }).length;
-  if (customCount >= MAX_FAV_GROUPS) { showToast('最多创建' + MAX_FAV_GROUPS + '个自定义分组'); return; }
-  var name = prompt('请输入新分组名称：');
-  if (!name || !name.trim()) return;
-  name = name.trim();
+  newRow.style.display = customCount < MAX_FAV_GROUPS ? 'flex' : 'none';
+  
+  // Render group list
+  var GROUP_COLORS_ARR = ['#1a73e8','#1e8449','#b7950b','#ca6f1e','#7d3c98','#c0392b'];
+  var html = '';
+  _favGroups.forEach(function(group, i) {
+    var color = GROUP_COLORS_ARR[i % GROUP_COLORS_ARR.length];
+    var isActive = group === currentGroup;
+    html += '<div class="gp-item' + (isActive ? ' active' : '') + '" onclick="_gpSelect(\''+_esc(group)+'\')">';
+    html += '<span class="gp-item-dot" style="background:'+color+'"></span>';
+    html += _esc(group);
+    if (isActive) html += '<span class="gp-item-check">✓</span>';
+    html += '</div>';
+  });
+  listEl.innerHTML = html;
+  
+  overlay.classList.add('show');
+}
+
+function _gpSelect(group) {
+  document.getElementById('gpOverlay').classList.remove('show');
+  if (_gpCallback) _gpCallback(group);
+  _gpCallback = null;
+}
+
+function _gpCancel() {
+  document.getElementById('gpOverlay').classList.remove('show');
+  _gpCallback = null;
+}
+
+function _gpCreateGroup() {
+  var input = document.getElementById('gpNewInput');
+  var name = input.value.trim();
+  if (!name) return;
   if (_favGroups.indexOf(name) >= 0) { showToast('分组已存在'); return; }
   _favGroups.push(name);
   _saveFavGroups();
-  _favActiveTab = name;
-  renderFavList();
+  input.value = '';
   showToast('已添加分组: ' + name);
+  // Refresh picker to show new group
+  _showGroupPicker(document.getElementById('gpTitle').textContent, _gpCurrentGroup, _gpCallback);
 }
-// Rename group
-function renameFavGroup(oldName) {
+
+// Group action menu (rename/delete)
+function _showGroupActionMenu(group) {
+  var overlay = document.getElementById('gpOverlay');
+  var titleEl = document.getElementById('gpTitle');
+  var listEl = document.getElementById('gpList');
+  var newRow = document.getElementById('gpNewRow');
+  
+  titleEl.textContent = '管理「' + group + '」';
+  newRow.style.display = 'none';
+  
+  var html = '';
+  html += '<div class="gp-item" onclick="_gpRename(\''+_esc(group)+'\')"><span class="gp-item-dot" style="background:#1a73e8"></span>重命名</div>';
+  html += '<div class="gp-item" onclick="_gpDelete(\''+_esc(group)+'\')"><span class="gp-item-dot" style="background:#d93025"></span>删除分组</div>';
+  html += '<div class="gp-item" onclick="_gpCancel()" style="color:var(--text3);justify-content:center;margin-top:8px;border-top:1px solid var(--gray-light);padding-top:16px;">取消</div>';
+  listEl.innerHTML = html;
+  
+  _gpCallback = null;
+  overlay.classList.add('show');
+}
+
+function _gpRename(oldName) {
+  document.getElementById('gpOverlay').classList.remove('show');
   var newName = prompt('请输入新名称：', oldName);
   if (!newName || !newName.trim() || newName.trim() === oldName) return;
   newName = newName.trim();
-  // Update all items in this group
   for (var code in _favCache) {
     if (_favCache[code].group === oldName) {
       _favCache[code].group = newName;
@@ -12402,11 +12478,13 @@ function renameFavGroup(oldName) {
   var idx = _favGroups.indexOf(oldName);
   if (idx >= 0) _favGroups[idx] = newName;
   _saveFavGroups();
+  if (_favActiveTab === oldName) _favActiveTab = newName;
   renderFavList();
   showToast('分组已重命名');
 }
-// Delete group (move items to default)
-function deleteFavGroup(groupName) {
+
+function _gpDelete(groupName) {
+  document.getElementById('gpOverlay').classList.remove('show');
   if (!confirm('确定删除分组「'+groupName+'」？股票将移至默认分组')) return;
   for (var code in _favCache) {
     if (_favCache[code].group === groupName) {
@@ -12417,9 +12495,28 @@ function deleteFavGroup(groupName) {
   var idx = _favGroups.indexOf(groupName);
   if (idx >= 0) _favGroups.splice(idx, 1);
   _saveFavGroups();
+  if (_favActiveTab === groupName) _favActiveTab = '全部';
   renderFavList();
   showToast('分组已删除');
 }
+// Navigate to DB detail from favorites
+function goToFavDetail(code) {
+  switchTab('db');
+  document.getElementById('dbSearch').value = code;
+  showDBDetail(code);
+}
+// Add new group (from tab + button)
+function addFavGroup() {
+  var customCount = _favGroups.filter(function(g) { return g !== '默认'; }).length;
+  if (customCount >= MAX_FAV_GROUPS) { showToast('最多创建' + MAX_FAV_GROUPS + '个自定义分组'); return; }
+  // Show picker with create option
+  _showGroupPicker('新建分组', null, function(group) {
+    // If user clicked an existing group, just switch to it
+    _favActiveTab = group;
+    renderFavList();
+  });
+}
+
 
 
 // === DB_DATA helpers ===
