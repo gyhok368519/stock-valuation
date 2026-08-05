@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.0.5';</script>
+<script>var APP_VER='3.0.6';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -11777,11 +11777,22 @@ async function showCustomerDB() {
   if (pwd === null) return;
   if (pwd !== DEV_PASS) { showToast('密码错误，无权访问'); return; }
   try {
-    const db = await getAuthDB();
-    if (db === null) { showToast('网络连接失败，无法读取云端数据'); return; }
+    let db = await getAuthDB();
+    let source = '云端';
+    if (db === null) {
+      // GitHub API unreachable: fallback to offline DB + cache
+      db = _getOfflineDB();
+      const cached = getCachedDB();
+      if (cached) {
+        for (const [u, d] of Object.entries(cached)) {
+          if (!db[u]) db[u] = d;
+        }
+      }
+      source = '本地（网络不可用，仅显示本地记录）';
+    }
     const keys = Object.keys(db || {});
     if (!keys.length) { showToast('客户数据库为空，暂无注册用户'); return; }
-    let msg = '【云端customer_db】共 ' + keys.length + ' 位注册用户\n\n';
+    let msg = '【' + source + '客户数据】共 ' + keys.length + ' 位注册用户\n\n';
     keys.forEach((u, i) => {
       const d = (db || {})[u];
       const phone = d.phone || '-';
@@ -11789,7 +11800,7 @@ async function showCustomerDB() {
       msg += (i+1) + '. 用户: ' + u + '\n   手机: ' + phone + '\n   注册: ' + time + '\n\n';
     });
     await _devAlert('客户数据', msg.replace(/\n/g, '<br>'));
-  } catch(e) { showToast('网络错误，无法读取云端数据'); }
+  } catch(e) { showToast('读取客户数据出错'); }
 }
 
 // ===== DB Updater =====
