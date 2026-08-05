@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.0.4';</script>
+<script>var APP_VER='3.0.5';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -11337,6 +11337,7 @@ function bjTime() {
 const CACHE_KEY = '_auth_db_cache';
 const CACHE_TIME_KEY = '_auth_db_cache_time';
 const CACHE_TTL = 60000; // cache valid for 60s
+const OFFLINE_DB_KEY = '_auth_offline_db'; // offline fallback DB
 let _ghSha = null;
 let _dbCache = null;
 let _dbCacheTime = 0;
@@ -11361,6 +11362,29 @@ function _saveCache(db) {
 }
 _loadCache(); // load cache on page init
 
+// Offline fallback: read/write a local-only DB when GitHub is unreachable
+function _getOfflineDB() {
+  try { return JSON.parse(localStorage.getItem(OFFLINE_DB_KEY)) || {}; } catch(e) { return {}; }
+}
+function _saveOfflineDB(db) {
+  try { localStorage.setItem(OFFLINE_DB_KEY, JSON.stringify(db)); } catch(e) { console.warn('offline save err:', e); }
+}
+// Merge offline-only users into cloud DB after successful fetch, then upload
+async function _mergeOfflineToCloud(cloudDB) {
+  const offline = _getOfflineDB();
+  const offlineUsers = Object.keys(offline);
+  if (!offlineUsers.length) return;
+  let changed = false;
+  for (const u of offlineUsers) {
+    if (!cloudDB[u]) { cloudDB[u] = offline[u]; changed = true; }
+  }
+  if (changed) {
+    _saveCache(cloudDB);
+    await saveAuthDB(cloudDB);
+    localStorage.removeItem(OFFLINE_DB_KEY); // clear offline after merge
+  }
+}
+
 async function ghGet() {
   try {
     const r = await fetch(GH_API, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
@@ -11369,6 +11393,8 @@ async function ghGet() {
     _ghSha = d.sha;
     const db = JSON.parse(decodeURIComponent(escape(atob(d.content))));
     _saveCache(db);
+    // Cloud success: merge any offline-only users into cloud
+    await _mergeOfflineToCloud(db);
     return db;
   } catch (e) { console.error('ghGet error:', e); return null; }
 }
@@ -11440,19 +11466,41 @@ async function doRegister() {
   btn.textContent = '注册中...'; btn.disabled = true;
   try {
     let db = await getAuthDB();
-    if (db === null) { err.textContent = '网络连接失败，请检查网络后重试'; btn.textContent = '注册'; btn.disabled = false; return; }
+    let offlineMode = false;
+    if (db === null) {
+      // GitHub API unreachable — allow offline registration
+      offlineMode = true;
+      db = _getOfflineDB();
+      // Also check cache for duplicate checking
+      const cached = getCachedDB();
+      if (cached) {
+        for (const [u, d] of Object.entries(cached)) {
+          if (!db[u]) db[u] = d; // merge cached users into offline view
+        }
+      }
+    }
     if (!db) db = {};
     if (db[user]) { err.textContent = '该用户名已注册，请直接登录'; btn.textContent = '注册'; btn.disabled = false; return; }
     for (const [u, d] of Object.entries(db)) {
       if (d.phone === phone) { err.textContent = '该手机号已注册，请直接登录'; btn.textContent = '注册'; btn.disabled = false; return; }
     }
     db[user] = { phone: phone, pass: await hashPassword(pass), time: bjTime() };
-    _saveCache(db); // update cache immediately
+    if (offlineMode) {
+      _saveOfflineDB(db);
+      _saveCache(db);
+    } else {
+      _saveCache(db);
+    }
     localStorage.setItem(SESSION_KEY, user);
     document.getElementById('authOverlay').classList.add('hidden');
     updateMenuUser();
-    saveAuthDB(db).then(ok => { if (!ok) { _loadCache(); /* refresh cache on failure */ } }); // fire-and-forget write
-    showToast('注册成功！欢迎使用股票估值计算器');
+    if (offlineMode) {
+      // Will auto-sync when network recovers (checkSession or next ghGet)
+      showToast('注册成功！（离线模式，恢复网络后自动同步）');
+    } else {
+      saveAuthDB(db).then(ok => { if (!ok) { _loadCache(); } }); // fire-and-forget write
+      showToast('注册成功！欢迎使用股票估值计算器');
+    }
   } catch(e) { err.textContent = '网络错误，请稍后重试'; }
   btn.textContent = '注册'; btn.disabled = false;
 }
@@ -11501,7 +11549,23 @@ async function doLogin() {
   btn.textContent = '登录中...'; btn.disabled = true;
   try {
     const db = await getAuthDB();
-    if (db === null) { err.textContent = '网络连接失败，请检查网络后重试'; btn.textContent = '登录'; btn.disabled = false; return; }
+    if (db === null) {
+      // GitHub API unreachable — try offline DB for login
+      const offline = _getOfflineDB();
+      if (offline[user]) {
+        const matched = await _passMatchAsync(offline[user].pass, pass);
+        if (matched) {
+          _saveCache(offline);
+          localStorage.setItem(SESSION_KEY, user);
+          document.getElementById('authOverlay').classList.add('hidden');
+          updateMenuUser();
+          showToast('登录成功！（离线模式）');
+          btn.textContent = '登录'; btn.disabled = false;
+          return;
+        }
+      }
+      err.textContent = '网络不可用，且本地无此用户记录'; btn.textContent = '登录'; btn.disabled = false; return;
+    }
     if (!db || !db[user]) { err.textContent = '用户名不存在，请先注册'; btn.textContent = '登录'; btn.disabled = false; return; }
     const matched = await _passMatchAsync(db[user].pass, pass);
     if (!matched) { err.textContent = '密码错误，请重新输入'; btn.textContent = '登录'; btn.disabled = false; return; }
@@ -11535,7 +11599,21 @@ async function doResetPassword() {
   btn.textContent = '验证中...'; btn.disabled = true;
   try {
     const db = await getAuthDB();
-    if (db === null) { err.textContent = '网络连接失败，请检查网络后重试'; btn.textContent = '重置密码'; btn.disabled = false; return; }
+    if (db === null) {
+      // GitHub API unreachable — try offline DB
+      const offline = _getOfflineDB();
+      if (!offline[user]) { err.textContent = '网络不可用，且本地无此用户记录'; btn.textContent = '重置密码'; btn.disabled = false; return; }
+      if (offline[user].phone !== phone) { err.textContent = '手机号与注册时不一致'; btn.textContent = '重置密码'; btn.disabled = false; return; }
+      offline[user].pass = await hashPassword(pass);
+      _saveOfflineDB(offline);
+      _saveCache(offline);
+      showToast('密码重置成功！（离线模式）');
+      switchAuthTab('login');
+      document.getElementById('loginUser').value = user;
+      document.getElementById('loginPass').value = '';
+      btn.textContent = '重置密码'; btn.disabled = false;
+      return;
+    }
     if (!db || !db[user]) { err.textContent = '用户名不存在，请先注册'; btn.textContent = '重置密码'; btn.disabled = false; return; }
     if (db[user].phone !== phone) { err.textContent = '手机号与注册时不一致'; btn.textContent = '重置密码'; btn.disabled = false; return; }
     // Phone verified, update password
@@ -11573,7 +11651,14 @@ async function doResetPassword() {
     if (db && db[session]) {
       if (ao) ao.classList.add('hidden');
     } else if (db === null) {
-      if (ao) ao.classList.add('hidden');
+      // Cloud unreachable: check offline DB
+      const offline = _getOfflineDB();
+      if (offline[session]) {
+        _saveCache(offline);
+        if (ao) ao.classList.add('hidden');
+      } else if (ao) {
+        ao.classList.add('hidden'); // still let user in, show auth form
+      }
     } else {
       localStorage.removeItem(SESSION_KEY);
     }
@@ -11581,6 +11666,18 @@ async function doResetPassword() {
     const ao = document.getElementById('authOverlay');
     if (ao) ao.classList.add('hidden');
   }
+})();
+
+// Background sync: periodically try to merge offline users to cloud when network recovers
+(function _offlineSyncLoop() {
+  setTimeout(async () => {
+    const offline = _getOfflineDB();
+    if (Object.keys(offline).length > 0) {
+      const db = await ghGet();
+      // _mergeOfflineToCloud is called inside ghGet on success
+    }
+    _offlineSyncLoop(); // keep checking
+  }, 30000); // check every 30s
 })();
 
 function updateMenuUser() {
