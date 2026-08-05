@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.0.6';</script>
+<script>var APP_VER='3.0.7';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -11762,10 +11762,19 @@ function _devAlert(title, msg) {
     _devDialogResolve = resolve;
     document.getElementById('devDialogTitle').textContent = title || '提示';
     document.getElementById('devDialogInput').style.display = 'none';
-    document.getElementById('devDialogBody').innerHTML = '<div style="font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:300px;overflow-y:auto;">' + (msg||'') + '</div>';
+    // Insert alert content before the input element (don't destroy it with innerHTML)
+    var body = document.getElementById('devDialogBody');
+    var alertDiv = document.createElement('div');
+    alertDiv.id = 'devAlertDialogContent';
+    alertDiv.style.cssText = 'font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:300px;overflow-y:auto;';
+    alertDiv.innerHTML = msg || '';
+    body.insertBefore(alertDiv, document.getElementById('devDialogInput'));
     document.getElementById('devDialogOk').textContent = '知道了';
     document.getElementById('devDialogOverlay').classList.add('show');
   }).then(function(v) {
+    // Clean up alert content, restore input
+    var alertDiv = document.getElementById('devAlertDialogContent');
+    if (alertDiv) alertDiv.remove();
     document.getElementById('devDialogInput').style.display = '';
     document.getElementById('devDialogOk').textContent = '确认';
     return v;
