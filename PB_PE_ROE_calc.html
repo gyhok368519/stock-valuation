@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.0.9';</script>
+<script>var APP_VER='3.1.0';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -169,7 +169,7 @@ body {
 .no-data-hint p { font-size: 14px; line-height: 1.8; }
 
 /* Toast */
-.toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; z-index: 10000; pointer-events: none; opacity: 0; transition: opacity 0.25s; max-width: 280px; text-align: center; }
+.toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; color: var(--text); padding: 14px 28px; border-radius: 12px; font-size: 14px; z-index: 10000; pointer-events: none; opacity: 0; transition: opacity 0.25s; max-width: 280px; text-align: center; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
 .toast.show { opacity: 1; }
 
 /* Search clear button */
@@ -724,7 +724,7 @@ body {
       <div class="info-menu-row"><span class="row-label">版本</span><span class="row-value" id="appVerMenu">v2.2</span></div>
       <div class="info-menu-row"><span class="row-label">数据库版本</span><span class="row-value" id="dbVerMenu">-</span></div>
       <div class="info-menu-row"><span class="row-label">开发者(微信同名)</span><span class="row-value">小小金钱草</span></div>
-      <div class="info-menu-row"><span class="row-label">联系开发者</span><span class="row-value" style="color:var(--primary);cursor:pointer;" onclick="navigator.clipboard.writeText('15029164832').then(function(){showToast('已复制手机号：15029164832')}).catch(function(){showToast('手机号：15029164832')})">15029164832（点击复制）</span></div>
+      <div class="info-menu-row"><span class="row-label">联系开发者</span><span class="row-value" style="color:var(--primary);cursor:pointer;" onclick="_copyPhone()">15029164832</span></div>
       <div class="info-menu-row" style="cursor:pointer;" onclick="showCustomerDB()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 查看客户数据</span><span class="row-value">&#x1F527;</span></div>
       <div class="info-menu-row" style="cursor:pointer;" onclick="showDBUpdater()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 更新数据库</span><span class="row-value">&#x1F4BE;</span></div>
     </div>
@@ -12963,6 +12963,35 @@ function showToast(msg, dur) {
   t.classList.add('show');
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(function() { t.classList.remove('show'); }, dur || 2000);
+}
+
+function _copyPhone() {
+  var phone = '15029164832';
+  // Try clipboard API first, fallback to execCommand
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(phone).then(function() {
+      showToast('已复制：' + phone);
+    }).catch(function() {
+      _fallbackCopy(phone);
+    });
+  } else {
+    _fallbackCopy(phone);
+  }
+}
+function _fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  try {
+    document.execCommand('copy');
+    showToast('已复制：' + text);
+  } catch(e) {
+    showToast('复制失败，请长按复制');
+  }
+  document.body.removeChild(ta);
 }
 
 // Debounce helper
