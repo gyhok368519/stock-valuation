@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.0.1';</script>
+<script>var APP_VER='3.0.2';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -255,7 +255,7 @@ body {
 .history-judge.over { background:var(--red-bg); color:var(--red); }
 .history-judge.fair { background:var(--blue-bg); color:var(--blue); }
 .history-del { display:none; }
-.history-swipe-del { position:absolute; right:0; top:0; bottom:0; width:80px; background:var(--red); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; z-index:0; }
+.history-swipe-del { position:absolute; left:0; right:0; top:0; bottom:0; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; z-index:0; }
 .empty-state { text-align:center; padding:40px 20px; color:var(--text3, #bbb); font-size:14px; }
 .section-title { font-size:14px; font-weight:600; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
 .section-title .count { font-size:12px; font-weight:400; color:var(--text2); }
@@ -13283,8 +13283,8 @@ function _bindHistorySwipe() {
     content.addEventListener('touchmove', function(e) {
       if (!_histSwipeItem || _histSwipeItem !== item) return;
       var dx = e.touches[0].clientX - _histSwipeX0;
-      // Only allow left swipe (dx < 0)
-      if (dx > 0) dx = 0;
+      // Allow both left and right swipe
+      if (dx > 120) dx = 120;
       if (dx < -120) dx = -120;
       _histSwipeDx = dx;
       content.style.transform = 'translateX(' + dx + 'px)';
@@ -13293,9 +13293,10 @@ function _bindHistorySwipe() {
       if (!_histSwipeItem || _histSwipeItem !== item) return;
       item.classList.remove('swiping');
       item.classList.add('swipe-back');
-      if (_histSwipeDx < -60) {
-        // Delete
-        content.style.transform = 'translateX(-100%)';
+      if (_histSwipeDx < -60 || _histSwipeDx > 60) {
+        // Delete (both directions)
+        var dir = _histSwipeDx < 0 ? '-100%' : '100%';
+        content.style.transform = 'translateX(' + dir + ')';
         content.style.transition = 'transform 0.25s ease';
         setTimeout(function() { delHistory(parseInt(item.dataset.idx)); }, 250);
       } else {
