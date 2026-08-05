@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.9.2';</script>
+<script>var APP_VER='2.9.3';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -414,6 +414,14 @@ body {
   .fav-group-actions { display:flex; gap:8px; }
   .fav-group-actions span { font-size:11px; color:var(--text3); cursor:pointer; padding:2px 6px; border-radius:4px; }
   .fav-group-actions span:active { background:var(--gray-light); }
+  /* Fav tabs bar */
+  .fav-tabs { display:flex; gap:0; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; border-bottom:1px solid var(--gray-light); }
+  .fav-tabs::-webkit-scrollbar { display:none; }
+  .fav-tab { padding:8px 14px; font-size:13px; font-weight:500; color:var(--text2); cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent; transition:all 0.2s; -webkit-user-select:none; user-select:none; flex-shrink:0; }
+  .fav-tab.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+  .fav-tab:active { background:var(--primary-light); }
+  .fav-tab-add { color:var(--text3); font-size:16px; font-weight:400; }
+  .fav-tab-add:active { color:var(--primary); }
   .fav-item { display:flex; align-items:center; padding:10px 12px; margin:4px 0; background:var(--card); border-radius:var(--radius); box-shadow:0 1px 3px rgba(0,0,0,0.06); }
   .fav-item:active { background:var(--gray-light); }
   .fav-star { font-size:18px; color:#f5a623; cursor:pointer; flex-shrink:0; margin-right:10px; -webkit-user-select:none; user-select:none; }
@@ -428,19 +436,13 @@ body {
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
   .fav-empty p { font-size:14px; margin-bottom:6px; }
   .fav-empty small { font-size:12px; color:var(--text3); }
-  .fav-add-group { display:flex; align-items:center; gap:6px; margin-top:16px; padding:10px; border:1px dashed var(--gray-light); border-radius:var(--radius); color:var(--text3); font-size:13px; cursor:pointer; justify-content:center; }
-  .fav-add-group:active { background:var(--gray-light); }
   .fav-count-badge { font-size:11px; background:var(--primary); color:#fff; border-radius:10px; padding:1px 7px; margin-left:4px; }
   .db-fav-star { font-size:22px; color:#ccc; cursor:pointer; transition:color 0.2s; -webkit-user-select:none; user-select:none; }
   .db-fav-star.active { color:#f5a623; }
   .db-fav-star:active { transform:scale(1.3); }
-  .calc-fav-btn { display:none; position:absolute; right:16px; top:50%; transform:translateY(-50%); font-size:20px; color:#ccc; cursor:pointer; transition:color 0.2s; -webkit-user-select:none; user-select:none; }
-  .calc-fav-btn.active { color:#f5a623; }
-  .calc-fav-btn:active { transform:translateY(-50%) scale(1.3); }
   [data-theme="dark"] .fav-item { box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
   [data-theme="dark"] .fav-item:active { background: #1e1e30; }
-  [data-theme="dark"] .fav-add-group { border-color: #2d2d44; }
-  [data-theme="dark"] .fav-add-group:active { background: #1e2a4a; }
+  [data-theme="dark"] .fav-tab:active { background: #1e2a4a; }
   [data-theme="dark"] .fav-group-actions span:active { background: #1e2a4a; }
 
 
@@ -596,7 +598,6 @@ body {
     </div>
     <div class="result-card" id="resultCard" style="position:relative;">
       <div class="card-title">&#x1F4C8; 计算结果</div>
-      <span class="calc-fav-btn" id="calcFavBtn" onclick="toggleFavCalc()">☆</span>
       <div class="result-grid">
         <div class="result-item"><div class="label">计算PB (PE x ROE)</div><div class="value" id="calcPB">-</div></div>
         <div class="result-item"><div class="label">市场PB</div><div class="value" id="marketPB">-</div></div>
@@ -620,6 +621,7 @@ body {
     <button class="info-btn" style="right:12px;" id="themeBtnFav" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconFav"></span></button>
   </div>
   <div class="container">
+    <div class="fav-tabs" id="favTabs"></div>
     <div id="favContent">
       <div class="fav-empty">
         <div class="fav-empty-icon">⭐</div>
@@ -627,7 +629,6 @@ body {
         <small>在数据库或计算器中点击★收藏</small>
       </div>
     </div>
-    <div class="fav-add-group" onclick="addFavGroup()">+ 新建分组</div>
   </div>
 </div>
 
@@ -12125,6 +12126,8 @@ function _dbClearAll() {
 // ===== Favorites API =====
 var _favCache = null; // in-memory cache: { code: {code, name, group, time} }
 var _favGroups = ['默认']; // group names
+var _favActiveTab = '全部'; // current active tab: '全部' or group name
+var MAX_FAV_GROUPS = 5; // max custom groups (excluding default)
 
 function _saveFavGroups() {
   try { localStorage.setItem('pb_calc_fav_groups', JSON.stringify(_favGroups)); } catch(e) {}
@@ -12226,8 +12229,6 @@ function updateFavStar(code, active) {
   });
   // Sync calc page fav buttons
   if (codeInput && codeInput.value.trim() === code) {
-    var calcBtn = document.getElementById('calcFavBtn');
-    if (calcBtn) { calcBtn.classList.toggle('active', active); calcBtn.textContent = active ? '★' : '☆'; }
     var inputBtn = document.getElementById('calcInputFavBtn');
     if (inputBtn) { inputBtn.classList.toggle('active', active); inputBtn.textContent = active ? '★' : '☆'; }
   }
@@ -12241,12 +12242,9 @@ function updateFavCount() {
 // Render favorites list
 function renderFavList() {
   var container = document.getElementById('favContent');
-  if (!_favCache || Object.keys(_favCache).length === 0) {
-    container.innerHTML = '<div class="fav-empty"><div class="fav-empty-icon">⭐</div><p>还没有收藏的股票</p><small>在数据库或计算器中点击★收藏</small></div>';
-    updateFavCount();
-    return;
-  }
-  // Group by _favGroups order
+  var tabsContainer = document.getElementById('favTabs');
+  
+  // Build grouped data
   var grouped = {};
   _favGroups.forEach(function(g) { grouped[g] = []; });
   for (var code in _favCache) {
@@ -12255,35 +12253,83 @@ function renderFavList() {
     if (!grouped[g]) grouped[g] = [];
     grouped[g].push(item);
   }
+
+  // Render tabs bar
+  var tabHtml = '';
+  // "全部" tab
+  var allCount = _favCache ? Object.keys(_favCache).length : 0;
+  tabHtml += '<div class="fav-tab' + (_favActiveTab === '全部' ? ' active' : '') + '" onclick="switchFavTab(\'全部\')">全部</div>';
+  // Each group tab
+  _favGroups.forEach(function(group) {
+    var count = grouped[group] ? grouped[group].length : 0;
+    tabHtml += '<div class="fav-tab' + (_favActiveTab === group ? ' active' : '') + '" onclick="switchFavTab(\''+_esc(group)+'\')" oncontextmenu="showGroupMenu(event,\''+_esc(group)+'\')">' + _esc(group) + '</div>';
+  });
+  // "+" add group button (max 5 custom groups)
+  var customGroupCount = _favGroups.filter(function(g) { return g !== '默认'; }).length;
+  if (customGroupCount < MAX_FAV_GROUPS) {
+    tabHtml += '<div class="fav-tab fav-tab-add" onclick="addFavGroup()">+</div>';
+  }
+  tabsContainer.innerHTML = tabHtml;
+
+  // Render items based on active tab
+  if (!_favCache || allCount === 0) {
+    container.innerHTML = '<div class="fav-empty"><div class="fav-empty-icon">⭐</div><p>还没有收藏的股票</p><small>在数据库或计算器中点击★收藏</small></div>';
+    updateFavCount();
+    return;
+  }
+
+  // Collect items to show
+  var itemsToShow = [];
+  if (_favActiveTab === '全部') {
+    for (var c in _favCache) itemsToShow.push(_favCache[c]);
+  } else {
+    itemsToShow = grouped[_favActiveTab] || [];
+  }
+
+  if (itemsToShow.length === 0) {
+    container.innerHTML = '<div class="fav-empty"><div class="fav-empty-icon">📂</div><p>该分组暂无收藏</p><small>长按分组名可管理</small></div>';
+    updateFavCount();
+    return;
+  }
+
   var html = '';
-  var GROUP_COLORS_ARR = ['#1a5276','#1e8449','#b7950b','#ca6f1e','#7d3c98','#c0392b','#2e86c1'];
-  _favGroups.forEach(function(group, gi) {
-    var items = grouped[group];
-    var color = GROUP_COLORS_ARR[gi % GROUP_COLORS_ARR.length];
-    // Always render group header (even for empty groups)
-    html += '<div class="fav-group-header"><div class="fav-group-name"><span class="fav-group-dot" style="background:'+color+'"></span>'+_esc(group)+'<span class="fav-count-badge">'+(items ? items.length : 0)+'</span></div>';
-    if (group !== '默认') {
-      html += '<div class="fav-group-actions"><span onclick="renameFavGroup(\''+_esc(group)+'\')">重命名</span><span onclick="deleteFavGroup(\''+_esc(group)+'\')">删除分组</span></div>';
-    }
+  itemsToShow.forEach(function(item) {
+    var row = DB_DATA[item.code];
+    var pe = row ? getFieldVal('PE', row) : '-';
+    var pb = row ? getFieldVal('PB', row) : '-';
+    var roe = row ? getFieldVal('ROE', row) : '-';
+    html += '<div class="fav-item">';
+    html += '<span class="fav-star" onclick="toggleFav(\''+_esc(item.code)+'\');renderFavList();">★</span>';
+    html += '<div class="fav-info" onclick="goToFavDetail(\''+_esc(item.code)+'\')">';
+    html += '<div class="fav-info-top"><span class="fav-code">'+_esc(item.code)+'</span><span class="fav-name">'+_esc(item.name)+'</span></div>';
+    html += '<div class="fav-metrics"><span>PE <span class="fav-metric-val">'+pe+'</span></span><span>PB <span class="fav-metric-val">'+pb+'</span></span><span>ROE <span class="fav-metric-val">'+roe+'</span></span></div>';
     html += '</div>';
-    if (!items || items.length === 0) return;
-    items.forEach(function(item) {
-      var row = DB_DATA[item.code];
-      var pe = row ? getFieldVal('PE', row) : '-';
-      var pb = row ? getFieldVal('PB', row) : '-';
-      var roe = row ? getFieldVal('ROE', row) : '-';
-      html += '<div class="fav-item">';
-      html += '<span class="fav-star" onclick="toggleFav(\''+_esc(item.code)+'\');renderFavList();">★</span>';
-      html += '<div class="fav-info" onclick="goToFavDetail(\''+_esc(item.code)+'\')">';
-      html += '<div class="fav-info-top"><span class="fav-code">'+_esc(item.code)+'</span><span class="fav-name">'+_esc(item.name)+'</span></div>';
-      html += '<div class="fav-metrics"><span>PE <span class="fav-metric-val">'+pe+'</span></span><span>PB <span class="fav-metric-val">'+pb+'</span></span><span>ROE <span class="fav-metric-val">'+roe+'</span></span></div>';
-      html += '</div>';
-      html += '<span class="fav-go" onclick="goCalc(\''+_esc(item.code)+'\')">›</span>';
-      html += '</div>';
-    });
+    html += '<span class="fav-go" onclick="goCalc(\''+_esc(item.code)+'\')">›</span>';
+    html += '</div>';
   });
   container.innerHTML = html;
   updateFavCount();
+}
+
+// Switch fav tab
+function switchFavTab(tab) {
+  _favActiveTab = tab;
+  renderFavList();
+}
+
+// Show group management menu (long press / contextmenu)
+function showGroupMenu(e, group) {
+  e.preventDefault();
+  if (group === '默认') {
+    showToast('默认分组不可管理');
+    return;
+  }
+  var action = confirm('分组「' + group + '」管理：\n\n确定 = 重命名\n取消 = 删除分组');
+  if (action) {
+    renameFavGroup(group);
+  } else {
+    deleteFavGroup(group);
+  }
 }
 // Navigate to DB detail from favorites
 function goToFavDetail(code) {
@@ -12293,12 +12339,15 @@ function goToFavDetail(code) {
 }
 // Add new group
 function addFavGroup() {
+  var customCount = _favGroups.filter(function(g) { return g !== '默认'; }).length;
+  if (customCount >= MAX_FAV_GROUPS) { showToast('最多创建' + MAX_FAV_GROUPS + '个自定义分组'); return; }
   var name = prompt('请输入新分组名称：');
   if (!name || !name.trim()) return;
   name = name.trim();
   if (_favGroups.indexOf(name) >= 0) { showToast('分组已存在'); return; }
   _favGroups.push(name);
   _saveFavGroups();
+  _favActiveTab = name;
   renderFavList();
   showToast('已添加分组: ' + name);
 }
@@ -12813,9 +12862,6 @@ function calcSelect(el) {
   document.getElementById('pb').value = '';
   document.getElementById('roe').value = '';
   fetchRealTimeData(el.dataset.code);
-  // Sync result fav button
-  var cfBtn = document.getElementById('calcFavBtn');
-  if (cfBtn) { var cfFav = isFav(el.dataset.code); cfBtn.style.display = 'block'; cfBtn.classList.toggle('active', cfFav); cfBtn.textContent = cfFav ? '★' : '☆'; }
 }
 
 // Debounced search for calculator
@@ -12830,8 +12876,6 @@ var _calcSearchDebounced = _debounce(function(v) {
     var inputBtn = document.getElementById('calcInputFavBtn');
     if (inputBtn) { var f = isFav(v); inputBtn.classList.toggle('active', f); inputBtn.textContent = f ? '★' : '☆'; }
     // Also show result-card fav button
-    var calcBtn = document.getElementById('calcFavBtn');
-    if (calcBtn) { calcBtn.style.display = 'block'; calcBtn.classList.toggle('active', f); calcBtn.textContent = f ? '★' : '☆'; }
     fetchRealTimeData(v);
   }
   else {
@@ -12923,13 +12967,6 @@ function calculate() {
   else { judge = '合理'; judgeClass = 'fair'; }
   document.getElementById('resultCard').classList.add('show');
   // Update calc favorite button
-  var calcFavBtn = document.getElementById('calcFavBtn');
-  if (calcFavBtn) {
-    calcFavBtn.style.display = 'block';
-    var fav = isFav(code);
-    calcFavBtn.classList.toggle('active', fav);
-    calcFavBtn.textContent = fav ? '★' : '☆';
-  }
   document.getElementById('calcPB').textContent = calcPB.toFixed(2);
   document.getElementById('marketPB').textContent = pbVal.toFixed(2);
   const devEl = document.getElementById('deviation');
@@ -12955,8 +12992,6 @@ function calculate() {
 function clearForm() {
   ['code','name','pe','roe','pb'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('resultCard').classList.remove('show');
-  var calcFavBtn = document.getElementById('calcFavBtn');
-  if (calcFavBtn) { calcFavBtn.style.display = 'none'; calcFavBtn.classList.remove('active'); }
   var inputBtn = document.getElementById('calcInputFavBtn');
   if (inputBtn) { inputBtn.classList.remove('active'); inputBtn.textContent = '☆'; }
   codeInput.focus();
