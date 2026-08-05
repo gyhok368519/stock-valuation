@@ -1,7 +1,6 @@
-const CACHE_NAME = 'pb-calc-v27';
+const CACHE_NAME = 'pb-calc-v28';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
-  './db_data.json',
   './manifest.json',
   './icon-512.jpg',
   './sw.js'
@@ -21,6 +20,13 @@ self.addEventListener('activate', e => {
     )
   );
   self.clients.claim();
+});
+
+// Handle SKIP_WAITING message from page
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', e => {
@@ -54,6 +60,20 @@ self.addEventListener('fetch', e => {
 
   // Update check requests: bypass all caches, force fresh from network
   if (url.indexOf('_update=') !== -1) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' })
+        .then(function(response) {
+          return response;
+        })
+        .catch(function() {
+          return caches.match(e.request);
+        })
+    );
+    return;
+  }
+
+  // db_data.json: always fetch fresh, no SW caching (respects no-cache from app)
+  if (url.indexOf('db_data.json') !== -1) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' })
         .then(function(response) {
