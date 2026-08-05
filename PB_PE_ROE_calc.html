@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.1.3';</script>
+<script>var APP_VER='3.1.4';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -617,7 +617,7 @@ body {
         <div class="form-group"><label>ROE(%)</label><input type="text" id="roe" placeholder="13.63 或 50-36" inputmode="decimal" autocomplete="off"></div>
         <div class="form-group"><label>市场PB</label><input type="text" id="pb" placeholder="0.70 或 2.1/3" inputmode="decimal" autocomplete="off"></div>
       </div>
-      <div style="text-align:right;margin-top:2px;margin-bottom:10px;">
+      <div style="text-align:right;margin-top:0;margin-bottom:10px;">
         <span id="rtBtn" style="font-size:12px;color:var(--primary);cursor:pointer;" onclick="fetchRealTimeData(codeInput.value.trim())">&#x1F504; 刷新实时数据</span>
       </div>
       <div class="btn-row">
@@ -12540,7 +12540,7 @@ function renderFavList() {
     html += '<div class="fav-metrics"><span>PE <span class="fav-metric-val">'+pe+'</span></span><span>PB <span class="fav-metric-val">'+pb+'</span></span><span>ROE <span class="fav-metric-val">'+roe+'</span></span></div>';
     html += '</div>';
     html += '<span class="fav-group-tag" onclick="moveToGroup(\''+_esc(item.code)+'\')">'+_esc(groupLabel)+'</span>';
-    html += '<span class="fav-go" onclick="goCalc(\''+_esc(item.code)+'\')">›</span>';
+    html += '<span class="fav-go" onclick="showIndustryCompare(\''+_esc(item.code)+'\')">›</span>';
     html += '</div>';
   });
   container.innerHTML = html;
@@ -12746,6 +12746,155 @@ function goToFavDetail(code) {
   document.getElementById('dbSearch').value = code;
   showDBDetail(code);
 }
+
+// ===== Industry Compare =====
+var _swIndustryCache = {}; // code -> industry name cache
+function showIndustryCompare(code) {
+  var name = STOCK_MAP[code] || code;
+  var rowData = DB_DATA[code];
+  if (!rowData) { showToast('该股票无数据库记录'); return; }
+
+  // Show loading toast
+  showToast('正在获取行业数据...', 5000);
+
+  // Step 1: Get Shenwan industry name from API
+  _getSWIndustry(code).then(function(industry) {
+    if (!industry) {
+      showToast('未获取到行业分类');
+      return;
+    }
+    // Step 2: Find same-industry stocks from DB, compute median
+    var sameIndustry = _findSameIndustryStocks(industry, code);
+    var medians = _computeMedians(sameIndustry.stocks);
+    // Step 3: Render compare popup
+    _renderComparePopup(code, name, industry, rowData, sameIndustry, medians);
+  }).catch(function() {
+    showToast('获取行业数据失败');
+  });
+}
+
+// Get Shenwan industry classification via eastmoney API
+function _getSWIndustry(code) {
+  if (_swIndustryCache[code]) return Promise.resolve(_swIndustryCache[code]);
+  var url = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=SECURITY_CODE,INDUSTRY&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=1&source=WEB&client=WEB&callback=__CALLBACK__';
+  return _jsonp(url, 6000).then(function(res) {
+    var items = res && res.result && res.result.data;
+    if (items && items.length && items[0].INDUSTRY) {
+      _swIndustryCache[code] = items[0].INDUSTRY;
+      return items[0].INDUSTRY;
+    }
+    // Fallback: try another API for industry
+    return _getSWIndustryFallback(code);
+  }).catch(function() {
+    return _getSWIndustryFallback(code);
+  });
+}
+
+// Fallback: get industry from F10 org profile
+function _getSWIndustryFallback(code) {
+  if (_swIndustryCache[code]) return Promise.resolve(_swIndustryCache[code]);
+  var url = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_ORG_PROFILE&columns=SECURITY_CODE,ORG_PROFILE&filter=(SECURITY_CODE=%22' + code + '%22)&pageNumber=1&pageSize=1&source=WEB&client=WEB&callback=__CALLBACK__';
+  return _jsonp(url, 6000).then(function(res) {
+    var items = res && res.result && res.result.data;
+    if (items && items.length && items[0].ORG_PROFILE) {
+      var profile = items[0].ORG_PROFILE;
+      // Try to extract industry from ORG_PROFILE (format: "...行业：银行 ...")
+      var m = profile.match(/行业[：:]\s*([^\s,，;；\n]+)/);
+      if (m) {
+        _swIndustryCache[code] = m[1];
+        return m[1];
+      }
+    }
+    return null;
+  }).catch(function() { return null; });
+}
+
+// Find stocks in same industry from DB
+function _findSameIndustryStocks(industry, excludeCode) {
+  var matches = [];
+  var keywords = industry.replace(/[行业]/g, '').split(/[\/\s、]/).filter(function(k) { return k.length >= 2; });
+  for (var code in DB_DATA) {
+    var row = DB_DATA[code];
+    var mainBiz = row[20] || ''; // 主营业务内容 at index 20
+    var bizMatch = false;
+    for (var i = 0; i < keywords.length; i++) {
+      if (keywords[i].length >= 2 && mainBiz.indexOf(keywords[i]) >= 0) {
+        bizMatch = true;
+        break;
+      }
+    }
+    if (bizMatch) {
+      matches.push({ code: code, name: STOCK_MAP[code] || code, row: row });
+    }
+  }
+  // Also cache industry for matched stocks
+  matches.forEach(function(m) { _swIndustryCache[m.code] = industry; });
+  return { industry: industry, count: matches.length, stocks: matches };
+}
+
+// Compute PE/PB/ROE medians from stock list
+function _computeMedians(stocks) {
+  function median(arr) {
+    if (!arr.length) return null;
+    arr.sort(function(a, b) { return a - b; });
+    var mid = Math.floor(arr.length / 2);
+    return arr.length % 2 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
+  }
+  var peArr = [], pbArr = [], roeArr = [];
+  // DB_HEADERS: PE=5, PB=6, ROE=11
+  stocks.forEach(function(s) {
+    var pe = s.row[5], pb = s.row[6], roe = s.row[11];
+    if (pe !== null && pe !== undefined && pe > 0) peArr.push(pe);
+    if (pb !== null && pb !== undefined && pb > 0) pbArr.push(pb);
+    if (roe !== null && roe !== undefined && roe !== 0) roeArr.push(roe);
+  });
+  return {
+    pe: median(peArr),
+    pb: median(pbArr),
+    roe: median(roeArr),
+    peCount: peArr.length,
+    pbCount: pbArr.length,
+    roeCount: roeArr.length
+  };
+}
+
+// Render compare popup using devDialog
+function _renderComparePopup(code, name, industry, myRow, sameIndustry, medians) {
+  // My stock values: PE=5, PB=6, ROE=11
+  var myPE = myRow[5], myPB = myRow[6], myROE = myRow[11];
+  var fmtPct = function(v) { return v !== null && v !== undefined ? (v * 100).toFixed(2) + '%' : '-'; };
+  var fmtVal = function(v) { return v !== null && v !== undefined ? (typeof v === 'number' ? v.toFixed(2) : v) : '-'; };
+
+  function compareTag(my, med) {
+    if (my === null || med === null) return '';
+    var diff = ((my - med) / Math.abs(med)) * 100;
+    if (diff > 10) return '<span style="color:var(--red);font-size:12px;">偏高' + diff.toFixed(1) + '%</span>';
+    if (diff < -10) return '<span style="color:var(--green);font-size:12px;">偏低' + Math.abs(diff).toFixed(1) + '%</span>';
+    return '<span style="color:var(--primary);font-size:12px;">接近</span>';
+  }
+
+  var html = '<div style="font-size:13px;line-height:1.8;">';
+  html += '<div style="text-align:center;margin-bottom:12px;"><b style="font-size:15px;">' + _esc(name) + '</b><span style="color:var(--text2);font-size:12px;margin-left:6px;">' + _esc(industry) + '</span></div>';
+
+  html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+  html += '<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:6px 4px;color:var(--text2);font-weight:normal;">指标</th><th style="text-align:center;padding:6px 4px;">' + _esc(name) + '</th><th style="text-align:center;padding:6px 4px;">行业中位数</th><th style="text-align:center;padding:6px 4px;">对比</th></tr>';
+
+  // PE row
+  html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 4px;font-weight:600;">PE</td><td style="text-align:center;padding:6px 4px;">' + fmtVal(myPE) + '</td><td style="text-align:center;padding:6px 4px;color:var(--primary);">' + fmtVal(medians.pe) + '</td><td style="text-align:center;padding:6px 4px;">' + compareTag(myPE, medians.pe) + '</td></tr>';
+
+  // PB row
+  html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 4px;font-weight:600;">PB</td><td style="text-align:center;padding:6px 4px;">' + fmtVal(myPB) + '</td><td style="text-align:center;padding:6px 4px;color:var(--primary);">' + fmtVal(medians.pb) + '</td><td style="text-align:center;padding:6px 4px;">' + compareTag(myPB, medians.pb) + '</td></tr>';
+
+  // ROE row
+  html += '<tr><td style="padding:6px 4px;font-weight:600;">ROE</td><td style="text-align:center;padding:6px 4px;">' + fmtPct(myROE) + '</td><td style="text-align:center;padding:6px 4px;color:var(--primary);">' + fmtPct(medians.roe) + '</td><td style="text-align:center;padding:6px 4px;">' + compareTag(myROE !== null ? myROE * 100 : null, medians.roe !== null ? medians.roe * 100 : null) + '</td></tr>';
+
+  html += '</table>';
+  html += '<div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text3);">同行业' + sameIndustry.count + '只股票对比（主营业务关键词匹配）</div>';
+  html += '</div>';
+
+  _devAlert('行业对比', html);
+}
+
 // Add new group (from tab + button)
 function addFavGroup() {
   var customCount = _favGroups.filter(function(g) { return g !== '默认'; }).length;
