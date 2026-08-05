@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.1.9';</script>
+<script>var APP_VER='3.2.0';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -12760,18 +12760,24 @@ function showRadarChart(code) {
   // DB indices: PE=5, PB=6, ROE=11, 毛利率=9, 负债率=12
   var pe = row[5], pb = row[6], roe = row[11], gpr = row[9], dpr = row[12];
 
-  // Normalize for drawing (0~1): all axes = bigger = better for investor
+  // Normalize (0~1): all axes = bigger area = better for investor
+  // Use log scaling for wide-range values (PE, PB) to handle extremes
+  function logNorm(val, minVal, maxVal) {
+    if (val <= 0) return 0;
+    var lMin = Math.log(minVal), lMax = Math.log(maxVal);
+    return Math.min(Math.max((Math.log(val) - lMin) / (lMax - lMin), 0), 1);
+  }
   var normVals = [
-    // ROE: bigger = better, cap at 30%
-    roe !== null && roe !== undefined ? Math.min(Math.max(roe / 0.3, 0), 1) : 0,
-    // 毛利率: bigger = better, already 0~1
-    gpr !== null && gpr !== undefined ? Math.min(Math.max(gpr, 0), 1) : 0,
-    // EY (1/PE): bigger = better → PE lower = EY higher = larger area
-    pe && pe > 0 ? Math.min(Math.max(1 / pe / 0.2, 0), 1) : 0,
+    // ROE: bigger = better, log scale 1%~50%
+    roe !== null && roe !== undefined && roe > 0 ? logNorm(roe, 0.01, 0.5) : 0,
+    // 毛利率: bigger = better, log scale 1%~100%
+    gpr !== null && gpr !== undefined && gpr > 0 ? logNorm(gpr, 0.01, 1) : 0,
+    // EY (1/PE): bigger = better, log scale 0.5%~50% (PE 2~200)
+    pe && pe > 0 ? logNorm(1/pe, 0.005, 0.5) : 0,
     // 安全性 (1-负债率): lower debt = better
     dpr !== null && dpr !== undefined ? Math.min(Math.max(1 - dpr, 0), 1) : 0,
-    // 资产估值: PB越低越被低估→越好, cap inverse at PB=5
-    pb && pb > 0 ? Math.min(Math.max(1 - pb / 5, 0), 1) : 0
+    // 资产估值: PB越低越被低估→越好, inverse log scale PB 0.2~100
+    pb && pb > 0 ? 1 - logNorm(pb, 0.2, 100) : 0
   ];
 
   // Draw canvas (300x300 for better label space)
