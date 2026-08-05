@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='2.9.6';</script>
+<script>var APP_VER='2.9.7';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -447,7 +447,7 @@ body {
   .gp-item-dot { width:8px; height:8px; border-radius:50%; margin-right:10px; flex-shrink:0; }
   .gp-item-check { margin-left:auto; font-size:16px; color:var(--primary); }
   .gp-new-row { display:flex; gap:6px; margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-light); }
-  .gp-new-input { flex:1; min-width:0; border:1px solid var(--gray-light); border-radius:8px; padding:8px 10px; font-size:13px; outline:none; background:var(--card); color:var(--text); }
+  .gp-new-input { flex:1; min-width:0; width:0; border:1px solid var(--gray-light); border-radius:8px; padding:8px 10px; font-size:13px; outline:none; background:var(--card); color:var(--text); box-sizing:border-box; }
   .gp-new-input:focus { border-color:var(--primary); }
   .gp-new-btn { background:var(--primary); color:#fff; border:none; border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .gp-new-btn:active { opacity:0.8; }
@@ -12427,6 +12427,8 @@ function _gpSelect(group) {
 }
 
 function _gpCancel() {
+  var cancelEl = document.querySelector('.gp-cancel');
+  if (cancelEl) cancelEl.style.display = 'block';
   document.getElementById('gpOverlay').classList.remove('show');
   _gpCallback = null;
 }
@@ -12450,14 +12452,15 @@ function _showGroupActionMenu(group) {
   var titleEl = document.getElementById('gpTitle');
   var listEl = document.getElementById('gpList');
   var newRow = document.getElementById('gpNewRow');
+  var cancelEl = document.querySelector('.gp-cancel');
   
   titleEl.textContent = '管理「' + group + '」';
   newRow.style.display = 'none';
+  if (cancelEl) cancelEl.style.display = 'block';
   
   var html = '';
   html += '<div class="gp-item" onclick="_gpRename(\''+_esc(group)+'\')"><span class="gp-item-dot" style="background:#1a73e8"></span>重命名</div>';
   html += '<div class="gp-item" onclick="_gpDelete(\''+_esc(group)+'\')"><span class="gp-item-dot" style="background:#d93025"></span>删除分组</div>';
-  html += '<div class="gp-item" onclick="_gpCancel()" style="color:var(--text3);justify-content:center;margin-top:8px;border-top:1px solid var(--gray-light);padding-top:16px;">取消</div>';
   listEl.innerHTML = html;
   
   _gpCallback = null;
@@ -12465,18 +12468,19 @@ function _showGroupActionMenu(group) {
 }
 
 function _gpRename(oldName) {
-  document.getElementById('gpOverlay').classList.remove('show');
-  // Show rename modal via gp overlay
+  // Reuse same overlay, just swap content
   var overlay = document.getElementById('gpOverlay');
   var titleEl = document.getElementById('gpTitle');
   var listEl = document.getElementById('gpList');
   var newRow = document.getElementById('gpNewRow');
+  var cancelEl = document.querySelector('.gp-cancel');
   
   titleEl.textContent = '重命名「' + oldName + '」';
   newRow.style.display = 'none';
+  if (cancelEl) cancelEl.style.display = 'none'; // hide bottom cancel, use inline one
   
-  var html = '<div style="padding:0 4px;">';
-  html += '<input class="gp-new-input" id="gpRenameInput" value="' + _esc(oldName) + '" maxlength="8" style="width:100%;margin-bottom:12px;" />';
+  var html = '<div style="padding:0 2px;">';
+  html += '<input class="gp-new-input" id="gpRenameInput" value="' + _esc(oldName) + '" maxlength="8" style="width:100%;margin-bottom:12px;box-sizing:border-box;" />';
   html += '<div style="display:flex;gap:8px;">';
   html += '<button class="gp-new-btn" style="flex:1;background:var(--primary);" onclick="_gpDoRename(\''+_esc(oldName)+'\')">确认</button>';
   html += '<button class="gp-new-btn" style="flex:1;background:var(--gray-light);color:var(--text2);" onclick="_gpCancel()">取消</button>';
@@ -12484,7 +12488,6 @@ function _gpRename(oldName) {
   listEl.innerHTML = html;
   
   _gpCallback = null;
-  overlay.classList.add('show');
   setTimeout(function() { var inp = document.getElementById('gpRenameInput'); if (inp) { inp.focus(); inp.select(); } }, 100);
 }
 
@@ -12509,15 +12512,16 @@ function _gpDoRename(oldName) {
 }
 
 function _gpDelete(groupName) {
-  document.getElementById('gpOverlay').classList.remove('show');
-  // Show delete confirm modal
+  // Reuse same overlay, just swap content
   var overlay = document.getElementById('gpOverlay');
   var titleEl = document.getElementById('gpTitle');
   var listEl = document.getElementById('gpList');
   var newRow = document.getElementById('gpNewRow');
+  var cancelEl = document.querySelector('.gp-cancel');
   
   titleEl.textContent = '删除分组「' + groupName + '」？';
   newRow.style.display = 'none';
+  if (cancelEl) cancelEl.style.display = 'none'; // hide bottom cancel, use inline one
   
   var html = '<div style="text-align:center;color:var(--text2);font-size:13px;padding:4px 0 16px;">股票将移至默认分组</div>';
   html += '<div style="display:flex;gap:8px;">';
