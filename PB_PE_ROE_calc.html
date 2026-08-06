@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.5.0';</script>
+<script>var APP_VER='3.5.1';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -434,10 +434,12 @@ body {
   .fav-name { font-size:13px; color:var(--text2); }
   .fav-metrics { display:flex; gap:12px; margin-top:4px; font-size:11px; color:var(--text3); }
   .fav-metric-val { font-weight:600; color:var(--text2); }
-  .fav-go { font-size:20px; color:var(--text3); padding:8px; cursor:pointer; flex-shrink:0; min-width:36px; text-align:center; border-radius:8px; }
+  .fav-go { font-size:14px; color:var(--text3); padding:8px; cursor:pointer; flex-shrink:0; min-width:36px; text-align:center; border-radius:8px; display:flex; align-items:center; justify-content:center; }
   .fav-go:active { background:var(--gray-light); }
-  .fav-note-btn { font-size:16px; color:var(--primary); padding:8px; cursor:pointer; flex-shrink:0; min-width:36px; text-align:center; border-radius:8px; margin-right:4px; }
+  .fav-go svg { width:20px; height:20px; fill:currentColor; }
+  .fav-note-btn { font-size:14px; color:var(--primary); padding:8px; cursor:pointer; flex-shrink:0; min-width:36px; text-align:center; border-radius:8px; margin-right:4px; display:flex; align-items:center; justify-content:center; }
   .fav-note-btn:active { background:var(--primary-light); }
+  .fav-note-btn svg { width:18px; height:18px; fill:currentColor; }
   .fav-group-tag { font-size:11px; color:var(--primary); background:var(--primary-light); border-radius:10px; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0; margin-right:6px; }
   .fav-group-tag:active { background:var(--gray-light); }
   /* Group Picker Modal */
@@ -762,12 +764,12 @@ body {
 
 <div class="safe-bottom"></div>
 
-<!-- Radar Dialog (chart only) -->
+<!-- Radar Dialog (chart, scrollable) -->
 <div class="gp-overlay" id="radarDialogOverlay" onclick="closeRadarDialog()" style="color-scheme:light only;">
-  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;color-scheme:light only;">
+  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:92vh;display:flex;flex-direction:column;color-scheme:light only;">
     <div class="gp-title" id="radarDialogTitle" style="flex-shrink:0;">指标雷达</div>
-    <div id="radarDialogBody"></div>
-    <div style="display:flex;margin-top:14px;justify-content:center;">
+    <div id="radarDialogBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;"></div>
+    <div style="display:flex;margin-top:14px;justify-content:center;flex-shrink:0;">
       <button class="gp-new-btn" style="min-width:80px;max-width:120px;" onclick="closeRadarDialog()">关闭</button>
     </div>
   </div>
@@ -775,8 +777,8 @@ body {
 
 <!-- Note Dialog (independent, scrollable) -->
 <div class="gp-overlay" id="noteDialogOverlay" onclick="closeNoteDialog()" style="color-scheme:light only;">
-  <div class="gp-card" id="noteDialogCard" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:85vh;display:flex;flex-direction:column;color-scheme:light only;">
-    <div class="gp-title" id="noteDialogTitle" style="flex-shrink:0;">备注</div>
+  <div class="gp-card" id="noteDialogCard" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:92vh;display:flex;flex-direction:column;color-scheme:light only;">
+    <div class="gp-title" id="noteDialogTitle" style="flex-shrink:0;font-size:15px;">备注</div>
     <div id="noteDialogBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;"></div>
     <div style="display:flex;margin-top:14px;justify-content:center;flex-shrink:0;">
       <button class="gp-new-btn" style="min-width:80px;max-width:120px;" onclick="closeNoteDialog()">关闭</button>
@@ -12667,8 +12669,8 @@ function renderFavList() {
     html += '<div class="fav-metrics"><span>PE <span class="fav-metric-val">'+pe+'</span></span><span>PB <span class="fav-metric-val">'+pb+'</span></span><span>ROE <span class="fav-metric-val">'+roe+'</span></span></div>';
     html += '</div>';
     html += '<span class="fav-group-tag" onclick="moveToGroup(\''+_esc(item.code)+'\')">'+_esc(groupLabel)+'</span>';
-    html += '<span class="fav-note-btn" onclick="showNoteDialog(\''+_esc(item.code)+'\')">&#x1F4DD;</span>';
-    html += '<span class="fav-go" onclick="showRadarChart(\''+_esc(item.code)+'\')">›</span>';
+    html += '<span class="fav-note-btn" onclick="showNoteDialog(\''+_esc(item.code)+'\')"><svg viewBox=\"0 0 24 24\"><path d=\"M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z\"/></svg></span>';
+    html += '<span class="fav-go" onclick="showRadarChart(\''+_esc(item.code)+'\')"><svg viewBox=\"0 0 24 24\"><path d=\"M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z\"/></svg></span>';
     html += '</div>';
   });
   container.innerHTML = html;
@@ -13028,7 +13030,7 @@ function showNoteDialog(code) {
   html += '<div class="note-list" id="noteListContainer"><div class="note-empty">暂无备注</div></div>';
   html += '</div>';
 
-  document.getElementById('noteDialogTitle').textContent = name + ' - 备注';
+  document.getElementById('noteDialogTitle').textContent = name;
   document.getElementById('noteDialogBody').innerHTML = html;
   document.getElementById('noteDialogOverlay').classList.add('show');
 
