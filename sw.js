@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pb-calc-v56';
+const CACHE_NAME = 'pb-calc-v57';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './manifest.json',
@@ -72,16 +72,39 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // db_data.json: always fetch fresh, no SW caching (respects no-cache from app)
+  // db_data.json: cache-first strategy for fast load, background refresh
+  // This ensures returning users see data instantly from cache while
+  // the SW fetches the latest version in the background
   if (url.indexOf('db_data.json') !== -1) {
     e.respondWith(
-      fetch(e.request, { cache: 'no-store' })
-        .then(function(response) {
+      caches.match(e.request).then(function(cachedResponse) {
+        // Always try to fetch fresh copy in background
+        var fetchPromise = fetch(e.request, { cache: 'no-store' })
+          .then(function(response) {
+            if (response.ok) {
+              var clone = response.clone();
+              caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
+            }
+            return response;
+          })
+          .catch(function() {
+            // Network failed, will use cache below
+          });
+
+        if (cachedResponse) {
+          // Return cache immediately, background fetch updates cache for next visit
+          return cachedResponse;
+        }
+        // No cache: must wait for network
+        return fetchPromise.then(function(response) {
           return response;
-        })
-        .catch(function() {
-          return caches.match(e.request);
-        })
+        }).catch(function() {
+          return new Response(JSON.stringify({error: 'network error'}), {
+            status: 502,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        });
+      })
     );
     return;
   }
