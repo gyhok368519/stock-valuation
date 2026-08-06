@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.3.9';</script>
+<script>var APP_VER='3.4.0';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -758,10 +758,10 @@ body {
 <div class="safe-bottom"></div>
 
 <!-- Radar + Notes Dialog -->
-<div class="gp-overlay" id="radarDialogOverlay" onclick="closeRadarDialog()" style="color-scheme:light only;align-items:center;justify-content:flex-end;">
-  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:90vh;display:flex;flex-direction:column;position:absolute;bottom:0;border-radius:16px 16px 0 0;color-scheme:light only;">
+<div class="gp-overlay" id="radarDialogOverlay" onclick="closeRadarDialog()" style="color-scheme:light only;">
+  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:85vh;display:flex;flex-direction:column;color-scheme:light only;">
     <div class="gp-title" id="radarDialogTitle" style="flex-shrink:0;">指标雷达</div>
-    <div id="radarDialogBody" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;">
+    <div id="radarDialogBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;">
     </div>
     <div style="display:flex;margin-top:14px;justify-content:center;flex-shrink:0;">
       <button class="gp-new-btn" style="min-width:80px;max-width:120px;" onclick="closeRadarDialog()">关闭</button>
