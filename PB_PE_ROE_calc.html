@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.3.2';</script>
+<script>var APP_VER='3.3.3';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -12845,6 +12845,7 @@ function showRadarChart(code) {
   var row = DB_DATA[code];
   if (!row) { showToast('该股票无数据库记录'); return; }
   var name = STOCK_MAP[code] || code;
+  var today = new Date();
   // DB indices: PE=5, PB=6, ROE=11, 毛利率=9, 负债率=12
   var pe = row[5], pb = row[6], roe = row[11], gpr = row[9], dpr = row[12];
 
