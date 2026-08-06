@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.5.9';</script>
+<script>var APP_VER='3.6.0';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -809,7 +809,7 @@ body {
       <div class="info-menu-row"><span class="row-label">开发者(微信同名)</span><span class="row-value">小小金钱草</span></div>
       <div class="info-menu-row"><span class="row-label">联系开发者</span><span class="row-value" style="color:var(--primary);cursor:pointer;" onclick="_copyPhone()">15029164832</span></div>
       <div class="info-menu-row" style="cursor:pointer;" onclick="showCustomerDB()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 查看客户数据</span><span class="row-value">&#x1F527;</span></div>
-      <div class="info-menu-row" style="cursor:pointer;" onclick="showDBUpdater()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 更新数据库</span><span class="row-value">&#x1F4BE;</span></div>
+      <div class="info-menu-row" style="cursor:pointer;" onclick="showDBUpdater()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 手动更新数据库</span><span class="row-value">&#x1F4BE;</span></div>
     </div>
     <div class="info-menu-disclaimer">
       <b>免责声明</b><br>
@@ -826,9 +826,22 @@ body {
       <button onclick="closeDBUpdater()" style="background:none;border:none;font-size:20px;color:#fff;cursor:pointer;">&times;</button>
     </div>
     <div class="db-updater-tabs">
-      <div class="db-updater-tab active" data-tab="api" onclick="switchUpdaterTab('api')">API抓取</div>
+      <div class="db-updater-tab active" data-tab="api" onclick="switchUpdaterTab('api')">手动抓取</div>
       <div class="db-updater-tab" data-tab="upload" onclick="switchUpdaterTab('upload')">上传文件</div>
       <div class="db-updater-tab" data-tab="push" onclick="switchUpdaterTab('push')">推送到线上</div>
+    </div>
+
+    <!-- Update Status -->
+    <div id="updaterStatus" style="background:var(--primary-light);border-radius:8px;padding:10px 12px;margin:0 0 10px;font-size:12px;line-height:1.8;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:600;color:var(--text);">更新状态</span>
+        <span id="updaterStatusBadge" style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--gray-light);color:var(--text2);">未知</span>
+      </div>
+      <div style="color:var(--text2);margin-top:4px;">
+        <div>最近更新：<b id="updaterLastTime" style="color:var(--text);">从未更新</b></div>
+        <div>更新结果：<b id="updaterLastResult" style="color:var(--text);">-</b></div>
+        <div>股票数量：<b id="updaterStockCount" style="color:var(--text);">0</b></div>
+      </div>
     </div>
 
     <!-- API Tab -->
@@ -839,7 +852,7 @@ body {
           <option value="full">全量更新（约3-5分钟）</option>
         </select>
       </div>
-      <button class="btn btn-primary" onclick="startApiFetch()" id="apiFetchBtn" style="width:100%;">开始抓取</button>
+      <button class="btn btn-primary" onclick="startApiFetch()" id="apiFetchBtn" style="width:100%;">手动更新数据库</button>
       <div id="apiProgress" style="display:none;margin-top:12px;">
         <div style="background:var(--gray-light);border-radius:8px;height:20px;overflow:hidden;position:relative;">
           <div id="apiProgressBar" style="background:var(--primary);height:100%;width:0%;transition:width 0.3s;"></div>
@@ -11967,17 +11980,68 @@ function _openDBUpdater() {
   var panel = document.getElementById('dbUpdaterPanel');
   panel.style.display = 'flex';
   switchUpdaterTab('api');
-      document.getElementById('pushStockCount').textContent = dbCount();
+  document.getElementById('pushStockCount').textContent = dbCount();
   document.getElementById('pushLocalVer').textContent = 'v' + (localStorage.getItem('db_data_ver_num') || '1');
   document.getElementById('pushCacheStatus').textContent = '检查中...';
   _dbLoad('db_data_v' + (localStorage.getItem('db_data_ver_num') || '1')).then(function(v) {
     document.getElementById('pushCacheStatus').textContent = v ? '已缓存' : '无缓存';
   });
+  _refreshUpdaterStatus();
   checkRemoteDB();
 }
 
 function closeDBUpdater() {
   document.getElementById('dbUpdaterPanel').style.display = 'none';
+}
+
+// --- Update Status ---
+function _saveUpdateStatus(status, updated, failed) {
+  var info = {
+    time: Date.now(),
+    status: status,       // 'success' | 'partial' | 'failed'
+    updated: updated || 0,
+    failed: failed || 0,
+    stockCount: dbCount(),
+    version: localStorage.getItem('db_data_ver_num') || '1'
+  };
+  try { localStorage.setItem('db_update_status', JSON.stringify(info)); } catch(e) {}
+}
+
+function _refreshUpdaterStatus() {
+  var info = null;
+  try { info = JSON.parse(localStorage.getItem('db_update_status')); } catch(e) {}
+
+  var badge = document.getElementById('updaterStatusBadge');
+  var timeEl = document.getElementById('updaterLastTime');
+  var resultEl = document.getElementById('updaterLastResult');
+  var countEl = document.getElementById('updaterStockCount');
+
+  // Current stock count (always show latest)
+  countEl.textContent = dbCount();
+
+  if (!info) {
+    if (badge) { badge.textContent = '从未更新'; badge.style.background = 'var(--gray-light)'; badge.style.color = 'var(--text2)'; }
+    if (timeEl) timeEl.textContent = '从未更新';
+    if (resultEl) resultEl.textContent = '-';
+    return;
+  }
+
+  // Format time
+  var d = new Date(info.time);
+  var timeStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  if (timeEl) timeEl.textContent = timeStr;
+
+  // Result
+  if (info.status === 'success') {
+    if (badge) { badge.textContent = '成功'; badge.style.background = '#0d2818'; badge.style.color = 'var(--green)'; }
+    if (resultEl) { resultEl.textContent = '全部完成（' + info.updated + ' 只）'; resultEl.style.color = 'var(--green)'; }
+  } else if (info.status === 'partial') {
+    if (badge) { badge.textContent = '部分失败'; badge.style.background = '#2d2d0f'; badge.style.color = '#b7950b'; }
+    if (resultEl) { resultEl.textContent = '成功 ' + info.updated + ' 只，失败 ' + info.failed + ' 只'; resultEl.style.color = '#b7950b'; }
+  } else {
+    if (badge) { badge.textContent = '失败'; badge.style.background = '#2d0f0f'; badge.style.color = 'var(--red)'; }
+    if (resultEl) { resultEl.textContent = '更新失败'; resultEl.style.color = 'var(--red)'; }
+  }
 }
 
 function switchUpdaterTab(tab) {
@@ -12015,7 +12079,7 @@ function startApiFetch() {
   var barText = document.getElementById('apiProgressText');
   var log = document.getElementById('apiLog');
 
-  if (btn.textContent === '停止') { _apiAbort = true; btn.textContent = '开始抓取'; return; }
+  if (btn.textContent === '停止') { _apiAbort = true; btn.textContent = '手动更新数据库'; return; }
   _apiAbort = false;
   btn.textContent = '停止';
   progressDiv.style.display = 'block';
@@ -12280,13 +12344,17 @@ function startApiFetch() {
   var idx = 0;
   function processBatch() {
     if (_apiAbort || idx >= total) {
-      btn.textContent = '开始抓取';
+      btn.textContent = '手动更新数据库';
       bar.style.width = '100%';
       barText.textContent = '完成';
+      var fetchStatus = failed === 0 ? 'success' : 'partial';
       apiLog('抓取完毕！更新 ' + updated + ' 只，失败 ' + failed + ' 只');
       // Save to IndexedDB
       try { var _v = _bumpDBVersion(); _dbSave('db_data_v' + _v, DB_DATA).then(function() { apiLog('已保存到本地缓存(v' + _v + ')'); }); } catch(e) { apiLog('本地缓存保存失败'); }
       document.getElementById('pushStockCount').textContent = dbCount();
+      // Save update status
+      _saveUpdateStatus(fetchStatus, updated, failed);
+      _refreshUpdaterStatus();
       return;
     }
     var batch = [];
