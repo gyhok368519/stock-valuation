@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.4.4';</script>
+<script>var APP_VER='3.4.5';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -14132,7 +14132,7 @@ if ('serviceWorker' in navigator) {
   if (now - lastCheck < 10000) return; // checked recently
   localStorage.setItem(key, String(now));
   // Force update: fetch HTML with cache-bust, bypass CDN + SW
-  var fetchUrl = './PB_PE_ROE_calc.html?_update=' + now;
+  var fetchUrl = location.origin + location.pathname + '?_update=' + now;
   fetch(fetchUrl, {cache: 'no-store', mode: 'same-origin'})
     .then(function(r) { return r.text(); })
     .then(function(html) {
