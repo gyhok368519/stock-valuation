@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.3.4';</script>
+<script>var APP_VER='3.3.5';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -458,17 +458,14 @@ body {
   .gp-cancel:active { color:var(--text2); }
   .note-section { margin-top:12px; border-top:1px solid var(--gray-light); padding-top:12px; }
   .note-section-title { font-size:13px; font-weight:600; color:var(--text2); margin-bottom:8px; }
-  .note-add-row { display:flex; gap:6px; margin-bottom:10px; align-items:center; }
-  .note-date-input { flex:0 0 110px; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); text-align:center; }
-  .note-add-row input[type="text"] { flex:1; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); min-width:0; }
+  .note-add-row { display:flex; gap:8px; margin-bottom:10px; align-items:center; }
+  .note-date-input { flex:1; font-size:13px; padding:8px 10px; border:1px solid var(--gray-light); border-radius:8px; background:var(--card); color:var(--text); text-align:center; letter-spacing:1px; }
   .note-add-btn { background:var(--primary); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .note-add-btn:active { opacity:0.8; }
   .note-list { max-height:200px; overflow-y:auto; }
   .note-item { display:flex; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--gray-light); font-size:12px; line-height:1.5; gap:6px; }
   .note-item:last-child { border-bottom:none; }
-  .note-date { color:var(--primary); font-weight:600; flex-shrink:0; white-space:nowrap; }
-  .note-text { flex:1; color:var(--text); word-break:break-all; cursor:pointer; }
-  .note-text:hover { color:var(--primary); }
+  .note-date { color:var(--primary); font-weight:600; flex:1; white-space:nowrap; font-size:13px; }
   .note-act { display:flex; gap:12px; flex-shrink:0; align-items:center; }
   .note-act-icon { font-size:18px; cursor:pointer; line-height:1; padding:4px; opacity:0.5; }
   .note-act-icon:active { opacity:1; }
@@ -490,7 +487,6 @@ body {
   [data-theme="dark"] .fav-group-tag { background: #1e2a4a; }
   [data-theme="dark"] .gp-card { background: #1a1a2e; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   [data-theme="dark"] .gp-new-input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
-  [data-theme="dark"] .note-add-row input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
   [data-theme="dark"] .note-date-input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
   [data-theme="dark"] .note-section { border-top-color: #2d2d44; }
   [data-theme="dark"] .note-item { border-bottom-color: #2d2d44; }
@@ -12972,7 +12968,6 @@ function showRadarChart(code) {
   html += '<div class="note-add-row">';
   var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
   html += '<input type="text" id="noteDateInput" class="note-date-input" value="' + todayStr + '" placeholder="YYYY-MM-DD" inputmode="numeric" />';
-  html += '<input type="text" id="noteTextInput" placeholder="输入备注..." maxlength="100" />';
   html += '<button class="note-add-btn" onclick="addFavNote(\'' + _esc(code) + '\')">添加</button>';
   html += '</div>';
   html += '<div class="note-list" id="noteListContainer"><div class="note-empty">暂无备注</div></div>';
@@ -13026,18 +13021,14 @@ function _saveFavNotes(code, notes) {
 
 function addFavNote(code) {
   var dateEl = document.getElementById('noteDateInput');
-  var textEl = document.getElementById('noteTextInput');
-  if (!dateEl || !textEl) return;
+  if (!dateEl) return;
   var date = dateEl.value.trim();
   if (!date) { showToast('请输入日期'); return; }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast('日期格式: YYYY-MM-DD'); return; }
-  var text = textEl.value.trim();
-  if (!text) { showToast('请输入备注内容'); return; }
 
   _loadFavNotes(code).then(function(notes) {
-    notes.unshift({date: date, text: text, ts: Date.now()});
+    notes.unshift({date: date, text: date, ts: Date.now()});
     _saveFavNotes(code, notes).then(function() {
-      textEl.value = '';
       _renderNotes(code, notes);
       showToast('备注已添加');
     });
@@ -13065,7 +13056,6 @@ function _renderNotes(code, notes) {
   for (var i = 0; i < notes.length; i++) {
     html += '<div class="note-item">';
     html += '<span class="note-date">' + _esc(notes[i].date) + '</span>';
-    html += '<span class="note-text">' + _esc(notes[i].text) + '</span>';
     html += '<span class="note-act">';
     html += '<span class="note-act-icon edit-icon" onclick="editFavNote(\'' + _esc(code) + '\',' + i + ',this)">\u270E</span>';
     html += '<span class="note-act-icon del-icon" onclick="deleteFavNote(\'' + _esc(code) + '\',' + i + ')">\u2716</span>';
@@ -13080,8 +13070,8 @@ function editFavNote(code, index, el) {
     if (!notes[index]) return;
     var note = notes[index];
     var item = el.closest('.note-item');
-    var dateHtml = '<span class="note-date">' + _esc(note.date) + '</span>';
-    var editHtml = '<input type="text" class="note-edit-input" value="' + _esc(note.text) + '" maxlength="100" />';
+    var dateHtml = '';
+    var editHtml = '<input type="text" class="note-edit-input" value="' + _esc(note.date) + '" maxlength="10" />';
     editHtml += '<span class="note-act">';
     editHtml += '<span class="note-act-icon edit-icon" onclick="saveFavNote(\'' + _esc(code) + '\',' + index + ')" style="opacity:1;">\u2713</span>';
     editHtml += '<span class="note-act-icon del-icon" onclick="deleteFavNote(\'' + _esc(code) + '\',' + index + ')">\u2716</span>';
@@ -13095,12 +13085,14 @@ function editFavNote(code, index, el) {
 function saveFavNote(code, index) {
   var item = document.querySelector('.note-edit-input');
   if (!item) return;
-  var newText = item.value.trim();
-  if (!newText) { showToast('备注内容不能为空'); return; }
+  var newDate = item.value.trim();
+  if (!newDate) { showToast('日期不能为空'); return; }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) { showToast('日期格式: YYYY-MM-DD'); return; }
 
   _loadFavNotes(code).then(function(notes) {
     if (!notes[index]) return;
-    notes[index].text = newText;
+    notes[index].date = newDate;
+    notes[index].text = newDate;
     _saveFavNotes(code, notes).then(function() {
       _renderNotes(code, notes);
       showToast('备注已更新');
