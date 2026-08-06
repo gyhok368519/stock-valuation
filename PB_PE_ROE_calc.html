@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.3.1';</script>
+<script>var APP_VER='3.3.2';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -458,18 +458,24 @@ body {
   .gp-cancel:active { color:var(--text2); }
   .note-section { margin-top:12px; border-top:1px solid var(--gray-light); padding-top:12px; }
   .note-section-title { font-size:13px; font-weight:600; color:var(--text2); margin-bottom:8px; }
-  .note-add-row { display:flex; gap:6px; margin-bottom:10px; }
-  .note-add-row input[type="date"] { flex:0 0 120px; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); color-scheme:light; }
+  .note-add-row { display:flex; gap:4px; margin-bottom:10px; align-items:center; }
+  .note-date-selects { display:flex; gap:3px; flex-shrink:0; }
+  .note-date-selects select { font-size:12px; padding:5px 2px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); appearance:auto; }
   .note-add-row input[type="text"] { flex:1; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); min-width:0; }
   .note-add-btn { background:var(--primary); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .note-add-btn:active { opacity:0.8; }
   .note-list { max-height:200px; overflow-y:auto; }
-  .note-item { display:flex; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--gray-light); font-size:12px; line-height:1.5; }
+  .note-item { display:flex; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--gray-light); font-size:12px; line-height:1.5; gap:6px; }
   .note-item:last-child { border-bottom:none; }
-  .note-date { color:var(--primary); font-weight:600; flex-shrink:0; margin-right:8px; white-space:nowrap; }
+  .note-date { color:var(--primary); font-weight:600; flex-shrink:0; white-space:nowrap; }
   .note-text { flex:1; color:var(--text); word-break:break-all; cursor:pointer; }
   .note-text:hover { color:var(--primary); }
-  .note-text.editing { color:var(--primary); font-weight:600; }
+  .note-act { display:flex; gap:4px; flex-shrink:0; align-items:center; }
+  .note-act-icon { font-size:16px; cursor:pointer; line-height:1; opacity:0.45; }
+  .note-act-icon:active { opacity:1; }
+  .note-act-icon.edit-icon { color:var(--primary); }
+  .note-act-icon.del-icon { color:var(--red); margin-left:2px; }
+  .note-edit-input { flex:1; font-size:12px; padding:4px 6px; border:1px solid var(--primary); border-radius:4px; background:var(--card); color:var(--text); min-width:0; }
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
@@ -486,7 +492,7 @@ body {
   [data-theme="dark"] .gp-card { background: #1a1a2e; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   [data-theme="dark"] .gp-new-input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
   [data-theme="dark"] .note-add-row input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
-  [data-theme="dark"] .note-add-row input[type="date"] { color-scheme: dark; }
+  [data-theme="dark"] .note-date-selects select { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
   [data-theme="dark"] .note-section { border-top-color: #2d2d44; }
   [data-theme="dark"] .note-item { border-bottom-color: #2d2d44; }
   [data-theme="dark"] .gp-item:active { background: #1e2a4a; }
@@ -12960,11 +12966,24 @@ function showRadarChart(code) {
   html += '<img src="' + imgData + '" style="width:340px;height:340px;" />';
   html += '</div>';
 
-  // Notes section
+  // Notes section - use 3 selects instead of native date picker to avoid black popup
   html += '<div class="note-section">';
   html += '<div class="note-section-title">备注</div>';
   html += '<div class="note-add-row">';
-  html += '<input type="date" id="noteDateInput" />';
+  html += '<div class="note-date-selects">';
+  // Year select
+  html += '<select id="noteYear">';
+  for (var y = 2025; y <= today.getFullYear() + 1; y++) html += '<option value="' + y + '"' + (y === today.getFullYear() ? ' selected' : '') + '>' + y + '</option>';
+  html += '</select>';
+  // Month select
+  html += '<select id="noteMonth">';
+  for (var m = 1; m <= 12; m++) html += '<option value="' + String(m).padStart(2,'0') + '"' + (m === today.getMonth()+1 ? ' selected' : '') + '>' + m + '月</option>';
+  html += '</select>';
+  // Day select
+  html += '<select id="noteDay">';
+  for (var d = 1; d <= 31; d++) html += '<option value="' + String(d).padStart(2,'0') + '"' + (d === today.getDate() ? ' selected' : '') + '>' + d + '</option>';
+  html += '</select>';
+  html += '</div>';
   html += '<input type="text" id="noteTextInput" placeholder="输入备注..." maxlength="100" />';
   html += '<button class="note-add-btn" onclick="addFavNote(\'' + _esc(code) + '\')">添加</button>';
   html += '</div>';
@@ -12975,10 +12994,6 @@ function showRadarChart(code) {
   document.getElementById('radarDialogTitle').textContent = name || code;
   document.getElementById('radarDialogBody').innerHTML = html;
   document.getElementById('radarDialogOverlay').classList.add('show');
-
-  // Set default date to today
-  var today = new Date(); var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-  document.getElementById('noteDateInput').value = todayStr;
 
   // Load existing notes
   _loadFavNotes(code).then(function(notes) { _renderNotes(code, notes); });
@@ -13022,12 +13037,13 @@ function _saveFavNotes(code, notes) {
 }
 
 function addFavNote(code) {
-  var dateEl = document.getElementById('noteDateInput');
+  var yearEl = document.getElementById('noteYear');
+  var monthEl = document.getElementById('noteMonth');
+  var dayEl = document.getElementById('noteDay');
   var textEl = document.getElementById('noteTextInput');
-  if (!dateEl || !textEl) return;
-  var date = dateEl.value.trim();
+  if (!yearEl || !textEl) return;
+  var date = yearEl.value + '-' + monthEl.value + '-' + dayEl.value;
   var text = textEl.value.trim();
-  if (!date) { showToast('请选择日期'); return; }
   if (!text) { showToast('请输入备注内容'); return; }
 
   _loadFavNotes(code).then(function(notes) {
@@ -13061,7 +13077,11 @@ function _renderNotes(code, notes) {
   for (var i = 0; i < notes.length; i++) {
     html += '<div class="note-item">';
     html += '<span class="note-date">' + _esc(notes[i].date) + '</span>';
-    html += '<span class="note-text" onclick="editFavNote(\'' + _esc(code) + '\',' + i + ',this)">' + _esc(notes[i].text) + '</span>';
+    html += '<span class="note-text">' + _esc(notes[i].text) + '</span>';
+    html += '<span class="note-act">';
+    html += '<span class="note-act-icon edit-icon" onclick="editFavNote(\'' + _esc(code) + '\',' + i + ',this)">\u270E</span>';
+    html += '<span class="note-act-icon del-icon" onclick="deleteFavNote(\'' + _esc(code) + '\',' + i + ')">\u2716</span>';
+    html += '</span>';
     html += '</div>';
   }
   container.innerHTML = html;
@@ -13071,11 +13091,13 @@ function editFavNote(code, index, el) {
   _loadFavNotes(code).then(function(notes) {
     if (!notes[index]) return;
     var note = notes[index];
-    // Replace text span with inline edit form
-    var item = el.parentElement;
+    var item = el.closest('.note-item');
     var dateHtml = '<span class="note-date">' + _esc(note.date) + '</span>';
-    var editHtml = '<input type="text" class="note-edit-input" value="' + _esc(note.text) + '" maxlength="100" style="flex:1;font-size:12px;padding:4px 6px;border:1px solid var(--primary);border-radius:4px;background:var(--card);color:var(--text);min-width:0;" />';
-    editHtml += '<button class="note-add-btn" style="margin-left:6px;font-size:11px;padding:4px 8px;" onclick="saveFavNote(\'' + _esc(code) + '\',' + index + ')">保存</button>';
+    var editHtml = '<input type="text" class="note-edit-input" value="' + _esc(note.text) + '" maxlength="100" />';
+    editHtml += '<span class="note-act">';
+    editHtml += '<span class="note-act-icon edit-icon" onclick="saveFavNote(\'' + _esc(code) + '\',' + index + ')" style="opacity:1;">\u2713</span>';
+    editHtml += '<span class="note-act-icon del-icon" onclick="deleteFavNote(\'' + _esc(code) + '\',' + index + ')">\u2716</span>';
+    editHtml += '</span>';
     item.innerHTML = dateHtml + editHtml;
     var input = item.querySelector('.note-edit-input');
     if (input) { input.focus(); input.select(); }
