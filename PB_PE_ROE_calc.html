@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.0.1';</script>
+<script>var APP_VER='4.0.2';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -3195,6 +3195,11 @@ const dbAcList = document.getElementById('dbAcList');
 function _doStockSearch(query, acList, onSelectFn) {
   query = query.trim();
   if (!query) { acList.classList.remove('show'); return; }
+  if (!_indexReady) {
+    acList.innerHTML = '<div class="ac-empty">索引加载中，请稍候...</div>';
+    acList.classList.add('show');
+    return;
+  }
   if (!/^\d/.test(query) && query.length < 2) {
     acList.innerHTML = '<div class="ac-empty">输入2位以上搜索（支持拼音首字母）</div>';
     acList.classList.add('show');
