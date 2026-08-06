@@ -805,6 +805,7 @@ body {
     <div class="info-menu-body">
       <div class="info-menu-row"><span class="row-label">名称</span><span class="row-value">股票估值计算器</span></div>
       <div class="info-menu-row"><span class="row-label">版本</span><span class="row-value" id="appVerMenu">v2.2</span></div>
+      <div class="info-menu-row" style="cursor:pointer;" onclick="manualCheckUpdate()"><span class="row-label" style="color:var(--primary);font-weight:600;">检查更新</span><span class="row-value" id="updateStatusMenu">&#x1F504;</span></div>
       <div class="info-menu-row"><span class="row-label">数据库版本</span><span class="row-value" id="dbVerMenu">-</span></div>
       <div class="info-menu-row"><span class="row-label">开发者(微信同名)</span><span class="row-value">小小金钱草</span></div>
       <div class="info-menu-row"><span class="row-label">联系开发者</span><span class="row-value" style="color:var(--primary);cursor:pointer;" onclick="_copyPhone()">15029164832</span></div>
@@ -3911,6 +3912,26 @@ if ('serviceWorker' in navigator) {
   }).catch(function(e) { console.log('SW fail', e); });
 }
 
+// Apply update: clear caches + unregister SW + force reload
+function _applyUpdate(remoteVer) {
+  showToast('正在更新到 v' + remoteVer + '...');
+  // Step 1: Clear all Cache API caches
+  var cacheCleared = typeof caches !== 'undefined'
+    ? caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); return true; }).catch(function() { return true; })
+    : Promise.resolve(true);
+  // Step 2: Unregister all service workers
+  var swUnregistered = navigator.serviceWorker
+    ? navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); return true; }).catch(function() { return true; })
+    : Promise.resolve(true);
+  // Step 3: Wait for both, then force reload with cache-bust
+  Promise.all([cacheCleared, swUnregistered]).then(function() {
+    setTimeout(function() {
+      // Use location.href to fully reload, bypassing any remaining SW
+      location.href = location.pathname + '?v=' + remoteVer + '&_t=' + Date.now();
+    }, 1500);
+  });
+}
+
 // ===== Auto Update Check =====
 // On load: fetch online HTML, extract APP_VER, if newer -> clear all caches + reload
 (function checkUpdate() {
@@ -3932,18 +3953,7 @@ if ('serviceWorker' in navigator) {
         var remoteVer = m ? m[1] : '';
         if (remoteVer && remoteVer !== localVer) {
           console.log('New version detected: v' + remoteVer + ' (current: v' + localVer + ')');
-          // Clear all caches
-          if (typeof caches !== 'undefined') {
-            caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
-          }
-          // Unregister all service workers
-          if (navigator.serviceWorker) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
-          }
-          // Replace page with new version (force bypass all caches)
-          setTimeout(function() {
-            location.replace(location.pathname + '?v=' + remoteVer + '&_t=' + Date.now());
-          }, 500);
+          _applyUpdate(remoteVer);
         } else {
           console.log('Version check: up-to-date (v' + localVer + ')');
         }
@@ -3956,6 +3966,33 @@ if ('serviceWorker' in navigator) {
   }
   doCheck();
 })();
+
+// Manual check update (triggered by user tapping "检查更新")
+function manualCheckUpdate() {
+  var statusEl = document.getElementById('updateStatusMenu');
+  var localVer = APP_VER || '0';
+  if (statusEl) statusEl.textContent = '检查中...';
+
+  var fetchUrl = location.origin + location.pathname + '?_update=' + Date.now();
+  fetch(fetchUrl, {cache: 'no-store', mode: 'same-origin'})
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+      var m = html.match(/var APP_VER='([^']+)'/);
+      var remoteVer = m ? m[1] : '';
+      if (remoteVer && remoteVer !== localVer) {
+        _applyUpdate(remoteVer);
+      } else {
+        if (statusEl) statusEl.textContent = '\u2713 已是最新';
+        showToast('当前已是最新版本 (v' + localVer + ')');
+        setTimeout(function() { if (statusEl) statusEl.textContent = '\uD83D\uDD04'; }, 3000);
+      }
+    })
+    .catch(function(e) {
+      if (statusEl) statusEl.textContent = '\u2717 失败';
+      showToast('检查更新失败，请稍后再试');
+      setTimeout(function() { if (statusEl) statusEl.textContent = '\uD83D\uDD04'; }, 3000);
+    });
+}
 </script>
 </body>
 </html>
