@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.2.9';</script>
+<script>var APP_VER='3.3.0';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -456,6 +456,21 @@ body {
   .gp-new-btn:active { opacity:0.8; }
   .gp-cancel { text-align:center; padding:10px 0 0; color:var(--text3); font-size:14px; cursor:pointer; }
   .gp-cancel:active { color:var(--text2); }
+  .note-section { margin-top:12px; border-top:1px solid var(--gray-light); padding-top:12px; }
+  .note-section-title { font-size:13px; font-weight:600; color:var(--text2); margin-bottom:8px; }
+  .note-add-row { display:flex; gap:6px; margin-bottom:10px; }
+  .note-add-row input[type="date"] { flex:0 0 130px; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); }
+  .note-add-row input[type="text"] { flex:1; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); min-width:0; }
+  .note-add-btn { background:var(--primary); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+  .note-add-btn:active { opacity:0.8; }
+  .note-list { max-height:180px; overflow-y:auto; }
+  .note-item { display:flex; align-items:flex-start; padding:6px 0; border-bottom:1px solid var(--gray-light); font-size:12px; line-height:1.5; }
+  .note-item:last-child { border-bottom:none; }
+  .note-date { color:var(--primary); font-weight:600; flex-shrink:0; margin-right:8px; white-space:nowrap; }
+  .note-text { flex:1; color:var(--text); word-break:break-all; }
+  .note-del { color:var(--text3); cursor:pointer; margin-left:6px; flex-shrink:0; font-size:14px; }
+  .note-del:active { color:var(--red); }
+  .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
   .fav-empty p { font-size:14px; margin-bottom:6px; }
@@ -470,6 +485,9 @@ body {
   [data-theme="dark"] .fav-group-tag { background: #1e2a4a; }
   [data-theme="dark"] .gp-card { background: #1a1a2e; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   [data-theme="dark"] .gp-new-input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
+  [data-theme="dark"] .note-add-row input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
+  [data-theme="dark"] .note-section { border-top-color: #2d2d44; }
+  [data-theme="dark"] .note-item { border-bottom-color: #2d2d44; }
   [data-theme="dark"] .gp-item:active { background: #1e2a4a; }
   [data-theme="dark"] .fav-group-actions span:active { background: #1e2a4a; }
 
@@ -712,6 +730,18 @@ body {
 </div>
 
 <div class="safe-bottom"></div>
+
+<!-- Radar + Notes Dialog -->
+<div class="gp-overlay" id="radarDialogOverlay" onclick="closeRadarDialog()">
+  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:85vh;display:flex;flex-direction:column;">
+    <div class="gp-title" id="radarDialogTitle" style="flex-shrink:0;">指标雷达</div>
+    <div id="radarDialogBody" style="flex:1;overflow-y:auto;padding:0 4px;">
+    </div>
+    <div style="display:flex;margin-top:14px;justify-content:center;flex-shrink:0;">
+      <button class="gp-new-btn" style="min-width:80px;max-width:120px;background:var(--gray-light);color:var(--text2);" onclick="closeRadarDialog()">关闭</button>
+    </div>
+  </div>
+</div>
 
 <!-- Info Menu -->
 <div class="info-menu" id="infoMenu">
@@ -12925,21 +12955,116 @@ function showRadarChart(code) {
 
   // Build HTML with canvas image + valuation result
   var imgData = canvas.toDataURL();
-  // Calculate PB=PE*ROE valuation
-  var calcPB = pe > 0 && roe !== null ? pe * roe : null;
-  var deviation = calcPB && pb > 0 ? ((pb - calcPB) / calcPB) : null;
-  var judge = '', judgeColor = '';
-  if (deviation !== null) {
-    if (deviation < -0.1) { judge = '低估'; judgeColor = 'var(--green)'; }
-    else if (deviation > 0.1) { judge = '高估'; judgeColor = 'var(--red)'; }
-    else { judge = '合理'; judgeColor = 'var(--blue)'; }
-  }
   var html = '<div style="text-align:center;">';
-  html += '<div style="font-size:15px;font-weight:700;margin-bottom:10px;">' + _esc(name) + '</div>';
   html += '<img src="' + imgData + '" style="width:340px;height:340px;" />';
   html += '</div>';
 
-  _devAlert('指标雷达', html);
+  // Notes section
+  html += '<div class="note-section">';
+  html += '<div class="note-section-title">备注记录</div>';
+  html += '<div class="note-add-row">';
+  html += '<input type="date" id="noteDateInput" />';
+  html += '<input type="text" id="noteTextInput" placeholder="输入备注..." maxlength="100" />';
+  html += '<button class="note-add-btn" onclick="addFavNote(\'' + _esc(code) + '\')">添加</button>';
+  html += '</div>';
+  html += '<div class="note-list" id="noteListContainer"><div class="note-empty">暂无备注</div></div>';
+  html += '</div>';
+
+  // Show in dedicated radar dialog
+  document.getElementById('radarDialogTitle').textContent = name || code;
+  document.getElementById('radarDialogBody').innerHTML = html;
+  document.getElementById('radarDialogOverlay').classList.add('show');
+
+  // Set default date to today
+  var today = new Date(); var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  document.getElementById('noteDateInput').value = todayStr;
+
+  // Load existing notes
+  _loadFavNotes(code).then(function(notes) { _renderNotes(code, notes); });
+}
+
+function closeRadarDialog() {
+  document.getElementById('radarDialogOverlay').classList.remove('show');
+}
+
+// === Favorite Notes API (stored in IndexedDB fav store, notes field) ===
+function _loadFavNotes(code) {
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('fav', 'readonly');
+      var req = tx.objectStore('fav').get(code);
+      req.onsuccess = function() {
+        var item = req.result;
+        resolve((item && item.notes) ? item.notes : []);
+      };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  }).catch(function() { return []; });
+}
+
+function _saveFavNotes(code, notes) {
+  return _openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('fav', 'readwrite');
+      var store = tx.objectStore('fav');
+      var getReq = store.get(code);
+      getReq.onsuccess = function() {
+        var item = getReq.result || {code: code, name: '', group: '默认', time: Date.now()};
+        item.notes = notes;
+        store.put(item);
+        tx.oncomplete = function() { resolve(); };
+        tx.onerror = function(e) { reject(e.target.error); };
+      };
+      getReq.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+function addFavNote(code) {
+  var dateEl = document.getElementById('noteDateInput');
+  var textEl = document.getElementById('noteTextInput');
+  if (!dateEl || !textEl) return;
+  var date = dateEl.value.trim();
+  var text = textEl.value.trim();
+  if (!date) { showToast('请选择日期'); return; }
+  if (!text) { showToast('请输入备注内容'); return; }
+
+  _loadFavNotes(code).then(function(notes) {
+    notes.unshift({date: date, text: text, ts: Date.now()});
+    _saveFavNotes(code, notes).then(function() {
+      textEl.value = '';
+      _renderNotes(code, notes);
+      showToast('备注已添加');
+    });
+  });
+}
+
+function deleteFavNote(code, index) {
+  _loadFavNotes(code).then(function(notes) {
+    notes.splice(index, 1);
+    _saveFavNotes(code, notes).then(function() {
+      _renderNotes(code, notes);
+      showToast('备注已删除');
+    });
+  });
+}
+
+function _renderNotes(code, notes) {
+  var container = document.getElementById('noteListContainer');
+  if (!container) return;
+  if (!notes || notes.length === 0) {
+    container.innerHTML = '<div class="note-empty">暂无备注</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < notes.length; i++) {
+    html += '<div class="note-item">';
+    html += '<span class="note-date">' + _esc(notes[i].date) + '</span>';
+    html += '<span class="note-text">' + _esc(notes[i].text) + '</span>';
+    html += '<span class="note-del" onclick="deleteFavNote(\'' + _esc(code) + '\',' + i + ')">&times;</span>';
+    html += '</div>';
+  }
+  container.innerHTML = html;
 }
 
 // Add new group (from tab + button)
