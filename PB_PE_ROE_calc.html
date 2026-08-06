@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.5.6';</script>
+<script>var APP_VER='3.5.7';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -211,6 +211,7 @@ body {
 }
 .form-group input:focus { border-color: var(--primary); }
 .form-group input::placeholder { color: var(--text3); font-size: 13px; }
+.form-group input[readonly] { background: #f8f9fa; color: #6c757d; }
 
 .btn-row { display: flex; gap: 10px; margin-top: 4px; }
 .btn { flex:1; padding:12px; border:none; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; transition: opacity 0.2s, transform 0.1s; }
@@ -658,7 +659,7 @@ body {
         </div>
         <div class="form-group">
           <label>股票名称</label>
-          <input type="text" id="name" placeholder="自动填充" readonly style="background:#f8f9fa;">
+          <input type="text" id="name" placeholder="自动填充" readonly>
         </div>
       </div>
       <div class="form-row three">
