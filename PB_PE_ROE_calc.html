@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.5.3';</script>
+<script>var APP_VER='3.5.4';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -764,7 +764,7 @@ body {
 
 <!-- Radar Dialog (chart, scrollable) -->
 <div class="gp-overlay" id="radarDialogOverlay" onclick="closeRadarDialog()" style="color-scheme:light only;">
-  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:95vh;display:flex;flex-direction:column;color-scheme:light only;">
+  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:95vh;min-height:60vh;display:flex;flex-direction:column;color-scheme:light only;">
     <div class="gp-title" id="radarDialogTitle" style="flex-shrink:0;">指标雷达</div>
     <div id="radarDialogBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;"></div>
     <div style="display:flex;margin-top:14px;justify-content:center;flex-shrink:0;">
@@ -775,7 +775,7 @@ body {
 
 <!-- Note Dialog (independent, scrollable) -->
 <div class="gp-overlay" id="noteDialogOverlay" onclick="closeNoteDialog()" style="color-scheme:light only;">
-  <div class="gp-card" id="noteDialogCard" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:95vh;display:flex;flex-direction:column;color-scheme:light only;">
+  <div class="gp-card" id="noteDialogCard" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:95vh;min-height:60vh;display:flex;flex-direction:column;color-scheme:light only;">
     <div class="gp-title" id="noteDialogTitle" style="flex-shrink:0;font-size:15px;">备注</div>
     <div id="noteDialogBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;"></div>
     <div style="display:flex;margin-top:14px;justify-content:center;flex-shrink:0;">
