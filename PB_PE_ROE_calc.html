@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.3.0';</script>
+<script>var APP_VER='3.3.1';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -459,17 +459,17 @@ body {
   .note-section { margin-top:12px; border-top:1px solid var(--gray-light); padding-top:12px; }
   .note-section-title { font-size:13px; font-weight:600; color:var(--text2); margin-bottom:8px; }
   .note-add-row { display:flex; gap:6px; margin-bottom:10px; }
-  .note-add-row input[type="date"] { flex:0 0 130px; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); }
+  .note-add-row input[type="date"] { flex:0 0 120px; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); color-scheme:light; }
   .note-add-row input[type="text"] { flex:1; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); min-width:0; }
   .note-add-btn { background:var(--primary); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .note-add-btn:active { opacity:0.8; }
-  .note-list { max-height:180px; overflow-y:auto; }
-  .note-item { display:flex; align-items:flex-start; padding:6px 0; border-bottom:1px solid var(--gray-light); font-size:12px; line-height:1.5; }
+  .note-list { max-height:200px; overflow-y:auto; }
+  .note-item { display:flex; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--gray-light); font-size:12px; line-height:1.5; }
   .note-item:last-child { border-bottom:none; }
   .note-date { color:var(--primary); font-weight:600; flex-shrink:0; margin-right:8px; white-space:nowrap; }
-  .note-text { flex:1; color:var(--text); word-break:break-all; }
-  .note-del { color:var(--text3); cursor:pointer; margin-left:6px; flex-shrink:0; font-size:14px; }
-  .note-del:active { color:var(--red); }
+  .note-text { flex:1; color:var(--text); word-break:break-all; cursor:pointer; }
+  .note-text:hover { color:var(--primary); }
+  .note-text.editing { color:var(--primary); font-weight:600; }
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
@@ -486,6 +486,7 @@ body {
   [data-theme="dark"] .gp-card { background: #1a1a2e; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   [data-theme="dark"] .gp-new-input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
   [data-theme="dark"] .note-add-row input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
+  [data-theme="dark"] .note-add-row input[type="date"] { color-scheme: dark; }
   [data-theme="dark"] .note-section { border-top-color: #2d2d44; }
   [data-theme="dark"] .note-item { border-bottom-color: #2d2d44; }
   [data-theme="dark"] .gp-item:active { background: #1e2a4a; }
@@ -738,7 +739,7 @@ body {
     <div id="radarDialogBody" style="flex:1;overflow-y:auto;padding:0 4px;">
     </div>
     <div style="display:flex;margin-top:14px;justify-content:center;flex-shrink:0;">
-      <button class="gp-new-btn" style="min-width:80px;max-width:120px;background:var(--gray-light);color:var(--text2);" onclick="closeRadarDialog()">关闭</button>
+      <button class="gp-new-btn" style="min-width:80px;max-width:120px;" onclick="closeRadarDialog()">关闭</button>
     </div>
   </div>
 </div>
@@ -12961,7 +12962,7 @@ function showRadarChart(code) {
 
   // Notes section
   html += '<div class="note-section">';
-  html += '<div class="note-section-title">备注记录</div>';
+  html += '<div class="note-section-title">备注</div>';
   html += '<div class="note-add-row">';
   html += '<input type="date" id="noteDateInput" />';
   html += '<input type="text" id="noteTextInput" placeholder="输入备注..." maxlength="100" />';
@@ -13060,11 +13061,41 @@ function _renderNotes(code, notes) {
   for (var i = 0; i < notes.length; i++) {
     html += '<div class="note-item">';
     html += '<span class="note-date">' + _esc(notes[i].date) + '</span>';
-    html += '<span class="note-text">' + _esc(notes[i].text) + '</span>';
-    html += '<span class="note-del" onclick="deleteFavNote(\'' + _esc(code) + '\',' + i + ')">&times;</span>';
+    html += '<span class="note-text" onclick="editFavNote(\'' + _esc(code) + '\',' + i + ',this)">' + _esc(notes[i].text) + '</span>';
     html += '</div>';
   }
   container.innerHTML = html;
+}
+
+function editFavNote(code, index, el) {
+  _loadFavNotes(code).then(function(notes) {
+    if (!notes[index]) return;
+    var note = notes[index];
+    // Replace text span with inline edit form
+    var item = el.parentElement;
+    var dateHtml = '<span class="note-date">' + _esc(note.date) + '</span>';
+    var editHtml = '<input type="text" class="note-edit-input" value="' + _esc(note.text) + '" maxlength="100" style="flex:1;font-size:12px;padding:4px 6px;border:1px solid var(--primary);border-radius:4px;background:var(--card);color:var(--text);min-width:0;" />';
+    editHtml += '<button class="note-add-btn" style="margin-left:6px;font-size:11px;padding:4px 8px;" onclick="saveFavNote(\'' + _esc(code) + '\',' + index + ')">保存</button>';
+    item.innerHTML = dateHtml + editHtml;
+    var input = item.querySelector('.note-edit-input');
+    if (input) { input.focus(); input.select(); }
+  });
+}
+
+function saveFavNote(code, index) {
+  var item = document.querySelector('.note-edit-input');
+  if (!item) return;
+  var newText = item.value.trim();
+  if (!newText) { showToast('备注内容不能为空'); return; }
+
+  _loadFavNotes(code).then(function(notes) {
+    if (!notes[index]) return;
+    notes[index].text = newText;
+    _saveFavNotes(code, notes).then(function() {
+      _renderNotes(code, notes);
+      showToast('备注已更新');
+    });
+  });
 }
 
 // Add new group (from tab + button)
