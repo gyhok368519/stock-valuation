@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.5.2';</script>
+<script>var APP_VER='3.5.3';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -764,7 +764,7 @@ body {
 
 <!-- Radar Dialog (chart, scrollable) -->
 <div class="gp-overlay" id="radarDialogOverlay" onclick="closeRadarDialog()" style="color-scheme:light only;">
-  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:92vh;display:flex;flex-direction:column;color-scheme:light only;">
+  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:95vh;display:flex;flex-direction:column;color-scheme:light only;">
     <div class="gp-title" id="radarDialogTitle" style="flex-shrink:0;">指标雷达</div>
     <div id="radarDialogBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;"></div>
     <div style="display:flex;margin-top:14px;justify-content:center;flex-shrink:0;">
@@ -13006,10 +13006,12 @@ function showRadarChart(code) {
   document.getElementById('radarDialogTitle').textContent = name || code;
   document.getElementById('radarDialogBody').innerHTML = html;
   document.getElementById('radarDialogOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeRadarDialog() {
   document.getElementById('radarDialogOverlay').classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 // === Note Dialog (independent, scrollable) ===
@@ -13031,12 +13033,14 @@ function showNoteDialog(code) {
   document.getElementById('noteDialogTitle').textContent = name;
   document.getElementById('noteDialogBody').innerHTML = html;
   document.getElementById('noteDialogOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
 
   _loadFavNotes(code).then(function(notes) { _renderNotes(code, notes); });
 }
 
 function closeNoteDialog() {
   document.getElementById('noteDialogOverlay').classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 // === Favorite Notes API (stored in IndexedDB fav store, notes field) ===
