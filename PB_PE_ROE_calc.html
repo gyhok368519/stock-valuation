@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.5.7';</script>
+<script>var APP_VER='3.5.8';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -408,7 +408,6 @@ body {
   [data-theme="dark"] .db-updater-body { background: #0f0f1a; }
   [data-theme="dark"] .history-card { box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
   [data-theme="dark"] #dbLoadHint { background: transparent; }
-  [data-theme="dark"] .btn-secondary { background: #1e2a4a; }
 
   /* ===== Favorites Page ===== */
   .fav-group-header { display:flex; align-items:center; justify-content:space-between; padding:8px 4px; margin-top:12px; font-size:13px; font-weight:600; color:var(--text2); }
@@ -503,6 +502,10 @@ body {
   [data-theme="dark"] .note-item { border-bottom-color: #2d2d44; }
   [data-theme="dark"] .gp-item:active { background: #1e2a4a; }
   [data-theme="dark"] .fav-group-actions span:active { background: #1e2a4a; }
+  [data-theme="dark"] .toast { background: #2d2d44; color: #e5e7eb; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+  [data-theme="dark"] .btn-primary { background: linear-gradient(135deg, #3b7dd8 0%, #2563a8 100%); color: #fff; box-shadow: 0 2px 8px rgba(59,125,216,0.35); }
+  [data-theme="dark"] .btn-primary:active { background: linear-gradient(135deg, #2a5fa8 0%, #1d4a8a 100%); }
+  [data-theme="dark"] .btn-secondary { background: #1e2a4a; color: #8ab4f8; }
 
   /* Custom Calendar Popup */
   .cal-popup { position:absolute; z-index:9999; background:var(--card); border:1px solid var(--gray-light); border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.15); padding:12px; width:260px; left:0; top:100%; margin-top:4px; }
