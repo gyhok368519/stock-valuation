@@ -1,6 +1,7 @@
-const CACHE_NAME = 'pb-calc-v86';
+const CACHE_NAME = 'pb-calc-v87';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
+  './stock_index.json',
   './manifest.json',
   './icon-512.jpg',
   './sw.js'
@@ -72,10 +73,8 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // db_data.json: cache-first strategy for fast load, background refresh
-  // This ensures returning users see data instantly from cache while
-  // the SW fetches the latest version in the background
-  if (url.indexOf('db_data.json') !== -1) {
+  // db_data.json & stock_index.json: cache-first strategy for fast load, background refresh
+  if (url.indexOf('db_data.json') !== -1 || url.indexOf('stock_index.json') !== -1) {
     e.respondWith(
       caches.match(e.request).then(function(cachedResponse) {
         // Always try to fetch fresh copy in background
