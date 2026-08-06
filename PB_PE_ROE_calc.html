@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.0.0';</script>
+<script>var APP_VER='4.0.1';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -3916,32 +3916,40 @@ if ('serviceWorker' in navigator) {
   var lastCheck = parseInt(localStorage.getItem(key) || '0', 10);
   if (now - lastCheck < 10000) return; // checked recently
   localStorage.setItem(key, String(now));
-  // Force update: fetch HTML with cache-bust, bypass CDN + SW
-  var fetchUrl = location.origin + location.pathname + '?_update=' + now;
-  fetch(fetchUrl, {cache: 'no-store', mode: 'same-origin'})
-    .then(function(r) { return r.text(); })
-    .then(function(html) {
-      var m = html.match(/var APP_VER='([^']+)'/);
-      var remoteVer = m ? m[1] : '';
-      if (remoteVer && remoteVer !== localVer) {
-        console.log('New version detected: v' + remoteVer + ' (current: v' + localVer + ')');
-        // Clear all caches
-        if (typeof caches !== 'undefined') {
-          caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
+
+  function doCheck() {
+    // Force update: fetch HTML with cache-bust, bypass CDN + SW
+    var fetchUrl = location.origin + location.pathname + '?_update=' + Date.now();
+    fetch(fetchUrl, {cache: 'no-store', mode: 'same-origin'})
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        var m = html.match(/var APP_VER='([^']+)'/);
+        var remoteVer = m ? m[1] : '';
+        if (remoteVer && remoteVer !== localVer) {
+          console.log('New version detected: v' + remoteVer + ' (current: v' + localVer + ')');
+          // Clear all caches
+          if (typeof caches !== 'undefined') {
+            caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
+          }
+          // Unregister all service workers
+          if (navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
+          }
+          // Replace page with new version (force bypass all caches)
+          setTimeout(function() {
+            location.replace(location.pathname + '?v=' + remoteVer + '&_t=' + Date.now());
+          }, 500);
+        } else {
+          console.log('Version check: up-to-date (v' + localVer + ')');
         }
-        // Unregister all service workers
-        if (navigator.serviceWorker) {
-          navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
-        }
-        // Replace page with new version (force bypass all caches)
-        setTimeout(function() {
-          location.replace(location.pathname + '?v=' + remoteVer + '&_t=' + Date.now());
-        }, 500);
-      } else {
-        console.log('Version check: up-to-date (v' + localVer + ')');
-      }
-    })
-    .catch(function(e) { console.log('Version check failed:', e.message); });
+      })
+      .catch(function(e) {
+        console.log('Version check failed, retry in 5s:', e.message);
+        // Retry once after delay (network may be temporarily unavailable)
+        setTimeout(doCheck, 5000);
+      });
+  }
+  doCheck();
 })();
 </script>
 </body>
