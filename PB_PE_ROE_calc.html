@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.3.6';</script>
+<script>var APP_VER='3.3.8';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -458,8 +458,9 @@ body {
   .gp-cancel:active { color:var(--text2); }
   .note-section { margin-top:12px; border-top:1px solid var(--gray-light); padding-top:12px; }
   .note-section-title { font-size:13px; font-weight:600; color:var(--text2); margin-bottom:8px; }
-  .note-add-row { display:flex; gap:6px; margin-bottom:10px; align-items:center; }
-  .note-date-input { flex:0 0 120px; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); text-align:center; }
+  .note-add-row { display:flex; gap:6px; margin-bottom:10px; align-items:center; flex-wrap:wrap; }
+  .note-date-btn { flex:0 0 auto; font-size:12px; padding:6px 10px; border:1px solid var(--primary); border-radius:6px; background:var(--card); color:var(--primary); text-align:center; cursor:pointer; white-space:nowrap; position:relative; }
+  .note-date-btn:active { opacity:0.7; }
   .note-add-row input[type="text"] { flex:1; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); min-width:0; }
   .note-add-btn { background:var(--primary); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .note-add-btn:active { opacity:0.8; }
@@ -468,11 +469,11 @@ body {
   .note-item:last-child { border-bottom:none; }
   .note-date { color:var(--primary); font-weight:600; flex-shrink:0; white-space:nowrap; font-size:12px; }
   .note-text { flex:1; color:var(--text); word-break:break-all; font-size:12px; }
-  .note-act { display:flex; gap:12px; flex-shrink:0; align-items:center; }
-  .note-act-icon { font-size:18px; cursor:pointer; line-height:1; padding:4px; opacity:0.5; }
-  .note-act-icon:active { opacity:1; }
+  .note-act { display:flex; gap:16px; flex-shrink:0; align-items:center; }
+  .note-act-icon { font-size:20px; cursor:pointer; line-height:1; padding:6px; opacity:0.5; min-width:32px; min-height:32px; display:flex; align-items:center; justify-content:center; border-radius:6px; }
+  .note-act-icon:active { opacity:1; background:rgba(0,0,0,0.05); }
   .note-act-icon.edit-icon { color:var(--primary); }
-  .note-act-icon.del-icon { color:var(--red); margin-left:2px; }
+  .note-act-icon.del-icon { color:var(--red); }
   .note-edit-input { flex:1; font-size:12px; padding:4px 6px; border:1px solid var(--primary); border-radius:4px; background:var(--card); color:var(--text); min-width:0; }
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
@@ -490,11 +491,31 @@ body {
   [data-theme="dark"] .gp-card { background: #1a1a2e; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   [data-theme="dark"] .gp-new-input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
   [data-theme="dark"] .note-add-row input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
-  [data-theme="dark"] .note-date-input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
+  [data-theme="dark"] .note-date-btn { background: #1a1a2e; border-color: #4a6fa5; color: #8ab4f8; }
+  [data-theme="dark"] .note-date-btn:active { background: #1e2a4a; }
   [data-theme="dark"] .note-section { border-top-color: #2d2d44; }
   [data-theme="dark"] .note-item { border-bottom-color: #2d2d44; }
   [data-theme="dark"] .gp-item:active { background: #1e2a4a; }
   [data-theme="dark"] .fav-group-actions span:active { background: #1e2a4a; }
+
+  /* Custom Calendar Popup */
+  .cal-popup { position:absolute; z-index:9999; background:var(--card); border:1px solid var(--gray-light); border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.15); padding:12px; width:260px; left:0; top:100%; margin-top:4px; }
+  .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .cal-header span { font-size:14px; font-weight:600; color:var(--text); }
+  .cal-nav { background:none; border:none; font-size:18px; color:var(--primary); cursor:pointer; padding:4px 8px; border-radius:4px; line-height:1; }
+  .cal-nav:active { background:rgba(0,0,0,0.05); }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; text-align:center; }
+  .cal-grid .cal-wk { font-size:11px; color:var(--text3); font-weight:600; padding:4px 0; }
+  .cal-grid .cal-d { font-size:13px; padding:6px 0; border-radius:50%; cursor:pointer; color:var(--text); line-height:1.2; }
+  .cal-grid .cal-d:active { background:var(--primary); color:#fff; }
+  .cal-grid .cal-d.today { border:1px solid var(--primary); }
+  .cal-grid .cal-d.sel { background:var(--primary); color:#fff; }
+  .cal-grid .cal-d.other { color:var(--text3); opacity:0.4; }
+  [data-theme="dark"] .cal-popup { background: #1a1a2e; border-color: #2d2d44; box-shadow:0 4px 16px rgba(0,0,0,0.5); }
+  [data-theme="dark"] .cal-header span { color: #ddd; }
+  [data-theme="dark"] .cal-nav { color: #8ab4f8; }
+  [data-theme="dark"] .cal-grid .cal-d { color: #ccc; }
+  [data-theme="dark"] .cal-grid .cal-d.other { color: #666; }
 
 
 </style>
@@ -12965,12 +12986,14 @@ function showRadarChart(code) {
   html += '<img src="' + imgData + '" style="width:340px;height:340px;" />';
   html += '</div>';
 
-  // Notes section - text input for date to avoid native date picker black popup
+  // Notes section - custom calendar to avoid native date picker black popup
   html += '<div class="note-section">';
   html += '<div class="note-section-title">备注</div>';
   html += '<div class="note-add-row">';
   var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-  html += '<input type="date" id="noteDateInput" class="note-date-input" value="' + todayStr + '" />';
+  html += '<div style="position:relative;flex:0 0 auto;" id="noteDateWrap">';
+  html += '<div class="note-date-btn" id="noteDateBtn" onclick="toggleCalPopup()">' + todayStr + ' ▾</div>';
+  html += '</div>';
   html += '<input type="text" id="noteTextInput" placeholder="备注内容" maxlength="100" />';
   html += '<button class="note-add-btn" onclick="addFavNote(\'' + _esc(code) + '\')">添加</button>';
   html += '</div>';
@@ -13024,10 +13047,10 @@ function _saveFavNotes(code, notes) {
 }
 
 function addFavNote(code) {
-  var dateEl = document.getElementById('noteDateInput');
+  var dateEl = document.getElementById('noteDateBtn');
   var textEl = document.getElementById('noteTextInput');
   if (!dateEl || !textEl) return;
-  var date = dateEl.value.trim();
+  var date = (dateEl._dateVal || dateEl.textContent.replace(' ▾','')).trim();
   if (!date) { showToast('请选择日期'); return; }
   var text = textEl.value.trim();
   if (!text) { showToast('请输入备注内容'); return; }
@@ -13105,6 +13128,98 @@ function saveFavNote(code, index) {
     });
   });
 }
+
+// === Custom Calendar Popup (replaces native date picker to avoid black theme on Android) ===
+var _calDate = null; // current calendar year/month being viewed
+var _calSelDate = ''; // selected date string
+
+function toggleCalPopup() {
+  var existing = document.getElementById('calPopup');
+  if (existing) { existing.remove(); return; }
+  var btn = document.getElementById('noteDateBtn');
+  if (!btn) return;
+  _calSelDate = btn._dateVal || btn.textContent.replace(' ▾','').trim();
+  var parts = _calSelDate.split('-');
+  _calDate = { y: parseInt(parts[0])||new Date().getFullYear(), m: parseInt(parts[1])||1 };
+  _renderCalPopup();
+}
+
+function _renderCalPopup() {
+  var wrap = document.getElementById('noteDateWrap');
+  if (!wrap) return;
+  var old = document.getElementById('calPopup');
+  if (old) old.remove();
+  var popup = document.createElement('div');
+  popup.id = 'calPopup';
+  popup.className = 'cal-popup';
+  var y = _calDate.y, m = _calDate.m;
+  // Header
+  var h = '<div class="cal-header">';
+  h += '<button class="cal-nav" onclick="_calPrev()">&#9664;</button>';
+  h += '<span>' + y + '年' + m + '月</span>';
+  h += '<button class="cal-nav" onclick="_calNext()">&#9654;</button>';
+  h += '</div>';
+  // Weekday headers
+  var wks = ['日','一','二','三','四','五','六'];
+  h += '<div class="cal-grid">';
+  for (var w = 0; w < 7; w++) h += '<div class="cal-wk">' + wks[w] + '</div>';
+  // Days
+  var firstDay = new Date(y, m-1, 1).getDay();
+  var daysInMonth = new Date(y, m, 0).getDate();
+  var prevDays = new Date(y, m-1, 0).getDate();
+  var todayFull = new Date();
+  var todayStr2 = todayFull.getFullYear()+'-'+String(todayFull.getMonth()+1).padStart(2,'0')+'-'+String(todayFull.getDate()).padStart(2,'0');
+  // Previous month padding
+  for (var i = firstDay - 1; i >= 0; i--) {
+    h += '<div class="cal-d other">' + (prevDays - i) + '</div>';
+  }
+  // Current month days
+  for (var d = 1; d <= daysInMonth; d++) {
+    var ds = y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    var cls = 'cal-d';
+    if (ds === todayStr2) cls += ' today';
+    if (ds === _calSelDate) cls += ' sel';
+    h += '<div class="' + cls + '" onclick="_pickCalDate(\'' + ds + '\')">' + d + '</div>';
+  }
+  // Next month padding
+  var totalCells = firstDay + daysInMonth;
+  var remaining = (7 - totalCells % 7) % 7;
+  for (var r = 1; r <= remaining; r++) {
+    h += '<div class="cal-d other">' + r + '</div>';
+  }
+  h += '</div>';
+  popup.innerHTML = h;
+  wrap.appendChild(popup);
+}
+
+function _calPrev() {
+  _calDate.m--;
+  if (_calDate.m < 1) { _calDate.m = 12; _calDate.y--; }
+  _renderCalPopup();
+}
+
+function _calNext() {
+  _calDate.m++;
+  if (_calDate.m > 12) { _calDate.m = 1; _calDate.y++; }
+  _renderCalPopup();
+}
+
+function _pickCalDate(ds) {
+  _calSelDate = ds;
+  var btn = document.getElementById('noteDateBtn');
+  if (btn) { btn._dateVal = ds; btn.textContent = ds + ' ▾'; }
+  var popup = document.getElementById('calPopup');
+  if (popup) popup.remove();
+}
+
+// Close calendar when clicking outside
+document.addEventListener('click', function(e) {
+  var popup = document.getElementById('calPopup');
+  if (!popup) return;
+  var wrap = document.getElementById('noteDateWrap');
+  if (wrap && wrap.contains(e.target)) return;
+  popup.remove();
+}, true);
 
 // Add new group (from tab + button)
 function addFavGroup() {
