@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.2.5';</script>
+<script>var APP_VER='3.2.6';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -11437,6 +11437,14 @@ function getCachedDB() { return (_dbCache && (Date.now() - _dbCacheTime) < CACHE
 function getAuthDB() { const c = getCachedDB(); return c !== null ? Promise.resolve(c) : ghGet(); }
 function saveAuthDB(db) { return ghPut(db); }
 
+// Persisted DB: read user DB from localStorage ignoring TTL (for auto-login)
+function _getPersistedDB() {
+  try {
+    const d = localStorage.getItem(CACHE_KEY);
+    return d ? JSON.parse(d) : null;
+  } catch(e) { return null; }
+}
+
 function switchAuthTab(tab) {
   document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
   document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
@@ -11639,40 +11647,83 @@ async function doResetPassword() {
   btn.textContent = '重置密码'; btn.disabled = false;
 }
 
-// Auto-login: cache first for instant entry, then background cloud verify
+// Auto-login: persisted cache first for instant entry, then background cloud verify
 (async function checkSession() {
   const session = localStorage.getItem(SESSION_KEY);
   if (!session) return;
-  // Instant: check cache
+
+  // 1. Instant: check in-memory cache (within TTL)
   const cached = getCachedDB();
   if (cached && cached[session]) {
     const ao = document.getElementById('authOverlay');
     if (ao) ao.classList.add('hidden');
-    // Background cloud validation
-    ghGet().then(db => { if (db && db[session]) return; if (db === null) return; localStorage.removeItem(SESSION_KEY); });
+    updateMenuUser();
+    // Background cloud validation (non-blocking)
+    ghGet().then(db => {
+      if (db === null) return; // network error, keep session
+      if (db && db[session]) { _saveCache(db); return; } // valid, update cache
+      // User not found in cloud — only logout if cloud actually responded
+      localStorage.removeItem(SESSION_KEY);
+      document.getElementById('authOverlay').classList.remove('hidden');
+      updateMenuUser();
+    });
     return;
   }
-  // No cache: fetch from cloud
-  try {
-    const db = await getAuthDB();
+
+  // 2. No in-memory cache: check persisted localStorage (ignores TTL)
+  const persisted = _getPersistedDB();
+  if (persisted && persisted[session]) {
+    // Restore cache from persisted data
+    _dbCache = persisted;
+    _dbCacheTime = Date.now();
     const ao = document.getElementById('authOverlay');
+    if (ao) ao.classList.add('hidden');
+    updateMenuUser();
+    // Background cloud validation
+    ghGet().then(db => {
+      if (db === null) return; // network error, keep session
+      if (db && db[session]) { _saveCache(db); return; }
+      localStorage.removeItem(SESSION_KEY);
+      document.getElementById('authOverlay').classList.remove('hidden');
+      updateMenuUser();
+    });
+    return;
+  }
+
+  // 3. Not in persisted cache: check offline DB
+  const offline = _getOfflineDB();
+  if (offline[session]) {
+    _saveCache(offline);
+    const ao = document.getElementById('authOverlay');
+    if (ao) ao.classList.add('hidden');
+    updateMenuUser();
+    // Background cloud sync
+    ghGet().then(db => {
+      if (db === null) return;
+      if (db && db[session]) { _saveCache(db); return; }
+      localStorage.removeItem(SESSION_KEY);
+      document.getElementById('authOverlay').classList.remove('hidden');
+      updateMenuUser();
+    });
+    return;
+  }
+
+  // 4. Last resort: fetch from cloud
+  try {
+    const db = await ghGet();
     if (db && db[session]) {
+      const ao = document.getElementById('authOverlay');
       if (ao) ao.classList.add('hidden');
+      updateMenuUser();
     } else if (db === null) {
-      // Cloud unreachable: check offline DB
-      const offline = _getOfflineDB();
-      if (offline[session]) {
-        _saveCache(offline);
-        if (ao) ao.classList.add('hidden');
-      } else if (ao) {
-        ao.classList.add('hidden'); // still let user in, show auth form
-      }
+      // Cloud unreachable AND no local data — still let user in to see auth form
+      // Don't remove SESSION_KEY so we can retry next time
     } else {
+      // User confirmed not in cloud
       localStorage.removeItem(SESSION_KEY);
     }
   } catch(e) {
-    const ao = document.getElementById('authOverlay');
-    if (ao) ao.classList.add('hidden');
+    // Network error — don't clear session, retry next launch
   }
 })();
 
