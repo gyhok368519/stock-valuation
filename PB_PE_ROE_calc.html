@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.3.3';</script>
+<script>var APP_VER='3.3.4';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -458,9 +458,8 @@ body {
   .gp-cancel:active { color:var(--text2); }
   .note-section { margin-top:12px; border-top:1px solid var(--gray-light); padding-top:12px; }
   .note-section-title { font-size:13px; font-weight:600; color:var(--text2); margin-bottom:8px; }
-  .note-add-row { display:flex; gap:4px; margin-bottom:10px; align-items:center; }
-  .note-date-selects { display:flex; gap:3px; flex-shrink:0; }
-  .note-date-selects select { font-size:12px; padding:5px 2px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); appearance:auto; }
+  .note-add-row { display:flex; gap:6px; margin-bottom:10px; align-items:center; }
+  .note-date-input { flex:0 0 110px; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); text-align:center; }
   .note-add-row input[type="text"] { flex:1; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); min-width:0; }
   .note-add-btn { background:var(--primary); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .note-add-btn:active { opacity:0.8; }
@@ -470,8 +469,8 @@ body {
   .note-date { color:var(--primary); font-weight:600; flex-shrink:0; white-space:nowrap; }
   .note-text { flex:1; color:var(--text); word-break:break-all; cursor:pointer; }
   .note-text:hover { color:var(--primary); }
-  .note-act { display:flex; gap:4px; flex-shrink:0; align-items:center; }
-  .note-act-icon { font-size:16px; cursor:pointer; line-height:1; opacity:0.45; }
+  .note-act { display:flex; gap:12px; flex-shrink:0; align-items:center; }
+  .note-act-icon { font-size:18px; cursor:pointer; line-height:1; padding:4px; opacity:0.5; }
   .note-act-icon:active { opacity:1; }
   .note-act-icon.edit-icon { color:var(--primary); }
   .note-act-icon.del-icon { color:var(--red); margin-left:2px; }
@@ -492,7 +491,7 @@ body {
   [data-theme="dark"] .gp-card { background: #1a1a2e; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   [data-theme="dark"] .gp-new-input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
   [data-theme="dark"] .note-add-row input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
-  [data-theme="dark"] .note-date-selects select { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
+  [data-theme="dark"] .note-date-input { background: #1a1a2e; border-color: #2d2d44; color: #ddd; }
   [data-theme="dark"] .note-section { border-top-color: #2d2d44; }
   [data-theme="dark"] .note-item { border-bottom-color: #2d2d44; }
   [data-theme="dark"] .gp-item:active { background: #1e2a4a; }
@@ -12967,24 +12966,12 @@ function showRadarChart(code) {
   html += '<img src="' + imgData + '" style="width:340px;height:340px;" />';
   html += '</div>';
 
-  // Notes section - use 3 selects instead of native date picker to avoid black popup
+  // Notes section - text input for date to avoid native date picker black popup
   html += '<div class="note-section">';
   html += '<div class="note-section-title">备注</div>';
   html += '<div class="note-add-row">';
-  html += '<div class="note-date-selects">';
-  // Year select
-  html += '<select id="noteYear">';
-  for (var y = 2025; y <= today.getFullYear() + 1; y++) html += '<option value="' + y + '"' + (y === today.getFullYear() ? ' selected' : '') + '>' + y + '</option>';
-  html += '</select>';
-  // Month select
-  html += '<select id="noteMonth">';
-  for (var m = 1; m <= 12; m++) html += '<option value="' + String(m).padStart(2,'0') + '"' + (m === today.getMonth()+1 ? ' selected' : '') + '>' + m + '月</option>';
-  html += '</select>';
-  // Day select
-  html += '<select id="noteDay">';
-  for (var d = 1; d <= 31; d++) html += '<option value="' + String(d).padStart(2,'0') + '"' + (d === today.getDate() ? ' selected' : '') + '>' + d + '</option>';
-  html += '</select>';
-  html += '</div>';
+  var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  html += '<input type="text" id="noteDateInput" class="note-date-input" value="' + todayStr + '" placeholder="YYYY-MM-DD" inputmode="numeric" />';
   html += '<input type="text" id="noteTextInput" placeholder="输入备注..." maxlength="100" />';
   html += '<button class="note-add-btn" onclick="addFavNote(\'' + _esc(code) + '\')">添加</button>';
   html += '</div>';
@@ -13038,12 +13025,12 @@ function _saveFavNotes(code, notes) {
 }
 
 function addFavNote(code) {
-  var yearEl = document.getElementById('noteYear');
-  var monthEl = document.getElementById('noteMonth');
-  var dayEl = document.getElementById('noteDay');
+  var dateEl = document.getElementById('noteDateInput');
   var textEl = document.getElementById('noteTextInput');
-  if (!yearEl || !textEl) return;
-  var date = yearEl.value + '-' + monthEl.value + '-' + dayEl.value;
+  if (!dateEl || !textEl) return;
+  var date = dateEl.value.trim();
+  if (!date) { showToast('请输入日期'); return; }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast('日期格式: YYYY-MM-DD'); return; }
   var text = textEl.value.trim();
   if (!text) { showToast('请输入备注内容'); return; }
 
