@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.5.5';</script>
+<script>var APP_VER='3.5.6';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -676,20 +676,20 @@ body {
       <div id="rtStatus" style="display:none;text-align:center;padding:4px 0;font-size:12px;color:var(--text2);"></div>
     </div>
     <div class="result-card" id="resultCard" style="position:relative;">
+      <!-- 估值速览 -->
+      <div id="quickView" style="display:none;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">估值速览</div>
+        <div id="quickViewContent" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
+      </div>
       <div class="card-title">&#x1F4C8; 计算结果</div>
       <div class="result-grid">
-        <div class="result-item"><div class="label">计算PB (PE x ROE)</div><div class="value" id="calcPB">-</div></div>
+        <div class="result-item"><div class="label">计算PB</div><div class="value" id="calcPB">-</div></div>
         <div class="result-item"><div class="label">市场PB</div><div class="value" id="marketPB">-</div></div>
         <div class="result-item"><div class="label">偏差</div><div class="value" id="deviation">-</div></div>
         <div class="result-item"><div class="label">隐含ROE</div><div class="value" id="impliedROE">-</div></div>
       </div>
       <div class="judge-box" id="judgeBox">-</div>
       <div class="formula-box" id="formulaBox"></div>
-      <!-- 估值速览 -->
-      <div id="quickView" style="display:none;margin-top:12px;">
-        <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;">估值速览</div>
-        <div id="quickViewContent" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
-      </div>
     </div>
     <div class="section-title"><span>&#x1F4CB; 历史记录</span><span class="count" id="historyCount">0 条</span></div>
     <div class="history-card" id="historyList"><div class="empty-state">暂无记录</div></div>
@@ -13916,7 +13916,7 @@ function calculate() {
   else if (judgeClass === 'over') jd = '<div class="judge-detail">市场PB高于理论值 ' + (deviation*100).toFixed(1) + '%，含成长溢价</div>';
   else jd = '<div class="judge-detail">偏差在10%以内，估值合理</div>';
   jb.innerHTML = '&#x1F4CC; ' + judge + jd;
-  document.getElementById('formulaBox').innerHTML = '<span>' + _esc(name||code) + '</span> | PE=' + peVal.toFixed(2) + ' &times; ROE=' + roeVal.toFixed(2) + '% = 计算PB <span>' + calcPB.toFixed(2) + '</span><br>市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
+  document.getElementById('formulaBox').innerHTML = '<span>' + _esc(name||code) + '</span> | 计算PB=<span>' + calcPB.toFixed(2) + '</span><br>市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
   const record = { code, name:name||'-', pe:peVal, roe:roeVal, marketPB:pbVal, calcPB:+calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, time:new Date().toLocaleString('zh-CN') };
   const hist = getHistory(); hist.unshift(record); if (hist.length > MAX_HISTORY) hist.pop();
   saveHistory(hist); renderHistory();
