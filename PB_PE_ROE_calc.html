@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.4.3';</script>
+<script>var APP_VER='3.4.4';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -759,7 +759,7 @@ body {
 
 <!-- Radar + Notes Dialog -->
 <div class="gp-overlay" id="radarDialogOverlay" onclick="closeRadarDialog()" style="color-scheme:light only;">
-  <div class="gp-card" id="radarDialogCard" onclick="event.stopPropagation()" style="max-width:360px;width:90%;display:flex;flex-direction:column;color-scheme:light only;">
+  <div class="gp-card" id="radarDialogCard" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:85vh;display:flex;flex-direction:column;color-scheme:light only;">
     <div class="gp-title" id="radarDialogTitle" style="flex-shrink:0;">指标雷达</div>
     <div id="radarDialogBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;">
     </div>
@@ -13005,28 +13005,12 @@ function showRadarChart(code) {
   document.getElementById('radarDialogBody').innerHTML = html;
   document.getElementById('radarDialogOverlay').classList.add('show');
 
-  // Use visualViewport to set dialog max-height so it shrinks when keyboard opens
-  _resizeRadarDialog();
-  window.addEventListener('resize', _resizeRadarDialog);
-
   // Load existing notes
   _loadFavNotes(code).then(function(notes) { _renderNotes(code, notes); });
 }
 
 function closeRadarDialog() {
   document.getElementById('radarDialogOverlay').classList.remove('show');
-  window.removeEventListener('resize', _resizeRadarDialog);
-  var card = document.getElementById('radarDialogCard');
-  if (card) card.style.maxHeight = '';
-}
-
-// Resize radar dialog to fit within visual viewport (keyboard-aware)
-function _resizeRadarDialog() {
-  var card = document.getElementById('radarDialogCard');
-  if (!card || !document.getElementById('radarDialogOverlay').classList.contains('show')) return;
-  var vv = window.visualViewport || { height: window.innerHeight };
-  var maxH = Math.floor(vv.height * 0.9);
-  card.style.maxHeight = maxH + 'px';
 }
 
 // === Favorite Notes API (stored in IndexedDB fav store, notes field) ===
