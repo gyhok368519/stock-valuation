@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.2.6';</script>
+<script>var APP_VER='3.2.7';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -13031,10 +13031,12 @@ function loadDBData() {
     return false;
   });
 
-  // 2. Always check remote for updates (with timeout)
+  // 2. Always check remote for updates (with timeout and auto-retry)
+  var _fetchRetryCount = 0;
+  var _fetchMaxRetries = 2; // auto-retry up to 2 times (total 3 attempts)
   function fetchRemote() {
     _dbDataLoading = true;
-    var timeout = hasCache ? 8000 : 20000;
+    var timeout = hasCache ? 8000 : 15000;
     var controller = new AbortController();
     var timer = setTimeout(function() { controller.abort(); }, timeout);
     return fetch('./db_data.json', {cache: 'no-cache', signal: controller.signal}).then(function(r) {
@@ -13072,7 +13074,15 @@ function loadDBData() {
       return Promise.resolve();
     }).catch(function(e) {
       clearTimeout(timer);
-      console.log('Remote DB fetch failed:', e.message);
+      console.log('Remote DB fetch failed (attempt ' + (_fetchRetryCount + 1) + '):', e.message);
+      // Auto-retry: if no cache and retries left, wait and retry
+      if (!hasCache && _fetchRetryCount < _fetchMaxRetries) {
+        _fetchRetryCount++;
+        console.log('Auto-retry DB fetch (' + _fetchRetryCount + '/' + _fetchMaxRetries + ') in 3s...');
+        return new Promise(function(resolve) {
+          setTimeout(function() { resolve(fetchRemote()); }, 3000);
+        });
+      }
       _dbDataLoading = false;
       return Promise.resolve();
     });
@@ -13084,7 +13094,7 @@ function loadDBData() {
       fetchRemote();
       return Promise.resolve(); // don't block UI
     } else {
-      // No cache: must wait for remote
+      // No cache: must wait for remote (with auto-retry)
       return fetchRemote();
     }
   });
@@ -13747,7 +13757,8 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
     if (!v && dbHint) dbHint.style.display = 'block';
   }).catch(function() { if (dbHint) dbHint.style.display = 'block'; });
   
-  // Safety: always hide loading hint after 12s max (even if fetch hangs)
+  // Safety: always hide loading hint after 30s max (even if fetch hangs)
+  // 30s allows for 3 retry attempts of ~8s each
   var safetyTimer = setTimeout(function() {
     if (dbHint) dbHint.style.display = 'none';
     _dbDataLoading = false;
@@ -13755,9 +13766,9 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
     console.log('DB safety timeout triggered');
     if (dbCount() === 0) {
       var container = document.getElementById('dbContent');
-      if (container) container.innerHTML = '<div class="db-load-fail"><p>数据库加载超时</p><button class="db-retry-btn" onclick="location.reload()">点击重试</button></div>';
+      if (container) container.innerHTML = '<div class="db-load-fail"><p>数据库加载超时</p><button class="db-retry-btn" onclick="retryLoadDB()">点击重试</button></div>';
     }
-  }, 12000);
+  }, 30000);
   
   loadDBData().then(function() {
     clearTimeout(safetyTimer);
@@ -13778,12 +13789,28 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
     // Show load failure with retry button
     var container = document.getElementById('dbContent');
     if (container && dbCount() === 0) {
-      container.innerHTML = '<div class="db-load-fail"><p>数据库加载失败</p><button class="db-retry-btn" onclick="location.reload()">点击重试</button></div>';
+      container.innerHTML = '<div class="db-load-fail"><p>数据库加载失败</p><button class="db-retry-btn" onclick="retryLoadDB()">点击重试</button></div>';
     }
   });
   // Load favorites cache (non-blocking)
   loadFavCache().then(function() { updateFavCount(); console.log('Favorites loaded: ' + Object.keys(_favCache).length); }).catch(function() {});
 })();
+
+// Retry DB load without full page reload
+function retryLoadDB() {
+  var container = document.getElementById('dbContent');
+  if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);"><div class="db-spinner" style="margin-bottom:12px;"></div>数据库正在加载...</div>';
+  _dbDataLoading = true;
+  loadDBData().then(function() {
+    _updateDBSubTitle();
+    console.log('DB retry loaded: ' + dbCount() + ' stocks');
+  }).catch(function(err) {
+    _updateDBSubTitle();
+    if (container && dbCount() === 0) {
+      container.innerHTML = '<div class="db-load-fail"><p>数据库加载失败</p><button class="db-retry-btn" onclick="retryLoadDB()">点击重试</button></div>';
+    }
+  });
+}
 
 function _updateDBSubTitle() {
   var el = document.getElementById('dbSubTitle');
