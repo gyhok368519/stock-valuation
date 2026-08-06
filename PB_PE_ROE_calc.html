@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.4.1';</script>
+<script>var APP_VER='3.4.2';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -759,9 +759,9 @@ body {
 
 <!-- Radar + Notes Dialog -->
 <div class="gp-overlay" id="radarDialogOverlay" onclick="closeRadarDialog()" style="color-scheme:light only;">
-  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:85vh;display:flex;flex-direction:column;color-scheme:light only;">
+  <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;height:85vh;display:flex;flex-direction:column;color-scheme:light only;">
     <div class="gp-title" id="radarDialogTitle" style="flex-shrink:0;">指标雷达</div>
-    <div id="radarDialogBody" style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;">
+    <div id="radarDialogBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;">
     </div>
     <div style="display:flex;margin-top:14px;justify-content:center;flex-shrink:0;">
       <button class="gp-new-btn" style="min-width:80px;max-width:120px;" onclick="closeRadarDialog()">关闭</button>
@@ -13002,32 +13002,8 @@ function showRadarChart(code) {
 
   // Show in dedicated radar dialog
   document.getElementById('radarDialogTitle').textContent = name || code;
-  var dialogBody = document.getElementById('radarDialogBody');
-  dialogBody.innerHTML = html;
+  document.getElementById('radarDialogBody').innerHTML = html;
   document.getElementById('radarDialogOverlay').classList.add('show');
-
-  // Dynamically set scrollable body max-height so content always scrolls
-  // when keyboard appears and viewport shrinks
-  var _resizeBody = function() {
-    var card = dialogBody.closest('.gp-card');
-    if (!card) return;
-    var cardRect = card.getBoundingClientRect();
-    var title = card.querySelector('.gp-title');
-    var footer = card.querySelector('[style*="justify-content:center"]');
-    var usedH = (title ? title.offsetHeight : 0) + (footer ? footer.offsetHeight : 0) + 40; // 40 for padding
-    var maxH = cardRect.height - usedH;
-    if (maxH < 120) maxH = 120;
-    dialogBody.style.maxHeight = maxH + 'px';
-  };
-  setTimeout(_resizeBody, 50);
-  // Re-calc on viewport resize (keyboard open/close)
-  if (!window._radarResizeObserver) {
-    window._radarResizeObserver = new ResizeObserver(function() {
-      if (document.getElementById('radarDialogOverlay').classList.contains('show')) _resizeBody();
-    });
-  }
-  window._radarResizeObserver.disconnect();
-  window._radarResizeObserver.observe(document.body);
 
   // Load existing notes
   _loadFavNotes(code).then(function(notes) { _renderNotes(code, notes); });
