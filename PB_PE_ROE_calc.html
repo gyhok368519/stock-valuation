@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='3.2.7';</script>
+<script>var APP_VER='3.2.8';</script>
 <style>
 :root {
   --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
@@ -13444,7 +13444,11 @@ function _fillFromDB(code) {
     var roeVal = rowData[11];
     if (peVal !== null && peVal !== undefined && peVal !== 0) pe.value = typeof peVal === 'number' ? peVal.toFixed(2) : peVal;
     if (pbVal !== null && pbVal !== undefined && pbVal !== 0) pb.value = typeof pbVal === 'number' ? pbVal.toFixed(2) : pbVal;
-    if (roeVal !== null && roeVal !== undefined && roeVal !== 0) roe.value = typeof roeVal === 'number' ? roeVal.toFixed(2) : roeVal;
+    if (roeVal !== null && roeVal !== undefined && roeVal !== 0) {
+      // ROE stored as decimal (0.1344), display as percentage (13.44)
+      var roePct = typeof roeVal === 'number' ? roeVal * 100 : roeVal;
+      roe.value = typeof roePct === 'number' ? roePct.toFixed(2) : roePct;
+    }
   }
 }
 
