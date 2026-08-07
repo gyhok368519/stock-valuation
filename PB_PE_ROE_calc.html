@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.2.1';</script>
+<script>var APP_VER='4.2.2';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -440,7 +440,8 @@ body {
   .fav-metric-val { font-weight:600; color:var(--text2); }
   .fav-go { font-size:16px; color:var(--text3); padding:8px; cursor:pointer; flex-shrink:0; min-width:36px; text-align:center; border-radius:8px; }
   .fav-go:active { background:var(--active-bg); }
-  .fav-note-btn { font-size:16px; color:var(--text3); padding:8px; cursor:pointer; flex-shrink:0; min-width:36px; text-align:center; border-radius:8px; margin-right:4px; display:inline-block; transform:scaleX(-1); }
+  .fav-note-btn { font-size:16px; color:var(--text3); padding:8px; cursor:pointer; flex-shrink:0; min-width:36px; text-align:center; border-radius:8px; margin-right:4px; display:inline-block; transform:scaleX(-1); transition:color .2s; }
+  .fav-note-btn.has-notes { color:var(--primary); }
   .fav-note-btn:active { background:var(--active-bg); }
   .fav-group-tag { font-size:11px; color:var(--primary); background:var(--primary-light); border-radius:10px; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0; margin-right:6px; }
   .fav-group-tag:active { background:var(--active-bg); }
@@ -2401,7 +2402,7 @@ function renderFavList() {
     html += '<div class="fav-metrics"><span>PE <span class="fav-metric-val">'+pe+'</span></span><span>PB <span class="fav-metric-val">'+pb+'</span></span><span>ROE <span class="fav-metric-val">'+roe+'</span></span></div>';
     html += '</div>';
     html += '<span class="fav-group-tag" onclick="moveToGroup(\''+_esc(item.code)+'\')">'+_esc(groupLabel)+'</span>';
-    html += '<span class="fav-note-btn" onclick="showNoteDialog(\''+_esc(item.code)+'\')">&#x270E;</span>';
+    html += '<span class="fav-note-btn' + (item.notes && item.notes.length > 0 ? ' has-notes' : '') + '" onclick="showNoteDialog(\''+_esc(item.code)+'\')">&#x270E;</span>';
     html += '<span class="fav-go" onclick="showRadarChart(\''+_esc(item.code)+'\')">@</span>';
     html += '</div>';
   });
@@ -2830,8 +2831,10 @@ function addFavNote(code) {
   _loadFavNotes(code).then(function(notes) {
     notes.unshift({date: date, text: text, ts: Date.now()});
     _saveFavNotes(code, notes).then(function() {
+      if (_favCache[code]) _favCache[code].notes = notes;
       textEl.value = '';
       _renderNotes(code, notes);
+      renderFavList();
       showToast('备注已添加');
     });
   });
@@ -2841,7 +2844,9 @@ function deleteFavNote(code, index) {
   _loadFavNotes(code).then(function(notes) {
     notes.splice(index, 1);
     _saveFavNotes(code, notes).then(function() {
+      if (_favCache[code]) _favCache[code].notes = notes;
       _renderNotes(code, notes);
+      renderFavList();
       showToast('备注已删除');
     });
   });
