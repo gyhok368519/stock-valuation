@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pb-calc-v94';
+const CACHE_NAME = 'pb-calc-v95';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './stock_index.json',
@@ -30,9 +30,31 @@ self.addEventListener('message', e => {
   }
 });
 
+// === Stale-While-Revalidate helper ===
+// Return cached response immediately (if available), fetch fresh copy in background for next visit.
+// If no cache, wait for network. Network failure falls back to whatever cache exists.
+function swr(request) {
+  return caches.match(request).then(function(cached) {
+    var fetchPromise = fetch(request, { cache: 'no-store' }).then(function(response) {
+      if (response.ok) {
+        var clone = response.clone();
+        caches.open(CACHE_NAME).then(function(cache) { cache.put(request, clone); });
+      }
+      return response;
+    }).catch(function() {});
+
+    if (cached) return cached; // SWR: instant cache, background refresh
+    return fetchPromise.then(function(r) { return r; }).catch(function() {
+      return new Response(JSON.stringify({error: 'network error'}), {
+        status: 502, headers: { 'Content-Type': 'application/json' }
+      });
+    });
+  });
+}
+
 self.addEventListener('fetch', e => {
   var url = e.request.url;
-  
+
   // Proxy emweb API: match same-origin path containing /emweb-proxy/
   if (url.indexOf('/emweb-proxy/') !== -1) {
     var proxyIdx = url.indexOf('/emweb-proxy/');
@@ -63,61 +85,14 @@ self.addEventListener('fetch', e => {
   if (url.indexOf('_update=') !== -1) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' })
-        .then(function(response) {
-          return response;
-        })
-        .catch(function() {
-          return caches.match(e.request);
-        })
+        .then(function(response) { return response; })
+        .catch(function() { return caches.match(e.request); })
     );
     return;
   }
 
-  // db_data.json & stock_index.json: cache-first strategy for fast load, background refresh
-  if (url.indexOf('db_data.json') !== -1 || url.indexOf('stock_index.json') !== -1) {
-    e.respondWith(
-      caches.match(e.request).then(function(cachedResponse) {
-        // Always try to fetch fresh copy in background
-        var fetchPromise = fetch(e.request, { cache: 'no-store' })
-          .then(function(response) {
-            if (response.ok) {
-              var clone = response.clone();
-              caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
-            }
-            return response;
-          })
-          .catch(function() {
-            // Network failed, will use cache below
-          });
-
-        if (cachedResponse) {
-          // Return cache immediately, background fetch updates cache for next visit
-          return cachedResponse;
-        }
-        // No cache: must wait for network
-        return fetchPromise.then(function(response) {
-          return response;
-        }).catch(function() {
-          return new Response(JSON.stringify({error: 'network error'}), {
-            status: 502,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        });
-      })
-    );
-    return;
-  }
-
-  // Network-first, cache-fallback strategy
-  e.respondWith(
-    fetch(e.request)
-      .then(response => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(e.request))
-  );
+  // Stale-While-Revalidate for static assets & data files
+  // - PB_PE_ROE_calc.html, sw.js, manifest.json → SWR (instant open, background refresh)
+  // - db_data.json, stock_index.json → SWR (instant load, background refresh)
+  e.respondWith(swr(e.request));
 });
