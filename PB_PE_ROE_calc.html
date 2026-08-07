@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.1.0';</script>
+<script>var APP_VER='4.2.0';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -2614,17 +2614,142 @@ function showRadarChart(code) {
   var row = DB_DATA[code];
   if (!row) { showToast('该股票无数据库记录'); return; }
   var name = STOCK_MAP[code] || code;
-  var today = new Date();
-  // DB indices: PE=5, PB=6, ROE=11, 毛利率=9, 负债率=12
-  var pe = row[5], pb = row[6], roe = row[11], gpr = row[9], dpr = row[12];
+  // DB indices: PE=5, PB=6, PS=8, 毛利率=9, 净利率=10, ROE=11, 负债率=12, 股息率=17
+  var pe = row[5], pb = row[6], ps = row[8], gpr = row[9], npr = row[10], roe = row[11], dpr = row[12], dy = row[17];
 
-  // Normalize (0~1): all axes = bigger area = better for investor
-  // Use log scaling for wide-range values (PE, PB) to handle extremes
+  // 8 dimensions: all normalized 0~1, bigger = better for investor
   function logNorm(val, minVal, maxVal) {
     if (val <= 0) return 0;
     var lMin = Math.log(minVal), lMax = Math.log(maxVal);
     return Math.min(Math.max((Math.log(val) - lMin) / (lMax - lMin), 0), 1);
   }
+  var DIM = 8;
+  var normVals = [
+    // ROE: bigger=better, log scale 1%~50%
+    roe !== null && roe !== undefined && roe > 0 ? logNorm(roe, 0.01, 0.5) : 0,
+    // 毛利率: bigger=better, log scale 1%~100%
+    gpr !== null && gpr !== undefined && gpr > 0 ? logNorm(gpr, 0.01, 1) : 0,
+    // 净利率: bigger=better, log scale 0.5%~80%
+    npr !== null && npr !== undefined && npr > 0 ? logNorm(npr, 0.005, 0.8) : 0,
+    // EY (1/PE): bigger=better, log scale 0.5%~50% (PE 2~200)
+    pe && pe > 0 ? logNorm(1/pe, 0.005, 0.5) : 0,
+    // 安全度 (1-负债率): lower debt=better
+    dpr !== null && dpr !== undefined ? Math.min(Math.max(1 - dpr, 0), 1) : 0,
+    // 资产估值: PB越低越低估, inverse log scale PB 0.2~100
+    pb && pb > 0 ? 1 - logNorm(pb, 0.2, 100) : 0,
+    // PS: 越低越低估, inverse log scale PS 0.1~100
+    ps && ps > 0 ? 1 - logNorm(ps, 0.1, 100) : 0,
+    // 股息率: bigger=better, log scale 0.1%~10%
+    dy !== null && dy !== undefined && dy > 0 ? logNorm(dy, 0.001, 0.1) : 0
+  ];
+
+  // Draw canvas (440x440 for 8-axis radar with 3-line labels)
+  var size = 440, cx = size/2, cy = size/2, r = 110;
+  var canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  var ctx = canvas.getContext('2d');
+
+  // Background rings
+  for (var ring = 1; ring <= 3; ring++) {
+    var rr = r * ring / 3;
+    ctx.beginPath();
+    for (var i = 0; i < DIM; i++) {
+      var angle = -Math.PI/2 + (2*Math.PI*i/DIM);
+      var x = cx + rr * Math.cos(angle), y = cy + rr * Math.sin(angle);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.5; ctx.stroke();
+  }
+
+  // Axes
+  for (var i = 0; i < DIM; i++) {
+    var angle = -Math.PI/2 + (2*Math.PI*i/DIM);
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.5; ctx.stroke();
+  }
+
+  // Data polygon
+  ctx.beginPath();
+  for (var i = 0; i < DIM; i++) {
+    var angle = -Math.PI/2 + (2*Math.PI*i/DIM);
+    var val = normVals[i];
+    var x = cx + r * val * Math.cos(angle), y = cy + r * val * Math.sin(angle);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(26,115,232,0.25)'; ctx.fill();
+  ctx.strokeStyle = '#1a73e8'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Data points
+  for (var i = 0; i < DIM; i++) {
+    var angle = -Math.PI/2 + (2*Math.PI*i/DIM);
+    var val = normVals[i];
+    var x = cx + r * val * Math.cos(angle), y = cy + r * val * Math.sin(angle);
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#1a73e8'; ctx.fill();
+  }
+
+  // Labels
+  var labels = ['ROE', '毛利率', '净利率', 'EY', '安全度', '资产估值', 'PS', '股息率'];
+  var rawVals = [roe, gpr, npr, pe, dpr, pb, ps, dy];
+  var fmtFns = [
+    function(v){ return v !== null && v !== undefined ? (v*100).toFixed(1)+'%' : '-'; },           // ROE
+    function(v){ return v !== null && v !== undefined ? (v*100).toFixed(1)+'%' : '-'; },           // 毛利率
+    function(v){ return v !== null && v !== undefined ? (v*100).toFixed(1)+'%' : '-'; },           // 净利率
+    function(v){ return v !== null && v !== undefined && v > 0 ? ((1/v)*100).toFixed(1)+'%' : '-'; }, // EY
+    function(v){ return v !== null && v !== undefined ? (v*100).toFixed(1)+'%' : '-'; },           // 安全度(负债率)
+    function(v){ return v !== null && v !== undefined ? v.toFixed(2)+'倍' : '-'; },                // 资产估值(PB)
+    function(v){ return v !== null && v !== undefined ? v.toFixed(2)+'倍' : '-'; },                // PS
+    function(v){ return v !== null && v !== undefined ? (v*100).toFixed(2)+'%' : '-'; }            // 股息率
+  ];
+  // Description rules: [text, color] by normalized value thresholds (>=0.75, >=0.5, >=0.25, <0.25)
+  var dimDescRules = [
+    // ROE
+    [['优秀','#1a73e8'],['良好','#2e7d32'],['一般','#f9a825'],['较差','#c62828']],
+    // 毛利率
+    [['优秀','#1a73e8'],['良好','#2e7d32'],['一般','#f9a825'],['较差','#c62828']],
+    // 净利率
+    [['优秀','#1a73e8'],['良好','#2e7d32'],['一般','#f9a825'],['较差','#c62828']],
+    // EY
+    [['低估','#2e7d32'],['合理','#1a73e8'],['偏高','#f9a825'],['高估','#c62828']],
+    // 安全度
+    [['安全','#2e7d32'],['较安全','#1a73e8'],['一般','#f9a825'],['危险','#c62828']],
+    // 资产估值(PB)
+    [['低估','#2e7d32'],['合理','#1a73e8'],['偏高','#f9a825'],['高估','#c62828']],
+    // PS
+    [['低估','#2e7d32'],['合理','#1a73e8'],['偏高','#f9a825'],['高估','#c62828']],
+    // 股息率
+    [['优厚','#2e7d32'],['良好','#1a73e8'],['一般','#f9a825'],['微薄','#c62828']]
+  ];
+  for (var i = 0; i < DIM; i++) {
+    var angle = -Math.PI/2 + (2*Math.PI*i/DIM);
+    var lx = cx + (r + 42) * Math.cos(angle), ly = cy + (r + 42) * Math.sin(angle);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#333';
+    ctx.fillText(labels[i], lx, ly - 14);
+    ctx.font = '11px sans-serif'; ctx.fillStyle = '#1a73e8';
+    ctx.fillText(fmtFns[i](rawVals[i]), lx, ly);
+    var nv = normVals[i];
+    var descIdx = nv >= 0.75 ? 0 : nv >= 0.5 ? 1 : nv >= 0.25 ? 2 : 3;
+    var descRule = dimDescRules[i][descIdx];
+    ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = descRule[1];
+    ctx.fillText(descRule[0], lx, ly + 12);
+  }
+
+  // Build HTML with canvas image
+  var imgData = canvas.toDataURL();
+  var html = '<div style="text-align:center;">';
+  html += '<img src="' + imgData + '" style="width:440px;height:440px;" />';
+  html += '</div>';
+
+  // Show in dedicated radar dialog (chart only)
+  document.getElementById('radarDialogTitle').textContent = name || code;
+  document.getElementById('radarDialogBody').innerHTML = html;
+  document.getElementById('radarDialogOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
   var normVals = [
     // ROE: bigger = better, log scale 1%~50%
     roe !== null && roe !== undefined && roe > 0 ? logNorm(roe, 0.01, 0.5) : 0,
@@ -3716,10 +3841,12 @@ function toggleFavCalc() {
 function renderHistory() {
   const hist = getHistory(); const list = document.getElementById('historyList');
   const count = document.getElementById('historyCount'); const clearRow = document.getElementById('clearHistoryRow');
+  const SHOW_LIMIT = 6;
+  const show = hist.slice(0, SHOW_LIMIT);
   count.textContent = hist.length + ' 条';
   if (!hist.length) { list.innerHTML = '<div class="empty-state">暂无记录</div>'; clearRow.style.display='none'; return; }
   clearRow.style.display = '';
-  list.innerHTML = hist.map((r,i) => '<div class="history-item" data-idx="'+i+'"><div class="history-swipe-del">删除</div><div class="history-item-content" style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;background:var(--card);width:100%;padding:12px 16px;box-sizing:border-box;"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+_esc(r.code)+'</span><span class="history-name">'+_esc(r.name)+'</span><div class="history-params">PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div>'+(r.time?'<div class="history-time">'+_esc(r.time)+'</div>':'')+'</div><div class="history-right" onclick="loadHistory('+i+')"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="event.stopPropagation();delHistory('+i+')">&times;</button></div></div>').join('');
+  list.innerHTML = show.map((r,i) => '<div class="history-item" data-idx="'+i+'"><div class="history-swipe-del">删除</div><div class="history-item-content" style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;background:var(--card);width:100%;padding:12px 16px;box-sizing:border-box;"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+_esc(r.code)+'</span><span class="history-name">'+_esc(r.name)+'</span><div class="history-params">PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div>'+(r.time?'<div class="history-time">'+_esc(r.time)+'</div>':'')+'</div><div class="history-right" onclick="loadHistory('+i+')"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="event.stopPropagation();delHistory('+i+')">&times;</button></div></div>').join('');
   // Bind swipe events
   _bindHistorySwipe();
 }
