@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.1.0';</script>
+<script>var APP_VER='5.1.1';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -486,14 +486,14 @@ body {
   .note-act-icon.del-icon { color:var(--red); }
   .note-edit-input { font-size:13px; padding:8px 10px; border:1px solid var(--primary); border-radius:6px; background:var(--card); color:var(--text); resize:none; min-height:72px; width:100%; box-sizing:border-box; }
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
-  /* Notepad (便签页) */
+  /* Notepad (投资笔记页) */
   .note-layout { display:flex; flex-direction:row; height:calc(100vh - 108px); position:relative; }
-  .note-left { width:110px; display:flex; flex-direction:column; background:var(--surface); transition:width 0.2s; overflow:hidden; flex-shrink:0; }
+  .note-left { width:110px; display:flex; flex-direction:column; background:var(--surface); transition:width 0.2s; overflow:hidden; flex-shrink:0; height:100%; }
   .note-left.collapsed { width:0; }
   .note-left-toggle { position:absolute; left:110px; top:50%; transform:translateY(-50%); width:18px; height:40px; background:var(--card); border:1px solid var(--gray-light); border-left:none; border-radius:0 6px 6px 0; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:10px; color:var(--text3); z-index:5; transition:left 0.2s; }
   .note-left.collapsed ~ .note-left-toggle { left:0; }
   .note-left-bar { display:flex; align-items:center; gap:4px; padding:5px 5px; background:var(--card); flex-shrink:0; }
-  .note-list { flex:1; overflow-y:auto; min-height:0; }
+  .note-list { flex:1; overflow-y:auto; min-height:0; -webkit-overflow-scrolling:touch; }
   .note-item { display:flex; align-items:center; gap:4px; padding:7px 6px; border-bottom:1px solid var(--gray-light); cursor:pointer; transition:background 0.15s; }
   .note-item:active, .note-item.active { background:var(--primary-light); }
   .note-item-icon { flex-shrink:0; color:var(--primary); display:flex; align-items:center; }
@@ -507,7 +507,7 @@ body {
   .note-add-btn:active { opacity:0.7; }
   .note-editor { flex:1; display:flex; flex-direction:column; min-height:0; min-width:0; }
   .note-toolbar { display:flex; flex-direction:column; padding:4px 6px; background:var(--card); border-bottom:1px solid var(--gray-light); gap:2px; flex-shrink:0; }
-  .note-toolbar-row { display:flex; align-items:center; gap:3px; }
+  .note-toolbar-row { display:flex; align-items:center; gap:10px; }
   .note-toolbar-btn { font-size:14px; padding:3px 7px; border:1px solid var(--gray-light); border-radius:4px; background:var(--card); color:var(--text); cursor:pointer; font-family:inherit; white-space:nowrap; }
   .note-toolbar-btn:active { opacity:0.7; }
   .note-toolbar-btn.active { background:var(--primary); color:var(--text-inv); border-color:var(--primary); }
@@ -516,14 +516,14 @@ body {
   .note-editor-content { width:100%; min-height:100%; outline:none; border:none; background:transparent; color:var(--text); font-size:15px; line-height:1.7; word-break:break-all; white-space:pre-wrap; resize:none; -webkit-user-select:text; user-select:text; }
   .note-editor-content:empty::before { content:attr(data-placeholder); color:var(--text3); pointer-events:none; }
   .note-editor-content img { max-width:100%; height:auto; border-radius:6px; margin:4px 0; display:block; }
-  .note-theme-light { background:#fff; color:#333; }
   .note-theme-warm { background:#f5efc1; color:#5b4618; }
   .note-theme-green { background:#e8f5e9; color:#2e7d32; }
-  .note-bg-btn { width:18px; height:18px; border-radius:50%; border:2px solid var(--gray-light); cursor:pointer; flex-shrink:0; }
+  .note-theme-sage { background:#d5ddd0; color:#3e4a3a; }
+  .note-bg-btn { width:18px; height:18px; border-radius:50%; border:2px solid var(--gray-light); cursor:pointer; flex-shrink:0; margin:0 6px; }
   .note-bg-btn.active { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary); }
-  .note-bg-light { background:#fff; }
   .note-bg-warm { background:#f5efc1; }
   .note-bg-green { background:#c8e6c9; }
+  .note-bg-sage { background:#b5c4a9; }
   .note-empty { flex:1; display:flex; align-items:center; justify-content:center; color:var(--text3); font-size:13px; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
@@ -749,10 +749,10 @@ body {
   </div>
 </div>
 
-<!-- ========== PAGE 4: Notepad (便签) ========== -->
+<!-- ========== PAGE 4: Notepad (投资笔记) ========== -->
 <div class="page" id="pageNote">
   <div class="header" style="position:relative;">
-    <h1>便签</h1>
+    <h1>投资笔记</h1>
     <p id="noteSubTitle">0 条</p>
     <button class="info-btn" style="right:12px;" id="themeBtnNote" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconNote"></span></button>
   </div>
@@ -760,9 +760,9 @@ body {
     <!-- 左侧：列表（可收起） -->
     <div class="note-left" id="noteLeft">
       <div class="note-left-bar">
-        <button class="note-bg-btn note-bg-light active" id="noteBgLight" onclick="noteSetTheme('light')" title="白色"></button>
-        <button class="note-bg-btn note-bg-warm" id="noteBgWarm" onclick="noteSetTheme('warm')" title="黄色"></button>
+        <button class="note-bg-btn note-bg-warm active" id="noteBgWarm" onclick="noteSetTheme('warm')" title="黄色"></button>
         <button class="note-bg-btn note-bg-green" id="noteBgGreen" onclick="noteSetTheme('green')" title="浅绿"></button>
+        <button class="note-bg-btn note-bg-sage" id="noteBgSage" onclick="noteSetTheme('sage')" title="灰绿"></button>
       </div>
       <div class="note-left-bar" style="border-bottom:1px solid var(--gray-light);">
         <button class="note-add-btn" onclick="noteNew()" style="flex:1;">&#x2795; 新建</button>
@@ -779,24 +779,20 @@ body {
           <button class="note-toolbar-btn" onclick="noteCopy()" title="复制">&#x2398;</button>
           <button class="note-toolbar-btn" onclick="notePaste()" title="粘贴">&#x1F4CB;</button>
           <button class="note-toolbar-btn" onclick="noteSelectAll()" title="全选">&#x2611;</button>
-        </div>
-        <div class="note-toolbar-row" style="justify-content:space-between;">
-          <button class="note-toolbar-btn" id="noteModeScroll" onclick="noteSetMode('scroll')">&#x2195; 滚动</button>
-          <div style="display:flex;align-items:center;gap:2px;">
-            <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
-            <span id="noteFontSizeLabel" style="font-size:12px;min-width:20px;text-align:center;color:var(--text);">15</span>
-            <button class="note-toolbar-btn" onclick="noteFontSize(1)">A+</button>
-          </div>
+          <div style="flex:1;"></div>
+          <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
+          <span id="noteFontSizeLabel" style="font-size:12px;min-width:20px;text-align:center;color:var(--text);">15</span>
+          <button class="note-toolbar-btn" onclick="noteFontSize(1)">A+</button>
         </div>
       </div>
       <div class="note-editor-area">
         <div class="note-editor-scroll" id="noteEditorScroll">
-          <div class="note-editor-content note-theme-light" id="noteEditorContent" contenteditable="true" data-placeholder="开始输入内容..." oninput="noteOnInput()"></div>
+          <div class="note-editor-content note-theme-warm" id="noteEditorContent" contenteditable="true" data-placeholder="开始输入内容..." oninput="noteOnInput()"></div>
         </div>
       </div>
     </div>
     <!-- 空状态 -->
-    <div id="noteEmpty" class="note-empty">点击「新建」创建便签</div>
+    <div id="noteEmpty" class="note-empty">点击「新建」创建投资笔记</div>
   </div>
 </div>
 
@@ -3069,12 +3065,12 @@ function saveFavNote(code, index) {
   });
 }
 
-// === Notepad (便签) - stored in IndexedDB ===
+// === Notepad (投资笔记) - stored in IndexedDB ===
 var _noteDB = null;
 var _noteList = [];
 var _noteActiveId = null;
 var _noteFontSize = parseInt(localStorage.getItem('note_fontSize') || '15');
-var _noteTheme = localStorage.getItem('note_theme') || 'light';
+var _noteTheme = localStorage.getItem('note_theme') || 'warm';
 var _noteLeftCollapsed = localStorage.getItem('note_leftCollapsed') === '1';
 var _noteSaveTimer = null;
 
@@ -3140,7 +3136,7 @@ function _noteGet(id) {
 function _notePreview(text, max) {
   max = max || 30;
   var s = (text || '').replace(/<[^>]+>/g, '').replace(/\n/g, ' ').trim();
-  return s.length > max ? s.substring(0, max) + '...' : s || '空白便签';
+  return s.length > max ? s.substring(0, max) + '...' : s || '空白笔记';
 }
 
 function _noteTimeStr(ts) {
@@ -3343,9 +3339,6 @@ function _noteApplySettings() {
   document.querySelectorAll('.note-bg-btn').forEach(function(b) { b.classList.remove('active'); });
   var activeBtn = document.getElementById('noteBg' + _noteTheme.charAt(0).toUpperCase() + _noteTheme.slice(1));
   if (activeBtn) activeBtn.classList.add('active');
-  // Toggle button state
-  var scrollBtn = document.getElementById('noteModeScroll');
-  if (scrollBtn) scrollBtn.classList.add('active');
 }
 
 // Paste image support
