@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.1.4';</script>
+<script>var APP_VER='5.1.5';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -70,7 +70,7 @@ body {
 /* Pages */
 .page { display: none; padding-bottom: 70px; }
 .page.active { display: block; }
-#pageNote.active { display: flex; flex-direction: column; height: 100vh; padding-bottom: 56px; overflow: hidden; box-sizing: border-box; }
+#pageNote.active { display: flex; flex-direction: column; overflow: hidden; }
 #pageNote .header { flex-shrink:0; }
 
 .header {
@@ -489,9 +489,9 @@ body {
   .note-edit-input { font-size:13px; padding:8px 10px; border:1px solid var(--primary); border-radius:6px; background:var(--card); color:var(--text); resize:none; min-height:72px; width:100%; box-sizing:border-box; }
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
   /* Notepad (投资笔记页) */
-  .note-layout { display:flex; flex-direction:row; flex:1; min-height:0; position:relative; }
-  .note-left { width:110px; display:flex; flex-direction:column; background:var(--surface); transition:width 0.2s; overflow:hidden; flex-shrink:0; }
-  .note-left.collapsed { width:0; }
+  .note-layout { display:flex; flex-direction:row; min-height:0; position:relative; }
+  .note-left { width:110px; display:flex; flex-direction:column; background:var(--surface); transition:width 0.2s; flex-shrink:0; min-height:0; }
+  .note-left.collapsed { width:0; overflow:hidden; }
   .note-left-toggle { position:absolute; left:110px; top:50%; transform:translateY(-50%); width:18px; height:40px; background:var(--card); border:1px solid var(--gray-light); border-left:none; border-radius:0 6px 6px 0; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:10px; color:var(--text3); z-index:5; transition:left 0.2s; }
   .note-left.collapsed ~ .note-left-toggle { left:0; }
   .note-left-bar { display:flex; align-items:center; gap:4px; padding:5px 5px; background:var(--card); flex-shrink:0; }
@@ -3075,6 +3075,22 @@ var _noteTheme = localStorage.getItem('note_theme') || 'warm';
 var _noteLeftCollapsed = localStorage.getItem('note_leftCollapsed') === '1';
 var _noteSaveTimer = null;
 
+// Dynamically calculate .note-layout height to avoid flex height chain issues
+function _noteResizeLayout() {
+  var page = document.getElementById('pageNote');
+  var header = page ? page.querySelector('.header') : null;
+  var layout = page ? page.querySelector('.note-layout') : null;
+  if (!page || !header || !layout) return;
+  var tabH = 56; // tab-bar fixed height
+  var headerH = header.offsetHeight;
+  var availH = window.innerHeight - headerH - tabH;
+  if (availH < 100) availH = 300; // safety floor
+  layout.style.height = availH + 'px';
+}
+window.addEventListener('resize', function() {
+  if (document.getElementById('pageNote').classList.contains('active')) _noteResizeLayout();
+});
+
 function _openNoteDB() {
   if (_noteDB) return Promise.resolve(_noteDB);
   return new Promise(function(resolve, reject) {
@@ -3644,7 +3660,7 @@ function switchTab(tab) {
   if (tab === 'db') { document.getElementById('pageDB').classList.add('active'); tabs[0].classList.add('active'); }
   else if (tab === 'calc') { document.getElementById('pageCalc').classList.add('active'); tabs[1].classList.add('active'); }
   else if (tab === 'fav') { document.getElementById('pageFav').classList.add('active'); tabs[2].classList.add('active'); renderFavList(); }
-  else if (tab === 'note') { document.getElementById('pageNote').classList.add('active'); tabs[3].classList.add('active'); notePadRender(); }
+  else if (tab === 'note') { document.getElementById('pageNote').classList.add('active'); tabs[3].classList.add('active'); _noteResizeLayout(); notePadRender(); }
 }
 
 // ===== Build search indexes (with pinyin) =====
