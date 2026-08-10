@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.1.9';</script>
+<script>var APP_VER='5.2.0';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -494,7 +494,7 @@ body {
   .note-left { position:absolute; left:0; top:0; bottom:0; width:110px; background:var(--surface); transition:width 0.2s; z-index:2; }
   .note-left.collapsed { width:0; overflow:hidden; }
   .note-left-bar { display:flex; align-items:center; gap:4px; padding:4px 6px; background:var(--card); border-bottom:1px solid var(--gray-light); height:28px; box-sizing:border-box; }
-  .note-list { position:absolute; top:28px; left:0; right:0; bottom:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .note-list { position:absolute; top:28px; left:0; right:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .note-left-toggle { position:absolute; left:110px; top:50%; transform:translateY(-50%); width:18px; height:40px; background:var(--card); border:1px solid var(--gray-light); border-left:none; border-radius:0 6px 6px 0; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:10px; color:var(--text3); z-index:5; transition:left 0.2s; }
   .note-left.collapsed ~ .note-left-toggle { left:0; }
   .note-item { display:flex; align-items:center; gap:4px; padding:7px 6px; border-bottom:1px solid var(--gray-light); cursor:pointer; transition:background 0.15s; }
@@ -3076,21 +3076,22 @@ var _noteTheme = localStorage.getItem('note_theme') || 'warm';
 var _noteLeftCollapsed = localStorage.getItem('note_leftCollapsed') === '1';
 var _noteSaveTimer = null;
 
-// Set .note-layout top based on header height, with debug toast
+// Set .note-layout top and note-list height explicitly via JS
 function _noteResizeLayout() {
   var page = document.getElementById('pageNote');
   var header = page ? page.querySelector('.header') : null;
   var layout = page ? page.querySelector('.note-layout') : null;
   var noteList = document.getElementById('noteList');
   if (!header || !layout) return;
-  layout.style.top = header.offsetHeight + 'px';
-  // Debug: show key dimensions
-  setTimeout(function() {
-    var lR = layout.getBoundingClientRect();
-    var nR = noteList ? noteList.getBoundingClientRect() : {};
-    var pH = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-    showToast('layout:h=' + Math.round(lR.height) + ' top=' + Math.round(lR.top) + ' bottom=' + Math.round(lR.bottom) + ' | list:h=' + Math.round(nR.height) + ' top=' + Math.round(nR.top) + ' | vpH=' + Math.round(pH), 5000);
-  }, 300);
+  var headerH = header.offsetHeight;
+  layout.style.top = headerH + 'px';
+  // Calculate note-list height explicitly: vpH - tabH - headerH - leftBarH(28)
+  var vpH = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  var tabH = 56;
+  var leftBarH = 28;
+  var listH = vpH - tabH - headerH - leftBarH;
+  if (listH < 100) listH = 300;
+  if (noteList) noteList.style.height = listH + 'px';
 }
 window.addEventListener('resize', function() {
   if (document.getElementById('pageNote').classList.contains('active')) _noteResizeLayout();
