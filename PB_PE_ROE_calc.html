@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.0.1';</script>
+<script>var APP_VER='5.0.2';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -491,7 +491,8 @@ body {
   .note-list { flex:0 0 auto; max-height:40vh; overflow-y:auto; border-bottom:1px solid var(--gray-light); background:var(--surface); }
   .note-item { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--gray-light); cursor:pointer; transition:background 0.15s; }
   .note-item:active, .note-item.active { background:var(--primary-light); }
-  .note-item-icon { font-size:18px; flex-shrink:0; color:var(--primary); }
+  .note-item-icon { font-size:18px; flex-shrink:0; color:var(--primary); display:flex; align-items:center; }
+  .note-item-icon svg { width:18px; height:18px; fill:var(--primary); }
   .note-item-info { flex:1; min-width:0; }
   .note-item-title { font-size:13px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .note-item-meta { font-size:11px; color:var(--text3); margin-top:1px; }
@@ -510,6 +511,7 @@ body {
   .note-editor-page { width:100%; height:100%; overflow:hidden; padding:12px; box-sizing:border-box; }
   .note-editor-content { width:100%; min-height:100%; outline:none; border:none; background:transparent; color:var(--text); font-size:15px; line-height:1.7; word-break:break-all; white-space:pre-wrap; resize:none; -webkit-user-select:text; user-select:text; }
   .note-editor-content:empty::before { content:attr(data-placeholder); color:var(--text3); pointer-events:none; }
+  .note-editor-content img { max-width:100%; height:auto; border-radius:6px; margin:4px 0; display:block; }
   .note-theme-light { background:#fff; color:#333; }
   .note-theme-warm { background:#f5efc1; color:#5b4618; }
   .note-theme-dark { background:#2a2a2a; color:#ccc; }
@@ -3185,7 +3187,7 @@ function notePadRender() {
       var n = notes[i];
       var isActive = (n.id === _noteActiveId);
       html += '<div class="note-item' + (isActive ? ' active' : '') + '" onclick="noteOpenEditor(\'' + n.id + '\')">';
-      html += '<span class="note-item-icon">&#x270E;</span>';
+      html += '<span class="note-item-icon"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></span>';
       html += '<div class="note-item-info">';
       html += '<div class="note-item-title">' + _esc(_notePreview(n.content, 40)) + '</div>';
       html += '<div class="note-item-meta">' + _noteTimeStr(n.updatedAt || n.createdAt) + '</div>';
@@ -3218,7 +3220,7 @@ function noteOpenEditor(id) {
     // Apply settings
     _noteApplySettings();
     if (_noteMode === 'scroll') {
-      contentEl.textContent = note.content || '';
+      contentEl.innerHTML = note.content || '';
     } else {
       _noteBuildPages(note.content || '');
     }
@@ -3243,25 +3245,25 @@ function noteOnInput() {
 function _noteSaveCurrent() {
   if (!_noteActiveId) return;
   var contentEl = document.getElementById('noteEditorContent');
-  var text = '';
+  var html = '';
   if (_noteMode === 'page') {
-    // In page mode, reconstruct full text from pages + current page content
-    _notePages[_noteCurrentPage] = contentEl.textContent || '';
-    text = _notePages.join('\n');
+    _notePages[_noteCurrentPage] = contentEl.innerHTML || '';
+    html = _notePages.join('\n');
   } else {
-    text = contentEl.textContent || '';
+    html = contentEl.innerHTML || '';
   }
   _noteGet(_noteActiveId).then(function(note) {
     if (!note) return;
-    note.content = text;
+    note.content = html;
     note.updatedAt = Date.now();
     _noteSave(note);
     // Update list preview
+    var preview = contentEl.innerText || '';
     var listItems = document.querySelectorAll('.note-item-title');
     for (var i = 0; i < listItems.length; i++) {
       var parentItem = listItems[i].closest('.note-item');
       if (parentItem && parentItem.getAttribute('onclick').indexOf(_noteActiveId) >= 0) {
-        listItems[i].textContent = _notePreview(text, 40);
+        listItems[i].textContent = _notePreview(preview, 40);
       }
     }
     var subTitle = document.getElementById('noteSubTitle');
@@ -3345,7 +3347,7 @@ function noteSetMode(mode) {
       var fullText = _notePages.join('\n');
       _noteSaveFullText(fullText);
     } else if (_noteMode === 'scroll' && mode === 'page') {
-      _noteSaveFullText(contentEl.textContent || '');
+      _noteSaveFullText(contentEl.innerHTML || '');
     }
   }
   _noteMode = mode;
@@ -3358,7 +3360,7 @@ function noteSetMode(mode) {
       if (mode === 'page') {
         _noteBuildPages(note.content || '');
       } else {
-        document.getElementById('noteEditorContent').textContent = note.content || '';
+        document.getElementById('noteEditorContent').innerHTML = note.content || '';
       }
     });
   }
@@ -3420,7 +3422,7 @@ function _noteBuildPages(text) {
 
 function _noteShowPage() {
   var contentEl = document.getElementById('noteEditorContent');
-  contentEl.textContent = _notePages[_noteCurrentPage] || '';
+  contentEl.innerHTML = _notePages[_noteCurrentPage] || '';
   document.getElementById('notePageInfo').textContent = (_noteCurrentPage + 1) + ' / ' + _notePages.length;
 }
 
@@ -3428,7 +3430,7 @@ function notePrevPage() {
   if (_noteMode !== 'page' || !_noteActiveId) return;
   // Save current page
   var contentEl = document.getElementById('noteEditorContent');
-  _notePages[_noteCurrentPage] = contentEl.textContent || '';
+  _notePages[_noteCurrentPage] = contentEl.innerHTML || '';
   if (_noteCurrentPage > 0) {
     _noteCurrentPage--;
     _noteShowPage();
@@ -3439,7 +3441,7 @@ function notePrevPage() {
 function noteNextPage() {
   if (_noteMode !== 'page' || !_noteActiveId) return;
   var contentEl = document.getElementById('noteEditorContent');
-  _notePages[_noteCurrentPage] = contentEl.textContent || '';
+  _notePages[_noteCurrentPage] = contentEl.innerHTML || '';
   if (_noteCurrentPage < _notePages.length - 1) {
     _noteCurrentPage++;
     _noteShowPage();
@@ -3468,6 +3470,44 @@ function noteNextPage() {
     startX = 0;
   }, {passive: true});
 })();
+
+// Paste image support
+document.addEventListener('paste', function(e) {
+  var contentEl = document.getElementById('noteEditorContent');
+  if (!contentEl || !contentEl.contains(e.target) && e.target !== contentEl) return;
+  var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+  var hasImage = false;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      hasImage = true;
+      e.preventDefault();
+      var blob = items[i].getAsFile();
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        var img = document.createElement('img');
+        img.src = ev.target.result;
+        img.style.maxWidth = '100%';
+        // Insert at cursor
+        var sel = window.getSelection();
+        if (sel.rangeCount) {
+          var range = sel.getRangeAt(0);
+          range.collapse(false);
+          range.insertNode(img);
+          range.setStartAfter(img);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        } else {
+          contentEl.appendChild(img);
+        }
+        // Add a line break after image
+        var br = document.createElement('br');
+        img.parentNode.insertBefore(br, img.nextSibling);
+        noteOnInput();
+      };
+      reader.readAsDataURL(blob);
+    }
+  }
+});
 
 // Init notepad on first load
 setTimeout(function() { notePadRender(); }, 100);
