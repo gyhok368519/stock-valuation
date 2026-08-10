@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.3.1';</script>
+<script>var APP_VER='4.3.2';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -882,23 +882,65 @@ var _indexReady = false;
 var _indexReadyCallbacks = [];
 
 function loadStockIndex() {
-  return fetch('./stock_index.json').then(function(r) {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  }).then(function(data) {
-    if (data.stocks) {
-      STOCK_MAP = data.stocks;
-      PINYIN_IDX = data.pinyin || {};
+  // 1. Try IndexedDB cache first (instant)
+  return _dbLoad('stock_index').then(function(cached) {
+    if (cached && cached.stocks) {
+      STOCK_MAP = cached.stocks;
+      PINYIN_IDX = cached.pinyin || {};
+      _indexReady = true;
+      _buildIndex();
+      _indexReadyCallbacks.forEach(function(cb) { try { cb(); } catch(e) {} });
+      _indexReadyCallbacks = [];
+      console.log('[index] loaded from IDB cache: ' + Object.keys(STOCK_MAP).length + ' stocks');
     }
-    _indexReady = true;
-    _buildIndex();
-    // Notify all waiting callbacks
-    _indexReadyCallbacks.forEach(function(cb) { try { cb(); } catch(e) { console.warn('index callback error:', e); } });
-    _indexReadyCallbacks = [];
-    console.log('[index] loaded ' + Object.keys(STOCK_MAP).length + ' stocks');
-  }).catch(function(e) {
-    console.warn('[index] load failed, retry in 3s:', e);
-    setTimeout(loadStockIndex, 3000);
+    // 2. Background fetch to refresh cache (non-blocking if cache hit)
+    var fetchPromise = fetch('./stock_index.json').then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(data) {
+      if (data.stocks) {
+        STOCK_MAP = data.stocks;
+        PINYIN_IDX = data.pinyin || {};
+      }
+      _indexReady = true;
+      _buildIndex();
+      // Save to IDB for next instant load
+      _dbSave('stock_index', data).catch(function() {});
+      // Notify all waiting callbacks
+      _indexReadyCallbacks.forEach(function(cb) { try { cb(); } catch(e) {} });
+      _indexReadyCallbacks = [];
+      console.log('[index] refreshed from network: ' + Object.keys(STOCK_MAP).length + ' stocks');
+    }).catch(function(e) {
+      console.warn('[index] network fetch failed:', e);
+      if (!_indexReady) {
+        // No cache AND network failed — retry
+        setTimeout(loadStockIndex, 3000);
+      }
+    });
+    // If no IDB cache, wait for fetch
+    if (!cached || !cached.stocks) {
+      return fetchPromise;
+    }
+  }).catch(function() {
+    // IDB failed, go straight to fetch
+    return fetch('./stock_index.json').then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(data) {
+      if (data.stocks) {
+        STOCK_MAP = data.stocks;
+        PINYIN_IDX = data.pinyin || {};
+      }
+      _indexReady = true;
+      _buildIndex();
+      _dbSave('stock_index', data).catch(function() {});
+      _indexReadyCallbacks.forEach(function(cb) { try { cb(); } catch(e) {} });
+      _indexReadyCallbacks = [];
+      console.log('[index] loaded from network: ' + Object.keys(STOCK_MAP).length + ' stocks');
+    }).catch(function(e) {
+      console.warn('[index] load failed, retry in 3s:', e);
+      setTimeout(loadStockIndex, 3000);
+    });
   });
 }
 
@@ -3210,8 +3252,9 @@ function _doStockSearch(query, acList, onSelectFn) {
   query = query.trim();
   if (!query) { acList.classList.remove('show'); return; }
   if (!_indexReady) {
-    acList.innerHTML = '<div class="ac-empty">索引加载中，请稍候...</div>';
-    acList.classList.add('show');
+    // Auto-execute search once index is ready (no "loading" message)
+    acList.classList.remove('show');
+    onIndexReady(function() { _doStockSearch(query, acList, onSelectFn); });
     return;
   }
   if (!/^\d/.test(query) && query.length < 2) {
