@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.0.2';</script>
+<script>var APP_VER='5.0.3';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -488,7 +488,10 @@ body {
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
   /* Notepad (便签页) */
   .note-layout { display:flex; flex-direction:column; height:calc(100vh - 108px); }
-  .note-list { flex:0 0 auto; max-height:40vh; overflow-y:auto; border-bottom:1px solid var(--gray-light); background:var(--surface); }
+  .note-bottom { flex:0 0 auto; max-height:45vh; display:flex; flex-direction:column; border-top:1px solid var(--gray-light); background:var(--surface); }
+  .note-bottom-bar { display:flex; align-items:center; justify-content:space-between; padding:6px 8px; background:var(--card); border-bottom:1px solid var(--gray-light); gap:6px; flex-shrink:0; }
+  .note-bottom-left { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+  .note-list { flex:1; overflow-y:auto; min-height:0; }
   .note-item { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--gray-light); cursor:pointer; transition:background 0.15s; }
   .note-item:active, .note-item.active { background:var(--primary-light); }
   .note-item-icon { font-size:18px; flex-shrink:0; color:var(--primary); display:flex; align-items:center; }
@@ -498,10 +501,9 @@ body {
   .note-item-meta { font-size:11px; color:var(--text3); margin-top:1px; }
   .note-item-del { font-size:16px; color:var(--red); opacity:0.4; cursor:pointer; padding:6px; flex-shrink:0; }
   .note-item-del:active { opacity:1; }
-  .note-add-row { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--card); border-bottom:1px solid var(--gray-light); }
-  .note-add-btn { font-size:13px; color:var(--primary); cursor:pointer; padding:4px 12px; border:1px solid var(--primary); border-radius:6px; background:var(--card); font-family:inherit; }
+  .note-add-btn { font-size:13px; color:var(--primary); cursor:pointer; padding:4px 12px; border:1px solid var(--primary); border-radius:6px; background:var(--card); font-family:inherit; white-space:nowrap; }
   .note-add-btn:active { opacity:0.7; }
-  .note-editor { flex:1; display:flex; flex-direction:column; min-height:0; }
+  .note-editor { display:flex; flex-direction:column; min-height:0; }
   .note-toolbar { display:flex; align-items:center; padding:6px 8px; background:var(--card); border-bottom:1px solid var(--gray-light); gap:4px; flex-shrink:0; flex-wrap:wrap; }
   .note-toolbar-btn { font-size:12px; padding:4px 10px; border:1px solid var(--gray-light); border-radius:5px; background:var(--card); color:var(--text); cursor:pointer; font-family:inherit; white-space:nowrap; }
   .note-toolbar-btn:active { opacity:0.7; }
@@ -523,7 +525,7 @@ body {
   .note-page-ctrl { display:flex; justify-content:space-between; align-items:center; padding:8px 16px; background:var(--card); border-top:1px solid var(--gray-light); font-size:13px; color:var(--primary); flex-shrink:0; padding-bottom:calc(8px + env(safe-area-inset-bottom, 0)); }
   .note-page-ctrl span { cursor:pointer; padding:4px 12px; }
   .note-page-ctrl span:active { opacity:0.6; }
-  .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:16px 0; }
+  .note-empty { color:var(--text3); font-size:12px; text-align:center; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
   .fav-empty p { font-size:14px; margin-bottom:6px; }
@@ -756,14 +758,8 @@ body {
     <button class="info-btn" style="right:12px;" id="themeBtnNote" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconNote"></span></button>
   </div>
   <div class="note-layout">
-    <!-- 便签列表 -->
-    <div class="note-add-row">
-      <span style="font-size:13px;color:var(--text3);">便签列表</span>
-      <button class="note-add-btn" onclick="noteNew()">&#x2795; 新建</button>
-    </div>
-    <div class="note-list" id="noteList"></div>
-    <!-- 编辑器 -->
-    <div class="note-editor" id="noteEditor" style="display:none;">
+    <!-- 上半部分：编辑区 -->
+    <div class="note-editor" id="noteEditor" style="display:none;flex:1;flex-direction:column;min-height:0;">
       <div class="note-toolbar" id="noteToolbar">
         <button class="note-toolbar-btn" onclick="noteCut()">&#x2702; 剪切</button>
         <button class="note-toolbar-btn" onclick="noteCopy()">&#x2398; 复制</button>
@@ -772,11 +768,6 @@ body {
         <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
         <span id="noteFontSizeLabel" style="font-size:12px;min-width:26px;text-align:center;color:var(--text);">15</span>
         <button class="note-toolbar-btn" onclick="noteFontSize(1)">A+</button>
-        <button class="note-bg-btn note-bg-light active" id="noteBgLight" onclick="noteSetTheme('light')" title="浅色"></button>
-        <button class="note-bg-btn note-bg-warm" id="noteBgWarm" onclick="noteSetTheme('warm')" title="护眼"></button>
-        <button class="note-bg-btn note-bg-dark" id="noteBgDark" onclick="noteSetTheme('dark')" title="深色"></button>
-        <button class="note-toolbar-btn" id="noteModeScroll" onclick="noteSetMode('scroll')">滚动</button>
-        <button class="note-toolbar-btn active" id="noteModePage" onclick="noteSetMode('page')">翻页</button>
       </div>
       <div class="note-editor-area">
         <div class="note-editor-scroll" id="noteEditorScroll">
@@ -790,8 +781,22 @@ body {
         <span onclick="noteNextPage()">下一页</span>
       </div>
     </div>
-    <!-- 空状态 -->
-    <div id="noteEmpty" class="note-empty" style="padding:24px 0;">点击「新建」创建便签</div>
+    <!-- 空状态（无编辑时显示） -->
+    <div id="noteEmpty" class="note-empty" style="flex:1;display:flex;align-items:center;justify-content:center;">点击下方「新建」创建便签</div>
+    <!-- 下半部分：列表+新建+设置 -->
+    <div class="note-bottom">
+      <div class="note-bottom-bar">
+        <div class="note-bottom-left">
+          <button class="note-bg-btn note-bg-light active" id="noteBgLight" onclick="noteSetTheme('light')" title="浅色"></button>
+          <button class="note-bg-btn note-bg-warm" id="noteBgWarm" onclick="noteSetTheme('warm')" title="护眼"></button>
+          <button class="note-bg-btn note-bg-dark" id="noteBgDark" onclick="noteSetTheme('dark')" title="深色"></button>
+          <button class="note-toolbar-btn" id="noteModeScroll" onclick="noteSetMode('scroll')">滚动</button>
+          <button class="note-toolbar-btn active" id="noteModePage" onclick="noteSetMode('page')">翻页</button>
+          <button class="note-add-btn" onclick="noteNew()">&#x2795; 新建</button>
+        </div>
+      </div>
+      <div class="note-list" id="noteList"></div>
+    </div>
   </div>
 </div>
 
@@ -3177,8 +3182,8 @@ function notePadRender() {
     if (!listEl) return;
     if (notes.length === 0) {
       listEl.innerHTML = '';
-      if (emptyEl) emptyEl.style.display = '';
-      document.getElementById('noteEditor').style.display = 'none';
+      if (emptyEl) emptyEl.style.display = 'flex';
+      if (!_noteActiveId) document.getElementById('noteEditor').style.display = 'none';
       return;
     }
     if (emptyEl) emptyEl.style.display = 'none';
