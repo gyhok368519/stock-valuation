@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.1.5';</script>
+<script>var APP_VER='5.1.6';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -494,7 +494,7 @@ body {
   .note-left.collapsed { width:0; overflow:hidden; }
   .note-left-toggle { position:absolute; left:110px; top:50%; transform:translateY(-50%); width:18px; height:40px; background:var(--card); border:1px solid var(--gray-light); border-left:none; border-radius:0 6px 6px 0; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:10px; color:var(--text3); z-index:5; transition:left 0.2s; }
   .note-left.collapsed ~ .note-left-toggle { left:0; }
-  .note-left-bar { display:flex; align-items:center; gap:4px; padding:5px 5px; background:var(--card); flex-shrink:0; }
+  .note-left-bar { display:flex; align-items:center; gap:4px; padding:4px 6px; background:var(--card); flex-shrink:0; border-bottom:1px solid var(--gray-light); }
   .note-list { flex:1; overflow-y:auto; min-height:0; -webkit-overflow-scrolling:touch; }
   .note-item { display:flex; align-items:center; gap:4px; padding:7px 6px; border-bottom:1px solid var(--gray-light); cursor:pointer; transition:background 0.15s; }
   .note-item:active, .note-item.active { background:var(--primary-light); }
@@ -761,7 +761,7 @@ body {
   <div class="note-layout">
     <!-- 左侧：列表（可收起） -->
     <div class="note-left" id="noteLeft">
-      <div class="note-left-bar" style="border-bottom:1px solid var(--gray-light);">
+      <div class="note-left-bar">
         <button class="note-bg-btn note-bg-warm active" id="noteBgWarm" onclick="noteSetTheme('warm')" title="黄色"></button>
         <button class="note-bg-btn note-bg-green" id="noteBgGreen" onclick="noteSetTheme('green')" title="浅绿"></button>
         <button class="note-bg-btn note-bg-sage" id="noteBgSage" onclick="noteSetTheme('sage')" title="灰绿"></button>
@@ -3075,17 +3075,24 @@ var _noteTheme = localStorage.getItem('note_theme') || 'warm';
 var _noteLeftCollapsed = localStorage.getItem('note_leftCollapsed') === '1';
 var _noteSaveTimer = null;
 
-// Dynamically calculate .note-layout height to avoid flex height chain issues
+// Dynamically calculate heights to avoid flex height chain issues
 function _noteResizeLayout() {
   var page = document.getElementById('pageNote');
   var header = page ? page.querySelector('.header') : null;
   var layout = page ? page.querySelector('.note-layout') : null;
-  if (!page || !header || !layout) return;
+  var noteList = document.getElementById('noteList');
+  if (!page || !header || !layout || !noteList) return;
   var tabH = 56; // tab-bar fixed height
   var headerH = header.offsetHeight;
   var availH = window.innerHeight - headerH - tabH;
   if (availH < 100) availH = 300; // safety floor
   layout.style.height = availH + 'px';
+  // Also set note-list height directly: layout height minus left-bar height
+  var leftBar = layout.querySelector('.note-left-bar');
+  var barH = leftBar ? leftBar.offsetHeight : 30;
+  var listH = availH - barH;
+  if (listH < 50) listH = 200;
+  noteList.style.height = listH + 'px';
 }
 window.addEventListener('resize', function() {
   if (document.getElementById('pageNote').classList.contains('active')) _noteResizeLayout();
