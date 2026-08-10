@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.1.2';</script>
+<script>var APP_VER='5.1.3';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -509,7 +509,7 @@ body {
   .note-add-btn:active { opacity:0.7; }
   .note-editor { flex:1; display:flex; flex-direction:column; min-height:0; min-width:0; }
   .note-toolbar { display:flex; flex-direction:column; padding:4px 6px; background:var(--card); border-bottom:1px solid var(--gray-light); gap:2px; flex-shrink:0; }
-  .note-toolbar-row { display:flex; align-items:center; gap:16px; }
+  .note-toolbar-row { display:flex; align-items:center; gap:22px; }
   .note-toolbar-btn { font-size:14px; padding:3px 7px; border:1px solid var(--gray-light); border-radius:4px; background:var(--card); color:var(--text); cursor:pointer; font-family:inherit; white-space:nowrap; }
   .note-toolbar-btn:active { opacity:0.7; }
   .note-toolbar-btn.active { background:var(--primary); color:var(--text-inv); border-color:var(--primary); }
@@ -761,13 +761,12 @@ body {
   <div class="note-layout">
     <!-- 左侧：列表（可收起） -->
     <div class="note-left" id="noteLeft">
-      <div class="note-left-bar">
+      <div class="note-left-bar" style="border-bottom:1px solid var(--gray-light);">
         <button class="note-bg-btn note-bg-warm active" id="noteBgWarm" onclick="noteSetTheme('warm')" title="黄色"></button>
         <button class="note-bg-btn note-bg-green" id="noteBgGreen" onclick="noteSetTheme('green')" title="浅绿"></button>
         <button class="note-bg-btn note-bg-sage" id="noteBgSage" onclick="noteSetTheme('sage')" title="灰绿"></button>
-      </div>
-      <div class="note-left-bar" style="border-bottom:1px solid var(--gray-light);">
-        <button class="note-add-btn" onclick="noteNew()" style="flex:1;">&#x2795; 新建</button>
+        <div style="flex:1;"></div>
+        <button class="note-add-btn" onclick="noteNew()">&#x2795;</button>
       </div>
       <div class="note-list" id="noteList"></div>
     </div>
