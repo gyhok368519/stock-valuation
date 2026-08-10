@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.0.0';</script>
+<script>var APP_VER='5.0.1';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -491,7 +491,7 @@ body {
   .note-list { flex:0 0 auto; max-height:40vh; overflow-y:auto; border-bottom:1px solid var(--gray-light); background:var(--surface); }
   .note-item { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--gray-light); cursor:pointer; transition:background 0.15s; }
   .note-item:active, .note-item.active { background:var(--primary-light); }
-  .note-item-icon { font-size:18px; flex-shrink:0; }
+  .note-item-icon { font-size:18px; flex-shrink:0; color:var(--primary); }
   .note-item-info { flex:1; min-width:0; }
   .note-item-title { font-size:13px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .note-item-meta { font-size:11px; color:var(--text3); margin-top:1px; }
@@ -808,8 +808,8 @@ body {
     <span>收藏</span>
   </div>
   <div class="tab-item" onclick="switchTab('note')">
-    <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 16H6V4h7v5h5v9z"/></svg>
-    <span>便签</span>
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+    <span>我的</span>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -3185,7 +3185,7 @@ function notePadRender() {
       var n = notes[i];
       var isActive = (n.id === _noteActiveId);
       html += '<div class="note-item' + (isActive ? ' active' : '') + '" onclick="noteOpenEditor(\'' + n.id + '\')">';
-      html += '<span class="note-item-icon">&#x1F4DD;</span>';
+      html += '<span class="note-item-icon">&#x270E;</span>';
       html += '<div class="note-item-info">';
       html += '<div class="note-item-title">' + _esc(_notePreview(n.content, 40)) + '</div>';
       html += '<div class="note-item-meta">' + _noteTimeStr(n.updatedAt || n.createdAt) + '</div>';
