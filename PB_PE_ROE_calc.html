@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.3.2';</script>
+<script>var APP_VER='4.3.3';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -469,7 +469,7 @@ body {
   .note-add-row { display:flex; gap:6px; margin-bottom:10px; align-items:center; flex-wrap:wrap; }
   .note-date-btn { flex:0 0 auto; font-size:12px; padding:6px 10px; border:1px solid var(--primary); border-radius:6px; background:var(--card); color:var(--primary); text-align:center; cursor:pointer; white-space:nowrap; position:relative; }
   .note-date-btn:active { opacity:0.7; }
-  .note-add-row input[type="text"] { flex:1; font-size:12px; padding:6px 8px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); min-width:0; }
+  .note-add-row input[type="text"], .note-add-row textarea { flex:1; font-size:13px; padding:8px 10px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); min-width:0; resize:none; }
   .note-add-btn { background:var(--primary); color:var(--text-inv); border:none; border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .note-add-btn:active { opacity:0.8; }
   .note-list { max-height:200px; overflow-y:auto; }
@@ -482,7 +482,7 @@ body {
   .note-act-icon:active { opacity:1; background:var(--active-bg); }
   .note-act-icon.edit-icon { color:var(--primary); }
   .note-act-icon.del-icon { color:var(--red); }
-  .note-edit-input { flex:1; font-size:12px; padding:4px 6px; border:1px solid var(--primary); border-radius:4px; background:var(--card); color:var(--text); min-width:0; }
+  .note-edit-input { flex:1; font-size:13px; padding:8px 10px; border:1px solid var(--primary); border-radius:6px; background:var(--card); color:var(--text); min-width:0; resize:none; }
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
@@ -2827,7 +2827,7 @@ function showNoteDialog(code) {
   html += '<div style="position:relative;flex:0 0 auto;" id="noteDateWrap">';
   html += '<div class="note-date-btn" id="noteDateBtn" onclick="toggleCalPopup()">' + todayStr + ' ▾</div>';
   html += '</div>';
-  html += '<input type="text" id="noteTextInput" placeholder="备注内容" maxlength="100" />';
+  html += '<textarea id="noteTextInput" placeholder="备注内容" maxlength="100" rows="3" style="width:100%;box-sizing:border-box;"></textarea>';
   html += '<button class="note-add-btn" onclick="addFavNote(\'' + _esc(code) + '\')">添加</button>';
   html += '</div>';
   html += '<div class="note-list" id="noteListContainer"><div class="note-empty">暂无备注</div></div>';
@@ -2939,14 +2939,14 @@ function editFavNote(code, index, el) {
     var note = notes[index];
     var item = el.closest('.note-item');
     var dateHtml = '<span class="note-date">' + _esc(note.date) + '</span>';
-    var editHtml = '<input type="text" class="note-edit-input" value="' + _esc(note.text) + '" maxlength="100" />';
+    var editHtml = '<textarea class="note-edit-input" maxlength="100" rows="3" style="width:100%;box-sizing:border-box;">' + _esc(note.text) + '</textarea>';
     editHtml += '<span class="note-act">';
     editHtml += '<span class="note-act-icon edit-icon" onclick="saveFavNote(\'' + _esc(code) + '\',' + index + ')" style="opacity:1;">\u2713</span>';
     editHtml += '<span class="note-act-icon del-icon" onclick="deleteFavNote(\'' + _esc(code) + '\',' + index + ')">\u2716</span>';
     editHtml += '</span>';
     item.innerHTML = dateHtml + editHtml;
     var input = item.querySelector('.note-edit-input');
-    if (input) { input.focus(); input.select(); }
+    if (input) { input.focus(); }
   });
 }
 
