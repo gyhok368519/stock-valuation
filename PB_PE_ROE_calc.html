@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.2.1';</script>
+<script>var APP_VER='5.2.2';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -3098,9 +3098,9 @@ function _noteResizeLayout() {
   // Set layout position and height
   layout.style.top = headerH + 'px';
   layout.style.height = layoutH + 'px';
-  // Set note-left height
+  // Set note-left height  
   if (noteLeft) noteLeft.style.height = layoutH + 'px';
-  // Set note-list height
+  // Set note-list height  
   if (noteList) noteList.style.height = listH + 'px';
   // Set note-editor height
   if (noteEditor) noteEditor.style.height = layoutH + 'px';
@@ -3108,6 +3108,12 @@ function _noteResizeLayout() {
   if (noteEditorArea) noteEditorArea.style.height = listH + 'px';
   // Set empty height
   if (noteEmpty) noteEmpty.style.height = listH + 'px';
+  // Debug: confirm heights
+  setTimeout(function() {
+    var nl = document.getElementById('noteList');
+    var nlLeft = document.getElementById('noteLeft');
+    showToast('left:h=' + (nlLeft ? nlLeft.style.height : '?') + ' computed=' + (nlLeft ? Math.round(nlLeft.getBoundingClientRect().height) : '?') + ' list:h=' + (nl ? nl.style.height : '?') + ' computed=' + (nl ? Math.round(nl.getBoundingClientRect().height) : '?'), 5000);
+  }, 300);
 }
 window.addEventListener('resize', function() {
   if (document.getElementById('pageNote').classList.contains('active')) _noteResizeLayout();
