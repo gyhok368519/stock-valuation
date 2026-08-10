@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.2.3';</script>
+<script>var APP_VER='4.3.0';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -677,6 +677,14 @@ body {
       </div>
       <div class="judge-box" id="judgeBox">-</div>
       <div class="formula-box" id="formulaBox"></div>
+      <!-- 极端情况下投资收益率 -->
+      <div id="investRateBox" style="display:none;margin-top:12px;padding:12px 14px;background:var(--input-readonly-bg);border-radius:8px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;">极端情况 · 投资收益率</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <span style="font-size:22px;font-weight:700;color:var(--primary);" id="investRateVal">-</span>
+          <span style="font-size:12px;color:var(--text3);" id="investRateFormula"></span>
+        </div>
+      </div>
     </div>
     <div class="section-title"><span>&#x1F4CB; 历史记录</span><span class="count" id="historyCount">0 条</span></div>
     <div class="history-card" id="historyList"><div class="empty-state">暂无记录</div></div>
@@ -1149,9 +1157,9 @@ function switchAuthTab(tab) {
 function validatePhone(p) { return /^1[3-9]\d{9}$/.test(p); }
 
 function validatePassword(p) {
-  // 字母开头，6-16位，包含大小写字母和数字
-  return /^[a-zA-Z][a-zA-Z0-9]{5,15}$/.test(p) &&
-         /[a-z]/.test(p) && /[A-Z]/.test(p) && /\d/.test(p);
+  // 字母或数字开头，6-16位，含大写字母或小写字母或数字
+  return /^[a-zA-Z0-9][a-zA-Z0-9]{5,15}$/.test(p) &&
+         (/[A-Z]/.test(p) || /[a-z]/.test(p) || /\d/.test(p));
 }
 
 async function doRegister() {
@@ -1165,7 +1173,7 @@ async function doRegister() {
   if (!validatePhone(phone)) { err.textContent = '请输入有效的11位手机号'; return; }
   if (!user || user.length < 2) { err.textContent = '用户名至少2个字符'; return; }
   if (/[^a-zA-Z0-9一-龥]/.test(user)) { err.textContent = '用户名只能含字母、数字、中文'; return; }
-  if (!validatePassword(pass)) { err.textContent = '密码需字母开头，6-16位，含大小写字母和数字'; return; }
+  if (!validatePassword(pass)) { err.textContent = '密码需字母或数字开头，6-16位，含大写字母或小写字母或数字'; return; }
   if (pass !== pass2) { err.textContent = '两次密码不一致'; return; }
 
   btn.textContent = '注册中...'; btn.disabled = true;
@@ -1298,7 +1306,7 @@ async function doResetPassword() {
 
   if (!user) { err.textContent = '请输入用户名'; return; }
   if (!validatePhone(phone)) { err.textContent = '请输入有效的11位手机号'; return; }
-  if (!validatePassword(pass)) { err.textContent = '密码需字母开头，6-16位，含大小写字母和数字'; return; }
+  if (!validatePassword(pass)) { err.textContent = '密码需字母或数字开头，6-16位，含大写字母或小写字母或数字'; return; }
   if (pass !== pass2) { err.textContent = '两次密码不一致'; return; }
 
   btn.textContent = '验证中...'; btn.disabled = true;
@@ -3671,6 +3679,24 @@ function calculate() {
   else jd = '<div class="judge-detail">偏差在10%以内，估值合理</div>';
   jb.innerHTML = '&#x1F4CC; ' + judge + jd;
   document.getElementById('formulaBox').innerHTML = '<span>' + _esc(name||code) + '</span> | 计算PB=<span>' + calcPB.toFixed(2) + '</span><br>市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
+  // 投资收益率 = ROE*(1-股利支付率) + 1/PE*股利支付率
+  var _irBox = document.getElementById('investRateBox');
+  var _irVal = document.getElementById('investRateVal');
+  var _irFormula = document.getElementById('investRateFormula');
+  var _dbRow = DB_DATA[code];
+  if (_dbRow) {
+    var _dpr = _dbRow[16]; // 股利支付率，小数格式
+    if (_dpr !== null && _dpr !== undefined && _dpr > 0) {
+      var _ir = roeDecimal * (1 - _dpr) + (1 / peVal) * _dpr;
+      _irVal.textContent = (_ir * 100).toFixed(2) + '%';
+      _irFormula.textContent = '= ROE×(1-派现率) + EY×派现率 = ' + (roeDecimal*100).toFixed(2) + '%×' + ((1-_dpr)*100).toFixed(1) + '% + ' + ((1/peVal)*100).toFixed(2) + '%×' + (_dpr*100).toFixed(1) + '%';
+      _irBox.style.display = 'block';
+    } else {
+      _irBox.style.display = 'none';
+    }
+  } else {
+    _irBox.style.display = 'none';
+  }
   const record = { code, name:name||'-', pe:peVal, roe:roeVal, marketPB:pbVal, calcPB:+calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, time:new Date().toLocaleString('zh-CN') };
   const hist = getHistory(); hist.unshift(record); if (hist.length > MAX_HISTORY) hist.pop();
   saveHistory(hist); renderHistory();
