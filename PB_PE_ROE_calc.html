@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.1.7';</script>
+<script>var APP_VER='5.1.8';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -70,8 +70,9 @@ body {
 /* Pages */
 .page { display: none; padding-bottom: 70px; }
 .page.active { display: block; }
-#pageNote.active { display: flex; flex-direction: column; overflow: hidden; }
-#pageNote .header { flex-shrink:0; }
+#pageNote.active { display: block; position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
+#pageNote .header { position: relative; z-index: 3; }
+#pageNote .note-layout { position: absolute; left: 0; right: 0; bottom: 56px; }
 
 .header {
   background: var(--grad-header);
@@ -3075,19 +3076,13 @@ var _noteTheme = localStorage.getItem('note_theme') || 'warm';
 var _noteLeftCollapsed = localStorage.getItem('note_leftCollapsed') === '1';
 var _noteSaveTimer = null;
 
-// Calculate .note-layout height, child elements use absolute positioning
+// Set .note-layout top based on header height
 function _noteResizeLayout() {
   var page = document.getElementById('pageNote');
   var header = page ? page.querySelector('.header') : null;
   var layout = page ? page.querySelector('.note-layout') : null;
-  if (!page || !header || !layout) return;
-  var tabH = 56;
-  var headerH = header.offsetHeight;
-  // Use visualViewport for PWA standalone accuracy, fallback to innerHeight
-  var vpH = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-  var availH = vpH - headerH - tabH;
-  if (availH < 100) availH = 300;
-  layout.style.height = availH + 'px';
+  if (!header || !layout) return;
+  layout.style.top = header.offsetHeight + 'px';
 }
 window.addEventListener('resize', function() {
   if (document.getElementById('pageNote').classList.contains('active')) _noteResizeLayout();
