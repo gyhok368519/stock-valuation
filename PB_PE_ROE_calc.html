@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.5.0';</script>
+<script>var APP_VER='4.5.1';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -752,11 +752,11 @@ body {
       <button class="info-btn" style="right:12px;" id="themeBtnNote" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconNote"></span></button>
     </div>
     <div class="container">
-      <label class="reader-upload-btn" id="readerUploadBtn">
+      <label class="reader-upload-btn" id="readerUploadBtn" for="readerFileInput">
         <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;vertical-align:middle;"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
         <span>上传文件</span>
-        <input type="file" accept=".txt,.md,.epub,.text" id="readerFileInput" style="display:none;" onchange="readerHandleFiles(this)" multiple />
       </label>
+      <input type="file" accept=".txt,.md,.epub,.text" id="readerFileInput" style="opacity:0;position:absolute;z-index:-1;width:0;height:0;overflow:hidden;" onchange="readerHandleFiles(this)" multiple />
       <div id="readerBookList"><div class="fav-empty"><div class="fav-empty-icon">📖</div><p>还没有书籍</p><small>上传 .txt / .md / .epub 文件</small></div></div>
       <div class="btn-row" id="readerClearRow" style="display:none;"><button class="btn btn-danger" onclick="readerClearAll()">&#x1F5D1; 清空书架</button></div>
     </div>
