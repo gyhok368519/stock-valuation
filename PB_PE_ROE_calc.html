@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.5.1';</script>
+<script>var APP_VER='4.5.2';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -487,7 +487,7 @@ body {
   .note-edit-input { font-size:13px; padding:8px 10px; border:1px solid var(--primary); border-radius:6px; background:var(--card); color:var(--text); resize:none; min-height:72px; width:100%; box-sizing:border-box; }
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
   /* Reader (阅读器页) */
-  .reader-upload-btn { display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--primary);cursor:pointer;padding:6px 14px;border:1px solid var(--primary);border-radius:8px;background:var(--card);margin-bottom:12px; }
+  .reader-upload-btn { display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--primary);cursor:pointer;padding:6px 14px;border:1px solid var(--primary);border-radius:8px;background:var(--card);margin-bottom:12px;font-family:inherit;outline:none;-webkit-appearance:none;appearance:none; }
   .reader-upload-btn:active { opacity:0.7; }
   .reader-book-item { display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border-radius:10px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer; }
   .reader-book-item:active { opacity:0.8; }
@@ -752,11 +752,11 @@ body {
       <button class="info-btn" style="right:12px;" id="themeBtnNote" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconNote"></span></button>
     </div>
     <div class="container">
-      <label class="reader-upload-btn" id="readerUploadBtn" for="readerFileInput">
+      <button class="reader-upload-btn" id="readerUploadBtn" type="button" onclick="document.getElementById('readerFileInput').click()">
         <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;vertical-align:middle;"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
         <span>上传文件</span>
-      </label>
-      <input type="file" accept=".txt,.md,.epub,.text" id="readerFileInput" style="opacity:0;position:absolute;z-index:-1;width:0;height:0;overflow:hidden;" onchange="readerHandleFiles(this)" multiple />
+      </button>
+      <input type="file" accept=".txt,.md,.epub,.text" id="readerFileInput" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;" onchange="readerHandleFiles(this)" multiple />
       <div id="readerBookList"><div class="fav-empty"><div class="fav-empty-icon">📖</div><p>还没有书籍</p><small>上传 .txt / .md / .epub 文件</small></div></div>
       <div class="btn-row" id="readerClearRow" style="display:none;"><button class="btn btn-danger" onclick="readerClearAll()">&#x1F5D1; 清空书架</button></div>
     </div>
