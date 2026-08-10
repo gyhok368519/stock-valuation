@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.3.5';</script>
+<script>var APP_VER='4.4.0';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -486,6 +486,20 @@ body {
   .note-act-icon.del-icon { color:var(--red); }
   .note-edit-input { font-size:13px; padding:8px 10px; border:1px solid var(--primary); border-radius:6px; background:var(--card); color:var(--text); resize:none; min-height:72px; width:100%; box-sizing:border-box; }
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
+  /* NotePad (便签页) */
+  .note-img-btn { display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--primary);cursor:pointer;padding:4px 10px;border:1px solid var(--primary);border-radius:6px;background:var(--card);white-space:nowrap; }
+  .note-img-btn:active { opacity:0.7; }
+  .notepad-card { background:var(--card);border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:var(--shadow);position:relative; }
+  .notepad-card-text { font-size:13px;line-height:1.6;color:var(--text);word-break:break-all;white-space:pre-wrap;margin-bottom:8px; }
+  .notepad-card-img { max-width:100%;max-height:200px;border-radius:6px;margin-bottom:8px;cursor:pointer; }
+  .notepad-card-footer { display:flex;align-items:center;justify-content:space-between; }
+  .notepad-card-time { font-size:11px;color:var(--text3); }
+  .notepad-card-acts { display:flex;gap:16px; }
+  .notepad-card-acts span { font-size:18px;cursor:pointer;opacity:0.5;padding:4px; }
+  .notepad-card-acts span:active { opacity:1; }
+  .notepad-card-acts .act-copy { color:var(--primary); }
+  .notepad-card-acts .act-del { color:var(--red); }
+  .notepad-edit-area { width:100%;font-size:13px;padding:8px 10px;border:1px solid var(--primary);border-radius:6px;background:var(--card);color:var(--text);resize:none;min-height:72px;box-sizing:border-box;margin-bottom:8px; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
   .fav-empty p { font-size:14px; margin-bottom:6px; }
@@ -710,6 +724,37 @@ body {
   </div>
 </div>
 
+<!-- ========== PAGE 4: Notes (便签) ========== -->
+<div class="page" id="pageNote">
+  <div class="header" style="position:relative;">
+    <h1>便签</h1>
+    <p id="noteSubTitle">0 条</p>
+    <button class="info-btn" style="right:12px;" id="themeBtnNote" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconNote"></span></button>
+  </div>
+  <div class="container">
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;gap:6px;">
+        <textarea id="notePadInput" placeholder="写点东西..." maxlength="500" rows="3" style="flex:1;font-size:13px;padding:8px 10px;border:1px solid var(--gray-light);border-radius:8px;background:var(--card);color:var(--text);resize:none;min-height:72px;box-sizing:border-box;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+        <label class="note-img-btn" id="noteImgBtn">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;vertical-align:middle;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+          <span>图片</span>
+          <input type="file" accept="image/*" id="noteImgFile" style="display:none;" onchange="notePadPreviewImg(this)" />
+        </label>
+        <div id="notePadImgPreview" style="display:none;position:relative;">
+          <img id="notePadImgThumb" style="height:40px;border-radius:6px;border:1px solid var(--gray-light);" />
+          <span style="position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;line-height:16px;text-align:center;cursor:pointer;" onclick="notePadRemoveImg()">&#x2715;</span>
+        </div>
+        <div style="flex:1;"></div>
+        <button class="btn btn-primary" onclick="notePadAdd()" style="padding:6px 16px;font-size:12px;">保存</button>
+      </div>
+    </div>
+    <div id="notePadList"><div class="fav-empty"><div class="fav-empty-icon">📝</div><p>还没有便签</p><small>写下你的想法</small></div></div>
+    <div class="btn-row" id="notePadClearRow" style="display:none;"><button class="btn btn-danger" onclick="notePadClearAll()">&#x1F5D1; 清空全部便签</button></div>
+  </div>
+</div>
+
 <!-- Tab Bar -->
 <div class="tab-bar">
   <div class="tab-item active" onclick="switchTab('db')">
@@ -723,6 +768,10 @@ body {
   <div class="tab-item" onclick="switchTab('fav')">
     <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
     <span>收藏</span>
+  </div>
+  <div class="tab-item" onclick="switchTab('note')">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>
+    <span>便签</span>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -987,15 +1036,19 @@ function _updateThemeIcons() {
   var dbBtn = document.getElementById('themeIconDB');
   var calcBtn = document.getElementById('themeIconCalc');
   var favBtn = document.getElementById('themeIconFav');
+  var noteBtn = document.getElementById('themeIconNote');
   if (dbBtn) { dbBtn.innerHTML = icon; }
   if (calcBtn) { calcBtn.innerHTML = icon; }
   if (favBtn) { favBtn.innerHTML = icon; }
+  if (noteBtn) { noteBtn.innerHTML = icon; }
   var dbBtnP = document.getElementById('themeBtnDB');
   var calcBtnP = document.getElementById('themeBtnCalc');
   var favBtnP = document.getElementById('themeBtnFav');
+  var noteBtnP = document.getElementById('themeBtnNote');
   if (dbBtnP) dbBtnP.title = title;
   if (calcBtnP) calcBtnP.title = title;
   if (favBtnP) favBtnP.title = title;
+  if (noteBtnP) noteBtnP.title = title;
 }
 (function initTheme() {
   var saved = localStorage.getItem('pb_calc_theme');
@@ -2971,6 +3024,224 @@ function saveFavNote(code, index) {
   });
 }
 
+// === NotePad (便签页) - local only, stored in IndexedDB ===
+var _noteDB = null;
+var _notePadImgData = null; // temp image for current note being created
+var NOTE_MAX = 50;
+var NOTE_IMG_MAX = 20;
+var NOTE_IMG_SIZE_LIMIT = 500 * 1024; // 500KB
+
+function _openNoteDB() {
+  if (_noteDB) return Promise.resolve(_noteDB);
+  return new Promise(function(resolve, reject) {
+    try {
+      var req = indexedDB.open('NoteDB', 1);
+      req.onupgradeneeded = function(e) {
+        var db = e.target.result;
+        if (!db.objectStoreNames.contains('notes')) db.createObjectStore('notes', {keyPath: 'id'});
+      };
+      req.onsuccess = function(e) { _noteDB = e.target.result; resolve(_noteDB); };
+      req.onerror = function(e) { reject(e.target.error); };
+    } catch(e) { reject(e); }
+  });
+}
+
+function notePadSave(note) {
+  return _openNoteDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('notes', 'readwrite');
+      tx.objectStore('notes').put(note);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+function notePadGetAll() {
+  return _openNoteDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('notes', 'readonly');
+      var req = tx.objectStore('notes').getAll();
+      req.onsuccess = function() { resolve(req.result || []); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+function notePadDelete(id) {
+  return _openNoteDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('notes', 'readwrite');
+      tx.objectStore('notes').delete(id);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+// Image compression: resize and compress to fit within size limit
+function _compressImg(file) {
+  return new Promise(function(resolve) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        var maxW = 800, maxH = 800;
+        var w = img.width, h = img.height;
+        if (w > maxW) { h = h * maxW / w; w = maxW; }
+        if (h > maxH) { w = w * maxH / h; h = maxH; }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        var quality = 0.7;
+        var dataUrl = canvas.toDataURL('image/jpeg', quality);
+        // Further reduce quality if still too large
+        while (dataUrl.length > NOTE_IMG_SIZE_LIMIT * 1.37 && quality > 0.2) {
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        resolve(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function notePadPreviewImg(input) {
+  if (!input.files || !input.files[0]) return;
+  // Count existing images
+  notePadGetAll().then(function(notes) {
+    var imgCount = notes.filter(function(n) { return n.img; }).length;
+    if (imgCount >= NOTE_IMG_MAX) { showToast('图片便签上限' + NOTE_IMG_MAX + '张'); input.value = ''; return; }
+    _compressImg(input.files[0]).then(function(dataUrl) {
+      _notePadImgData = dataUrl;
+      document.getElementById('notePadImgThumb').src = dataUrl;
+      document.getElementById('notePadImgPreview').style.display = 'inline-block';
+    });
+  });
+}
+
+function notePadRemoveImg() {
+  _notePadImgData = null;
+  document.getElementById('notePadImgPreview').style.display = 'none';
+  document.getElementById('noteImgFile').value = '';
+}
+
+function notePadAdd() {
+  var textEl = document.getElementById('notePadInput');
+  var text = textEl.value.trim();
+  if (!text && !_notePadImgData) { showToast('请输入内容或添加图片'); return; }
+
+  notePadGetAll().then(function(notes) {
+    if (notes.length >= NOTE_MAX) { showToast('便签上限' + NOTE_MAX + '条'); return; }
+    var note = { id: Date.now(), text: text, ts: Date.now() };
+    if (_notePadImgData) { note.img = _notePadImgData; }
+    notePadSave(note).then(function() {
+      textEl.value = '';
+      notePadRemoveImg();
+      notePadRender();
+      showToast('已保存');
+    });
+  });
+}
+
+function notePadCopyText(id) {
+  notePadGetAll().then(function(notes) {
+    var note = notes.find(function(n) { return n.id === id; });
+    if (!note || !note.text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(note.text).then(function() { showToast('已复制文字'); });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = note.text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      showToast('已复制文字');
+    }
+  });
+}
+
+function notePadDel(id) {
+  notePadDelete(id).then(function() { notePadRender(); showToast('已删除'); });
+}
+
+function notePadEdit(id) {
+  notePadGetAll().then(function(notes) {
+    var note = notes.find(function(n) { return n.id === id; });
+    if (!note) return;
+    var card = document.querySelector('[data-note-id="' + id + '"]');
+    if (!card) return;
+    var html = '<textarea class="notepad-edit-area" id="notepadEdit_' + id + '">' + _esc(note.text) + '</textarea>';
+    if (note.img) { html += '<img src="' + note.img + '" class="notepad-card-img" />'; }
+    html += '<div class="notepad-card-footer">';
+    html += '<span style="font-size:11px;color:var(--text3);">' + new Date(note.ts).toLocaleString('zh-CN') + '</span>';
+    html += '<div style="display:flex;gap:12px;">';
+    html += '<span style="font-size:14px;color:var(--primary);cursor:pointer;" onclick="notePadSaveEdit(' + id + ')">\u2713 保存</span>';
+    html += '<span style="font-size:14px;color:var(--text3);cursor:pointer;" onclick="notePadRender()">取消</span>';
+    html += '</div></div>';
+    card.innerHTML = html;
+    var editArea = document.getElementById('notepadEdit_' + id);
+    if (editArea) editArea.focus();
+  });
+}
+
+function notePadSaveEdit(id) {
+  var editArea = document.getElementById('notepadEdit_' + id);
+  if (!editArea) return;
+  var newText = editArea.value.trim();
+  if (!newText) { showToast('内容不能为空'); return; }
+  notePadGetAll().then(function(notes) {
+    var note = notes.find(function(n) { return n.id === id; });
+    if (!note) return;
+    note.text = newText;
+    notePadSave(note).then(function() { notePadRender(); showToast('已更新'); });
+  });
+}
+
+function notePadClearAll() {
+  _openNoteDB().then(function(db) {
+    var tx = db.transaction('notes', 'readwrite');
+    tx.objectStore('notes').clear();
+    tx.oncomplete = function() { notePadRender(); showToast('已清空'); };
+  });
+}
+
+function notePadRender() {
+  notePadGetAll().then(function(notes) {
+    var container = document.getElementById('notePadList');
+    var clearRow = document.getElementById('notePadClearRow');
+    var subTitle = document.getElementById('noteSubTitle');
+    if (!container) return;
+    // Sort by time descending
+    notes.sort(function(a, b) { return b.ts - a.ts; });
+    subTitle.textContent = notes.length + ' 条';
+    clearRow.style.display = notes.length > 0 ? '' : 'none';
+    if (notes.length === 0) {
+      container.innerHTML = '<div class="fav-empty"><div class="fav-empty-icon">📝</div><p>还没有便签</p><small>写下你的想法</small></div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < notes.length; i++) {
+      var n = notes[i];
+      html += '<div class="notepad-card" data-note-id="' + n.id + '">';
+      if (n.text) { html += '<div class="notepad-card-text">' + _esc(n.text) + '</div>'; }
+      if (n.img) { html += '<img src="' + n.img + '" class="notepad-card-img" onclick="window.open(this.src)" />'; }
+      html += '<div class="notepad-card-footer">';
+      html += '<span class="notepad-card-time">' + new Date(n.ts).toLocaleString('zh-CN') + '</span>';
+      html += '<div class="notepad-card-acts">';
+      html += '<span class="act-copy" onclick="notePadCopyText(' + n.id + ')" title="复制文字">&#x1F4CB;</span>';
+      html += '<span class="act-copy" onclick="notePadEdit(' + n.id + ')" title="编辑">&#x270E;</span>';
+      html += '<span class="act-del" onclick="notePadDel(' + n.id + ')" title="删除">&#x2716;</span>';
+      html += '</div></div></div>';
+    }
+    container.innerHTML = html;
+  });
+}
+
+// Init notepad on first load
+setTimeout(function() { notePadRender(); }, 100);
+
 // === Custom Calendar Popup (replaces native date picker to avoid black theme on Android) ===
 var _calDate = null; // current calendar year/month being viewed
 var _calSelDate = ''; // selected date string
@@ -3233,6 +3504,7 @@ function switchTab(tab) {
   if (tab === 'db') { document.getElementById('pageDB').classList.add('active'); tabs[0].classList.add('active'); }
   else if (tab === 'calc') { document.getElementById('pageCalc').classList.add('active'); tabs[1].classList.add('active'); }
   else if (tab === 'fav') { document.getElementById('pageFav').classList.add('active'); tabs[2].classList.add('active'); renderFavList(); }
+  else if (tab === 'note') { document.getElementById('pageNote').classList.add('active'); tabs[3].classList.add('active'); notePadRender(); }
 }
 
 // ===== Build search indexes (with pinyin) =====
