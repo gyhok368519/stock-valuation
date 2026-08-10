@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.4.0';</script>
+<script>var APP_VER='4.5.0';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -486,20 +486,38 @@ body {
   .note-act-icon.del-icon { color:var(--red); }
   .note-edit-input { font-size:13px; padding:8px 10px; border:1px solid var(--primary); border-radius:6px; background:var(--card); color:var(--text); resize:none; min-height:72px; width:100%; box-sizing:border-box; }
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
-  /* NotePad (便签页) */
-  .note-img-btn { display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--primary);cursor:pointer;padding:4px 10px;border:1px solid var(--primary);border-radius:6px;background:var(--card);white-space:nowrap; }
-  .note-img-btn:active { opacity:0.7; }
-  .notepad-card { background:var(--card);border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:var(--shadow);position:relative; }
-  .notepad-card-text { font-size:13px;line-height:1.6;color:var(--text);word-break:break-all;white-space:pre-wrap;margin-bottom:8px; }
-  .notepad-card-img { max-width:100%;max-height:200px;border-radius:6px;margin-bottom:8px;cursor:pointer; }
-  .notepad-card-footer { display:flex;align-items:center;justify-content:space-between; }
-  .notepad-card-time { font-size:11px;color:var(--text3); }
-  .notepad-card-acts { display:flex;gap:16px; }
-  .notepad-card-acts span { font-size:18px;cursor:pointer;opacity:0.5;padding:4px; }
-  .notepad-card-acts span:active { opacity:1; }
-  .notepad-card-acts .act-copy { color:var(--primary); }
-  .notepad-card-acts .act-del { color:var(--red); }
-  .notepad-edit-area { width:100%;font-size:13px;padding:8px 10px;border:1px solid var(--primary);border-radius:6px;background:var(--card);color:var(--text);resize:none;min-height:72px;box-sizing:border-box;margin-bottom:8px; }
+  /* Reader (阅读器页) */
+  .reader-upload-btn { display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--primary);cursor:pointer;padding:6px 14px;border:1px solid var(--primary);border-radius:8px;background:var(--card);margin-bottom:12px; }
+  .reader-upload-btn:active { opacity:0.7; }
+  .reader-book-item { display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border-radius:10px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer; }
+  .reader-book-item:active { opacity:0.8; }
+  .reader-book-icon { font-size:28px;flex-shrink:0; }
+  .reader-book-info { flex:1;min-width:0; }
+  .reader-book-name { font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .reader-book-meta { font-size:11px;color:var(--text3);margin-top:2px; }
+  .reader-book-del { font-size:18px;color:var(--red);opacity:0.5;cursor:pointer;padding:8px;flex-shrink:0; }
+  .reader-book-del:active { opacity:1; }
+  .reader-toolbar { display:flex;align-items:center;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--gray-light);position:sticky;top:0;z-index:10;gap:8px; }
+  .reader-toolbar-btn { font-size:13px;color:var(--primary);cursor:pointer;padding:4px 8px;white-space:nowrap; }
+  .reader-settings-panel { padding:12px 16px;background:var(--card);border-bottom:1px solid var(--gray-light); }
+  .reader-settings-row { display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px;color:var(--text); }
+  .reader-settings-row:last-child { margin-bottom:0; }
+  .reader-settings-btn { font-size:12px;padding:4px 12px;border:1px solid var(--gray-light);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer; }
+  .reader-settings-btn.active { background:var(--primary);color:var(--text-inv);border-color:var(--primary); }
+  .reader-bg-btn { width:28px;height:28px;border-radius:50%;border:2px solid var(--gray-light);cursor:pointer; }
+  .reader-bg-btn.active { border-color:var(--primary);box-shadow:0 0 0 2px var(--primary); }
+  .reader-bg-light { background:#fff; }
+  .reader-bg-warm { background:#f5efc1; }
+  .reader-bg-dark { background:#2a2a2a; }
+  .reader-content { padding:20px 16px 80px;line-height:1.8;word-break:break-all;white-space:pre-wrap;min-height:60vh;box-sizing:border-box; }
+  .reader-theme-light { background:#fff;color:#333; }
+  .reader-theme-warm { background:#f5efc1;color:#5b4618; }
+  .reader-theme-dark { background:#2a2a2a;color:#ccc; }
+  .reader-mode-scroll { overflow-y:auto; }
+  .reader-mode-page { overflow:hidden; }
+  .reader-page-ctrl { display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:var(--card);border-top:1px solid var(--gray-light);position:fixed;bottom:0;left:0;right:0;z-index:10;font-size:13px;color:var(--primary);padding-bottom:calc(10px + env(safe-area-inset-bottom, 0)); }
+  .reader-page-ctrl span { cursor:pointer;padding:4px 12px; }
+  .reader-page-ctrl span:active { opacity:0.6; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
   .fav-empty p { font-size:14px; margin-bottom:6px; }
@@ -724,34 +742,60 @@ body {
   </div>
 </div>
 
-<!-- ========== PAGE 4: Notes (便签) ========== -->
+<!-- ========== PAGE 4: Reader (阅读器) ========== -->
 <div class="page" id="pageNote">
-  <div class="header" style="position:relative;">
-    <h1>便签</h1>
-    <p id="noteSubTitle">0 条</p>
-    <button class="info-btn" style="right:12px;" id="themeBtnNote" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconNote"></span></button>
+  <!-- 书架视图 -->
+  <div id="readerShelf">
+    <div class="header" style="position:relative;">
+      <h1>阅读</h1>
+      <p id="readerSubTitle">0 本书</p>
+      <button class="info-btn" style="right:12px;" id="themeBtnNote" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconNote"></span></button>
+    </div>
+    <div class="container">
+      <label class="reader-upload-btn" id="readerUploadBtn">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;vertical-align:middle;"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+        <span>上传文件</span>
+        <input type="file" accept=".txt,.md,.epub,.text" id="readerFileInput" style="display:none;" onchange="readerHandleFiles(this)" multiple />
+      </label>
+      <div id="readerBookList"><div class="fav-empty"><div class="fav-empty-icon">📖</div><p>还没有书籍</p><small>上传 .txt / .md / .epub 文件</small></div></div>
+      <div class="btn-row" id="readerClearRow" style="display:none;"><button class="btn btn-danger" onclick="readerClearAll()">&#x1F5D1; 清空书架</button></div>
+    </div>
   </div>
-  <div class="container">
-    <div style="margin-bottom:12px;">
-      <div style="display:flex;gap:6px;">
-        <textarea id="notePadInput" placeholder="写点东西..." maxlength="500" rows="3" style="flex:1;font-size:13px;padding:8px 10px;border:1px solid var(--gray-light);border-radius:8px;background:var(--card);color:var(--text);resize:none;min-height:72px;box-sizing:border-box;"></textarea>
+  <!-- 阅读视图 -->
+  <div id="readerView" style="display:none;">
+    <div class="reader-toolbar">
+      <span class="reader-toolbar-btn" onclick="readerBackToShelf()">&#x2190; 书架</span>
+      <span id="readerBookTitle" style="flex:1;text-align:center;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <span class="reader-toolbar-btn" onclick="readerToggleSettings()">&#x2699;</span>
+    </div>
+    <!-- 设置面板 -->
+    <div id="readerSettings" style="display:none;" class="reader-settings-panel">
+      <div class="reader-settings-row">
+        <span>字号</span>
+        <button class="reader-settings-btn" onclick="readerChangeFontSize(-1)">A-</button>
+        <span id="readerFontSizeLabel" style="min-width:32px;text-align:center;">16</span>
+        <button class="reader-settings-btn" onclick="readerChangeFontSize(1)">A+</button>
       </div>
-      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
-        <label class="note-img-btn" id="noteImgBtn">
-          <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;vertical-align:middle;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-          <span>图片</span>
-          <input type="file" accept="image/*" id="noteImgFile" style="display:none;" onchange="notePadPreviewImg(this)" />
-        </label>
-        <div id="notePadImgPreview" style="display:none;position:relative;">
-          <img id="notePadImgThumb" style="height:40px;border-radius:6px;border:1px solid var(--gray-light);" />
-          <span style="position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;line-height:16px;text-align:center;cursor:pointer;" onclick="notePadRemoveImg()">&#x2715;</span>
-        </div>
-        <div style="flex:1;"></div>
-        <button class="btn btn-primary" onclick="notePadAdd()" style="padding:6px 16px;font-size:12px;">保存</button>
+      <div class="reader-settings-row">
+        <span>背景</span>
+        <button class="reader-bg-btn reader-bg-light active" onclick="readerSetTheme('light')" title="浅色"></button>
+        <button class="reader-bg-btn reader-bg-warm" onclick="readerSetTheme('warm')" title="护眼"></button>
+        <button class="reader-bg-btn reader-bg-dark" onclick="readerSetTheme('dark')" title="深色"></button>
+      </div>
+      <div class="reader-settings-row">
+        <span>模式</span>
+        <button class="reader-settings-btn" id="readerModeScroll" onclick="readerSetMode('scroll')">滚动</button>
+        <button class="reader-settings-btn active" id="readerModePage" onclick="readerSetMode('page')">翻页</button>
       </div>
     </div>
-    <div id="notePadList"><div class="fav-empty"><div class="fav-empty-icon">📝</div><p>还没有便签</p><small>写下你的想法</small></div></div>
-    <div class="btn-row" id="notePadClearRow" style="display:none;"><button class="btn btn-danger" onclick="notePadClearAll()">&#x1F5D1; 清空全部便签</button></div>
+    <!-- 阅读内容区 -->
+    <div id="readerContent" class="reader-content reader-theme-light reader-mode-page"></div>
+    <!-- 翻页控制 -->
+    <div id="readerPageCtrl" class="reader-page-ctrl">
+      <span onclick="readerPrevPage()">上一页</span>
+      <span id="readerPageInfo">1 / 1</span>
+      <span onclick="readerNextPage()">下一页</span>
+    </div>
   </div>
 </div>
 
@@ -770,8 +814,8 @@ body {
     <span>收藏</span>
   </div>
   <div class="tab-item" onclick="switchTab('note')">
-    <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>
-    <span>便签</span>
+    <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+    <span>阅读</span>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -3024,223 +3068,397 @@ function saveFavNote(code, index) {
   });
 }
 
-// === NotePad (便签页) - local only, stored in IndexedDB ===
-var _noteDB = null;
-var _notePadImgData = null; // temp image for current note being created
-var NOTE_MAX = 50;
-var NOTE_IMG_MAX = 20;
-var NOTE_IMG_SIZE_LIMIT = 500 * 1024; // 500KB
+// === Reader (阅读器) - local only, stored in IndexedDB ===
+var _readerDB = null;
+var _readerCurrentBook = null; // current book being read
+var _readerPages = []; // pages for page mode
+var _readerCurrentPage = 0;
+var _readerFontSize = parseInt(localStorage.getItem('reader_fontSize') || '16');
+var _readerTheme = localStorage.getItem('reader_theme') || 'light';
+var _readerMode = localStorage.getItem('reader_mode') || 'page'; // 'page' or 'scroll'
 
-function _openNoteDB() {
-  if (_noteDB) return Promise.resolve(_noteDB);
+function _openReaderDB() {
+  if (_readerDB) return Promise.resolve(_readerDB);
   return new Promise(function(resolve, reject) {
     try {
-      var req = indexedDB.open('NoteDB', 1);
+      var req = indexedDB.open('ReaderDB', 1);
       req.onupgradeneeded = function(e) {
         var db = e.target.result;
-        if (!db.objectStoreNames.contains('notes')) db.createObjectStore('notes', {keyPath: 'id'});
+        if (!db.objectStoreNames.contains('books')) db.createObjectStore('books', {keyPath: 'id'});
       };
-      req.onsuccess = function(e) { _noteDB = e.target.result; resolve(_noteDB); };
+      req.onsuccess = function(e) { _readerDB = e.target.result; resolve(_readerDB); };
       req.onerror = function(e) { reject(e.target.error); };
     } catch(e) { reject(e); }
   });
 }
 
-function notePadSave(note) {
-  return _openNoteDB().then(function(db) {
+function _readerSaveBook(book) {
+  return _openReaderDB().then(function(db) {
     return new Promise(function(resolve, reject) {
-      var tx = db.transaction('notes', 'readwrite');
-      tx.objectStore('notes').put(note);
+      var tx = db.transaction('books', 'readwrite');
+      tx.objectStore('books').put(book);
       tx.oncomplete = function() { resolve(); };
       tx.onerror = function(e) { reject(e.target.error); };
     });
   });
 }
 
-function notePadGetAll() {
-  return _openNoteDB().then(function(db) {
+function _readerGetAllBooks() {
+  return _openReaderDB().then(function(db) {
     return new Promise(function(resolve, reject) {
-      var tx = db.transaction('notes', 'readonly');
-      var req = tx.objectStore('notes').getAll();
+      var tx = db.transaction('books', 'readonly');
+      var req = tx.objectStore('books').getAll();
       req.onsuccess = function() { resolve(req.result || []); };
       req.onerror = function(e) { reject(e.target.error); };
     });
   });
 }
 
-function notePadDelete(id) {
-  return _openNoteDB().then(function(db) {
+function _readerDeleteBook(id) {
+  return _openReaderDB().then(function(db) {
     return new Promise(function(resolve, reject) {
-      var tx = db.transaction('notes', 'readwrite');
-      tx.objectStore('notes').delete(id);
+      var tx = db.transaction('books', 'readwrite');
+      tx.objectStore('books').delete(id);
       tx.oncomplete = function() { resolve(); };
       tx.onerror = function(e) { reject(e.target.error); };
     });
   });
 }
 
-// Image compression: resize and compress to fit within size limit
-function _compressImg(file) {
+function _readerGetBook(id) {
+  return _openReaderDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('books', 'readonly');
+      var req = tx.objectStore('books').get(id);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+// Parse epub (simple: extract text from XHTML chapters)
+function _parseEpub(arrayBuffer) {
   return new Promise(function(resolve) {
+    try {
+      // Simple epub parser: find .xhtml/.html files in the zip and extract text
+      var JSZipLib = window.JSZip;
+      if (!JSZipLib) {
+        // Fallback: try to extract text content using basic approach
+        resolve('[EPUB格式需要JSZip库支持，暂时只支持.txt和.md文件]');
+        return;
+      }
+      JSZipLib.loadAsync(arrayBuffer).then(function(zip) {
+        var textParts = [];
+        var files = Object.keys(zip.files).filter(function(f) {
+          return f.endsWith('.xhtml') || f.endsWith('.html') || f.endsWith('.htm');
+        }).sort();
+        var idx = 0;
+        function next() {
+          if (idx >= files.length) {
+            resolve(textParts.join('\n\n'));
+            return;
+          }
+          zip.files[files[idx]].async('string').then(function(content) {
+            // Strip HTML tags
+            var text = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+            if (text) textParts.push(text);
+            idx++;
+            next();
+          }).catch(function() { idx++; next(); });
+        }
+        next();
+      }).catch(function() { resolve('[EPUB解析失败]'); });
+    } catch(e) { resolve('[EPUB解析出错: ' + e.message + ']'); }
+  });
+}
+
+function readerHandleFiles(input) {
+  if (!input.files || input.files.length === 0) return;
+  var files = Array.from(input.files);
+  var processed = 0;
+
+  files.forEach(function(file) {
+    var ext = file.name.split('.').pop().toLowerCase();
+    var readType = (ext === 'epub') ? 'arraybuffer' : 'text';
+
     var reader = new FileReader();
     reader.onload = function(e) {
-      var img = new Image();
-      img.onload = function() {
-        var maxW = 800, maxH = 800;
-        var w = img.width, h = img.height;
-        if (w > maxW) { h = h * maxW / w; w = maxW; }
-        if (h > maxH) { w = w * maxH / h; h = maxH; }
-        var canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        var quality = 0.7;
-        var dataUrl = canvas.toDataURL('image/jpeg', quality);
-        // Further reduce quality if still too large
-        while (dataUrl.length > NOTE_IMG_SIZE_LIMIT * 1.37 && quality > 0.2) {
-          quality -= 0.1;
-          dataUrl = canvas.toDataURL('image/jpeg', quality);
-        }
-        resolve(dataUrl);
-      };
-      img.src = e.target.result;
+      var content;
+      if (ext === 'epub') {
+        _parseEpub(e.target.result).then(function(text) {
+          _readerAddBook(file.name, text, ext, file.size, function() {
+            processed++;
+            if (processed === files.length) { readerRenderList(); input.value = ''; }
+          });
+        });
+        return;
+      }
+      content = e.target.result;
+      _readerAddBook(file.name, content, ext, file.size, function() {
+        processed++;
+        if (processed === files.length) { readerRenderList(); input.value = ''; }
+      });
     };
-    reader.readAsDataURL(file);
+    if (readType === 'arraybuffer') reader.readAsArrayBuffer(file);
+    else reader.readAsText(file, 'UTF-8');
   });
 }
 
-function notePadPreviewImg(input) {
-  if (!input.files || !input.files[0]) return;
-  // Count existing images
-  notePadGetAll().then(function(notes) {
-    var imgCount = notes.filter(function(n) { return n.img; }).length;
-    if (imgCount >= NOTE_IMG_MAX) { showToast('图片便签上限' + NOTE_IMG_MAX + '张'); input.value = ''; return; }
-    _compressImg(input.files[0]).then(function(dataUrl) {
-      _notePadImgData = dataUrl;
-      document.getElementById('notePadImgThumb').src = dataUrl;
-      document.getElementById('notePadImgPreview').style.display = 'inline-block';
-    });
-  });
+function _readerAddBook(name, content, ext, size, cb) {
+  var book = {
+    id: Date.now() + '_' + Math.random().toString(36).substr(2,6),
+    name: name,
+    content: content,
+    ext: ext,
+    size: size,
+    addedAt: Date.now(),
+    lastRead: 0,
+    scrollPos: 0,
+    pageIdx: 0
+  };
+  _readerSaveBook(book).then(function() { if (cb) cb(); });
 }
 
-function notePadRemoveImg() {
-  _notePadImgData = null;
-  document.getElementById('notePadImgPreview').style.display = 'none';
-  document.getElementById('noteImgFile').value = '';
+function _formatSize(bytes) {
+  if (bytes < 1024) return bytes + 'B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
 }
 
-function notePadAdd() {
-  var textEl = document.getElementById('notePadInput');
-  var text = textEl.value.trim();
-  if (!text && !_notePadImgData) { showToast('请输入内容或添加图片'); return; }
-
-  notePadGetAll().then(function(notes) {
-    if (notes.length >= NOTE_MAX) { showToast('便签上限' + NOTE_MAX + '条'); return; }
-    var note = { id: Date.now(), text: text, ts: Date.now() };
-    if (_notePadImgData) { note.img = _notePadImgData; }
-    notePadSave(note).then(function() {
-      textEl.value = '';
-      notePadRemoveImg();
-      notePadRender();
-      showToast('已保存');
-    });
-  });
+function _formatTime(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleString('zh-CN');
 }
 
-function notePadCopyText(id) {
-  notePadGetAll().then(function(notes) {
-    var note = notes.find(function(n) { return n.id === id; });
-    if (!note || !note.text) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(note.text).then(function() { showToast('已复制文字'); });
-    } else {
-      var ta = document.createElement('textarea');
-      ta.value = note.text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-      document.body.appendChild(ta); ta.select();
-      document.execCommand('copy'); document.body.removeChild(ta);
-      showToast('已复制文字');
-    }
-  });
-}
-
-function notePadDel(id) {
-  notePadDelete(id).then(function() { notePadRender(); showToast('已删除'); });
-}
-
-function notePadEdit(id) {
-  notePadGetAll().then(function(notes) {
-    var note = notes.find(function(n) { return n.id === id; });
-    if (!note) return;
-    var card = document.querySelector('[data-note-id="' + id + '"]');
-    if (!card) return;
-    var html = '<textarea class="notepad-edit-area" id="notepadEdit_' + id + '">' + _esc(note.text) + '</textarea>';
-    if (note.img) { html += '<img src="' + note.img + '" class="notepad-card-img" />'; }
-    html += '<div class="notepad-card-footer">';
-    html += '<span style="font-size:11px;color:var(--text3);">' + new Date(note.ts).toLocaleString('zh-CN') + '</span>';
-    html += '<div style="display:flex;gap:12px;">';
-    html += '<span style="font-size:14px;color:var(--primary);cursor:pointer;" onclick="notePadSaveEdit(' + id + ')">\u2713 保存</span>';
-    html += '<span style="font-size:14px;color:var(--text3);cursor:pointer;" onclick="notePadRender()">取消</span>';
-    html += '</div></div>';
-    card.innerHTML = html;
-    var editArea = document.getElementById('notepadEdit_' + id);
-    if (editArea) editArea.focus();
-  });
-}
-
-function notePadSaveEdit(id) {
-  var editArea = document.getElementById('notepadEdit_' + id);
-  if (!editArea) return;
-  var newText = editArea.value.trim();
-  if (!newText) { showToast('内容不能为空'); return; }
-  notePadGetAll().then(function(notes) {
-    var note = notes.find(function(n) { return n.id === id; });
-    if (!note) return;
-    note.text = newText;
-    notePadSave(note).then(function() { notePadRender(); showToast('已更新'); });
-  });
-}
-
-function notePadClearAll() {
-  _openNoteDB().then(function(db) {
-    var tx = db.transaction('notes', 'readwrite');
-    tx.objectStore('notes').clear();
-    tx.oncomplete = function() { notePadRender(); showToast('已清空'); };
-  });
-}
-
-function notePadRender() {
-  notePadGetAll().then(function(notes) {
-    var container = document.getElementById('notePadList');
-    var clearRow = document.getElementById('notePadClearRow');
-    var subTitle = document.getElementById('noteSubTitle');
+function readerRenderList() {
+  _readerGetAllBooks().then(function(books) {
+    var container = document.getElementById('readerBookList');
+    var clearRow = document.getElementById('readerClearRow');
+    var subTitle = document.getElementById('readerSubTitle');
     if (!container) return;
-    // Sort by time descending
-    notes.sort(function(a, b) { return b.ts - a.ts; });
-    subTitle.textContent = notes.length + ' 条';
-    clearRow.style.display = notes.length > 0 ? '' : 'none';
-    if (notes.length === 0) {
-      container.innerHTML = '<div class="fav-empty"><div class="fav-empty-icon">📝</div><p>还没有便签</p><small>写下你的想法</small></div>';
+    books.sort(function(a, b) { return (b.lastRead || b.addedAt) - (a.lastRead || a.addedAt); });
+    subTitle.textContent = books.length + ' 本书';
+    clearRow.style.display = books.length > 0 ? '' : 'none';
+    if (books.length === 0) {
+      container.innerHTML = '<div class="fav-empty"><div class="fav-empty-icon">📖</div><p>还没有书籍</p><small>上传 .txt / .md / .epub 文件</small></div>';
       return;
     }
+    var iconMap = { txt: '📄', md: '📝', epub: '📕' };
     var html = '';
-    for (var i = 0; i < notes.length; i++) {
-      var n = notes[i];
-      html += '<div class="notepad-card" data-note-id="' + n.id + '">';
-      if (n.text) { html += '<div class="notepad-card-text">' + _esc(n.text) + '</div>'; }
-      if (n.img) { html += '<img src="' + n.img + '" class="notepad-card-img" onclick="window.open(this.src)" />'; }
-      html += '<div class="notepad-card-footer">';
-      html += '<span class="notepad-card-time">' + new Date(n.ts).toLocaleString('zh-CN') + '</span>';
-      html += '<div class="notepad-card-acts">';
-      html += '<span class="act-copy" onclick="notePadCopyText(' + n.id + ')" title="复制文字">&#x1F4CB;</span>';
-      html += '<span class="act-copy" onclick="notePadEdit(' + n.id + ')" title="编辑">&#x270E;</span>';
-      html += '<span class="act-del" onclick="notePadDel(' + n.id + ')" title="删除">&#x2716;</span>';
-      html += '</div></div></div>';
+    for (var i = 0; i < books.length; i++) {
+      var b = books[i];
+      var icon = iconMap[b.ext] || '📄';
+      var meta = _formatSize(b.size);
+      if (b.lastRead) meta += ' · 最近 ' + _formatTime(b.lastRead);
+      html += '<div class="reader-book-item" onclick="readerOpen(\'' + b.id + '\')">';
+      html += '<span class="reader-book-icon">' + icon + '</span>';
+      html += '<div class="reader-book-info"><div class="reader-book-name">' + _esc(b.name) + '</div>';
+      html += '<div class="reader-book-meta">' + meta + '</div></div>';
+      html += '<span class="reader-book-del" onclick="event.stopPropagation();readerDel(\'' + b.id + '\')">&#x2716;</span>';
+      html += '</div>';
     }
     container.innerHTML = html;
   });
 }
 
-// Init notepad on first load
-setTimeout(function() { notePadRender(); }, 100);
+function readerDel(id) {
+  _readerDeleteBook(id).then(function() { readerRenderList(); showToast('已删除'); });
+}
+
+function readerClearAll() {
+  _openReaderDB().then(function(db) {
+    var tx = db.transaction('books', 'readwrite');
+    tx.objectStore('books').clear();
+    tx.oncomplete = function() { readerRenderList(); showToast('已清空'); };
+  });
+}
+
+// === Reader View ===
+function readerOpen(id) {
+  _readerGetBook(id).then(function(book) {
+    if (!book) return;
+    _readerCurrentBook = book;
+    // Update last read
+    book.lastRead = Date.now();
+    _readerSaveBook(book);
+
+    document.getElementById('readerShelf').style.display = 'none';
+    document.getElementById('readerView').style.display = 'flex';
+    document.getElementById('readerView').style.flexDirection = 'column';
+    document.getElementById('readerView').style.height = '100vh';
+    document.getElementById('readerBookTitle').textContent = book.name;
+    document.getElementById('readerSettings').style.display = 'none';
+
+    // Apply settings
+    _readerApplySettings();
+
+    if (_readerMode === 'page') {
+      _readerBuildPages(book.content);
+    } else {
+      document.getElementById('readerContent').textContent = book.content;
+    }
+
+    // Restore scroll/position
+    if (_readerMode === 'scroll' && book.scrollPos) {
+      setTimeout(function() { document.getElementById('readerContent').scrollTop = book.scrollPos; }, 50);
+    }
+  });
+}
+
+function readerBackToShelf() {
+  // Save current position
+  if (_readerCurrentBook) {
+    if (_readerMode === 'scroll') {
+      _readerCurrentBook.scrollPos = document.getElementById('readerContent').scrollTop;
+    } else {
+      _readerCurrentBook.pageIdx = _readerCurrentPage;
+    }
+    _readerSaveBook(_readerCurrentBook);
+  }
+  document.getElementById('readerView').style.display = 'none';
+  document.getElementById('readerShelf').style.display = '';
+  readerRenderList();
+  _readerCurrentBook = null;
+}
+
+function readerToggleSettings() {
+  var panel = document.getElementById('readerSettings');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function _readerApplySettings() {
+  var content = document.getElementById('readerContent');
+  content.style.fontSize = _readerFontSize + 'px';
+  document.getElementById('readerFontSizeLabel').textContent = _readerFontSize;
+  // Theme
+  content.className = 'reader-content reader-theme-' + _readerTheme;
+  if (_readerMode === 'page') content.className += ' reader-mode-page';
+  else content.className += ' reader-mode-scroll';
+  // Theme buttons
+  document.querySelectorAll('.reader-bg-btn').forEach(function(b) { b.classList.remove('active'); });
+  var activeBtn = document.querySelector('.reader-bg-' + _readerTheme);
+  if (activeBtn) activeBtn.classList.add('active');
+  // Mode buttons
+  document.getElementById('readerModeScroll').classList.toggle('active', _readerMode === 'scroll');
+  document.getElementById('readerModePage').classList.toggle('active', _readerMode === 'page');
+  // Page controls visibility
+  document.getElementById('readerPageCtrl').style.display = _readerMode === 'page' ? 'flex' : 'none';
+}
+
+function readerChangeFontSize(delta) {
+  _readerFontSize = Math.max(12, Math.min(28, _readerFontSize + delta));
+  localStorage.setItem('reader_fontSize', _readerFontSize);
+  var content = document.getElementById('readerContent');
+  content.style.fontSize = _readerFontSize + 'px';
+  document.getElementById('readerFontSizeLabel').textContent = _readerFontSize;
+  // Rebuild pages if in page mode
+  if (_readerMode === 'page' && _readerCurrentBook) {
+    _readerBuildPages(_readerCurrentBook.content);
+  }
+}
+
+function readerSetTheme(theme) {
+  _readerTheme = theme;
+  localStorage.setItem('reader_theme', theme);
+  _readerApplySettings();
+}
+
+function readerSetMode(mode) {
+  _readerMode = mode;
+  localStorage.setItem('reader_mode', mode);
+  if (_readerCurrentBook) {
+    if (mode === 'scroll') {
+      _readerCurrentBook.pageIdx = _readerCurrentPage;
+    } else {
+      _readerCurrentBook.scrollPos = document.getElementById('readerContent').scrollTop;
+    }
+    _readerSaveBook(_readerCurrentBook);
+  }
+  _readerApplySettings();
+  if (_readerCurrentBook) {
+    if (mode === 'page') {
+      _readerBuildPages(_readerCurrentBook.content);
+    } else {
+      _readerPages = [];
+      document.getElementById('readerContent').textContent = _readerCurrentBook.content;
+      if (_readerCurrentBook.scrollPos) {
+        setTimeout(function() { document.getElementById('readerContent').scrollTop = _readerCurrentBook.scrollPos; }, 50);
+      }
+    }
+  }
+}
+
+function _readerBuildPages(text) {
+  // Split text into pages based on character count (approximate)
+  var charsPerPage = Math.max(300, Math.floor(window.innerHeight * (_readerFontSize <= 16 ? 40 : _readerFontSize <= 20 ? 30 : 22)));
+  _readerPages = [];
+  var lines = text.split('\n');
+  var currentPage = '';
+  var charCount = 0;
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    if (charCount + line.length > charsPerPage && currentPage) {
+      _readerPages.push(currentPage);
+      currentPage = line + '\n';
+      charCount = line.length + 1;
+    } else {
+      currentPage += line + '\n';
+      charCount += line.length + 1;
+    }
+  }
+  if (currentPage) _readerPages.push(currentPage);
+  if (_readerPages.length === 0) _readerPages = [''];
+
+  // Restore page index
+  _readerCurrentPage = (_readerCurrentBook && _readerCurrentBook.pageIdx) ? Math.min(_readerCurrentBook.pageIdx, _readerPages.length - 1) : 0;
+  _readerShowPage();
+}
+
+function _readerShowPage() {
+  var content = document.getElementById('readerContent');
+  content.textContent = _readerPages[_readerCurrentPage] || '';
+  document.getElementById('readerPageInfo').textContent = (_readerCurrentPage + 1) + ' / ' + _readerPages.length;
+}
+
+function readerPrevPage() {
+  if (_readerCurrentPage > 0) {
+    _readerCurrentPage--;
+    _readerShowPage();
+  }
+}
+
+function readerNextPage() {
+  if (_readerCurrentPage < _readerPages.length - 1) {
+    _readerCurrentPage++;
+    _readerShowPage();
+  }
+}
+
+// Swipe support for page mode
+(function() {
+  var startX = 0, startY = 0;
+  document.addEventListener('touchstart', function(e) {
+    if (!_readerCurrentBook || _readerMode !== 'page') return;
+    var target = document.getElementById('readerContent');
+    if (!target.contains(e.target) && e.target !== target) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, {passive: true});
+  document.addEventListener('touchend', function(e) {
+    if (!_readerCurrentBook || _readerMode !== 'page') return;
+    if (!startX) return;
+    var dx = e.changedTouches[0].clientX - startX;
+    var dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx > 0) readerPrevPage();
+      else readerNextPage();
+    }
+    startX = 0;
+  }, {passive: true});
+})();
+
+// Init reader on first load
+setTimeout(function() { readerRenderList(); }, 100);
 
 // === Custom Calendar Popup (replaces native date picker to avoid black theme on Android) ===
 var _calDate = null; // current calendar year/month being viewed
@@ -3504,7 +3722,7 @@ function switchTab(tab) {
   if (tab === 'db') { document.getElementById('pageDB').classList.add('active'); tabs[0].classList.add('active'); }
   else if (tab === 'calc') { document.getElementById('pageCalc').classList.add('active'); tabs[1].classList.add('active'); }
   else if (tab === 'fav') { document.getElementById('pageFav').classList.add('active'); tabs[2].classList.add('active'); renderFavList(); }
-  else if (tab === 'note') { document.getElementById('pageNote').classList.add('active'); tabs[3].classList.add('active'); notePadRender(); }
+  else if (tab === 'note') { document.getElementById('pageNote').classList.add('active'); tabs[3].classList.add('active'); readerRenderList(); }
 }
 
 // ===== Build search indexes (with pinyin) =====
