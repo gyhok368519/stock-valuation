@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.3.0';</script>
+<script>var APP_VER='4.3.1';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -680,10 +680,7 @@ body {
       <!-- 极端情况下投资收益率 -->
       <div id="investRateBox" style="display:none;margin-top:12px;padding:12px 14px;background:var(--input-readonly-bg);border-radius:8px;">
         <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;">极端情况 · 投资收益率</div>
-        <div style="display:flex;align-items:baseline;gap:8px;">
-          <span style="font-size:22px;font-weight:700;color:var(--primary);" id="investRateVal">-</span>
-          <span style="font-size:12px;color:var(--text3);" id="investRateFormula"></span>
-        </div>
+        <span style="font-size:22px;font-weight:700;color:var(--primary);" id="investRateVal">-</span>
       </div>
     </div>
     <div class="section-title"><span>&#x1F4CB; 历史记录</span><span class="count" id="historyCount">0 条</span></div>
@@ -1041,7 +1038,7 @@ function bjTime() {
 // GitHub API helpers (with localStorage cache for speed)
 const CACHE_KEY = '_auth_db_cache';
 const CACHE_TIME_KEY = '_auth_db_cache_time';
-const CACHE_TTL = 60000; // cache valid for 60s
+const CACHE_TTL = 300000; // cache valid for 5min (was 60s, too short for auth operations)
 const OFFLINE_DB_KEY = '_auth_offline_db'; // offline fallback DB
 let _ghSha = null;
 let _dbCache = null;
@@ -1098,8 +1095,8 @@ async function ghGet() {
     _ghSha = d.sha;
     const db = JSON.parse(decodeURIComponent(escape(atob(d.content))));
     _saveCache(db);
-    // Cloud success: merge any offline-only users into cloud
-    await _mergeOfflineToCloud(db);
+    // Cloud success: merge offline users asynchronously (non-blocking)
+    _mergeOfflineToCloud(db).catch(e => console.warn('merge err:', e));
     return db;
   } catch (e) { console.error('ghGet error:', e); return null; }
 }
@@ -1405,14 +1402,27 @@ async function doResetPassword() {
     return;
   }
 
-  // 4. Last resort: fetch from cloud
+  // 4. Last resort: fetch from cloud (with 2s timeout to avoid blocking auth form)
   try {
-    const db = await ghGet();
-    if (db && db[session]) {
+    const dbPromise = ghGet();
+    const timeoutPromise = new Promise(r => setTimeout(() => r('timeout'), 2000));
+    const result = await Promise.race([dbPromise, timeoutPromise]);
+    if (result === 'timeout') {
+      // Cloud too slow — show auth form immediately, continue in background
+      dbPromise.then(db => {
+        if (db && db[session]) {
+          const ao = document.getElementById('authOverlay');
+          if (ao) ao.classList.add('hidden');
+          updateMenuUser();
+        } else if (db !== null) {
+          localStorage.removeItem(SESSION_KEY);
+        }
+      });
+    } else if (result && result[session]) {
       const ao = document.getElementById('authOverlay');
       if (ao) ao.classList.add('hidden');
       updateMenuUser();
-    } else if (db === null) {
+    } else if (result === null) {
       // Cloud unreachable AND no local data — still let user in to see auth form
       // Don't remove SESSION_KEY so we can retry next time
     } else {
@@ -1430,10 +1440,10 @@ async function doResetPassword() {
     const offline = _getOfflineDB();
     if (Object.keys(offline).length > 0) {
       const db = await ghGet();
-      // _mergeOfflineToCloud is called inside ghGet on success
+      // _mergeOfflineToCloud is called inside ghGet on success (async)
     }
     _offlineSyncLoop(); // keep checking
-  }, 30000); // check every 30s
+  }, 60000); // check every 60s (was 30s)
 })();
 
 function updateMenuUser() {
@@ -3682,14 +3692,12 @@ function calculate() {
   // 投资收益率 = ROE*(1-股利支付率) + 1/PE*股利支付率
   var _irBox = document.getElementById('investRateBox');
   var _irVal = document.getElementById('investRateVal');
-  var _irFormula = document.getElementById('investRateFormula');
   var _dbRow = DB_DATA[code];
   if (_dbRow) {
     var _dpr = _dbRow[16]; // 股利支付率，小数格式
     if (_dpr !== null && _dpr !== undefined && _dpr > 0) {
       var _ir = roeDecimal * (1 - _dpr) + (1 / peVal) * _dpr;
       _irVal.textContent = (_ir * 100).toFixed(2) + '%';
-      _irFormula.textContent = '= ROE×(1-派现率) + EY×派现率 = ' + (roeDecimal*100).toFixed(2) + '%×' + ((1-_dpr)*100).toFixed(1) + '% + ' + ((1/peVal)*100).toFixed(2) + '%×' + (_dpr*100).toFixed(1) + '%';
       _irBox.style.display = 'block';
     } else {
       _irBox.style.display = 'none';
@@ -3987,7 +3995,8 @@ function _applyUpdate(remoteVer) {
         setTimeout(doCheck, 5000);
       });
   }
-  doCheck();
+  // Delay 5s to avoid competing with critical resources on page load
+  setTimeout(doCheck, 5000);
 })();
 
 // Manual check update (triggered by user tapping "检查更新")
