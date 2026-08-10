@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.2.2';</script>
+<script>var APP_VER='5.2.3';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -476,7 +476,7 @@ body {
   .note-add-row textarea { font-size:13px; padding:8px 10px; border:1px solid var(--gray-light); border-radius:6px; background:var(--card); color:var(--text); resize:none; min-height:72px; }
   .note-add-btn { background:var(--primary); color:var(--text-inv); border:none; border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .note-add-btn:active { opacity:0.8; }
-  .note-list { max-height:200px; overflow-y:auto; }
+  .remark-list { max-height:200px; overflow-y:auto; }
   .note-item { display:flex; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--gray-light); font-size:12px; line-height:1.5; gap:6px; }
   .note-item.editing { flex-direction:column; }
   .note-item:last-child { border-bottom:none; }
@@ -2930,7 +2930,7 @@ function showNoteDialog(code) {
   html += '</div>';
   html += '<textarea id="noteTextInput" placeholder="备注内容" maxlength="100" rows="3" style="width:100%;box-sizing:border-box;"></textarea>';
   html += '</div>';
-  html += '<div class="note-list" id="noteListContainer"><div class="note-empty">暂无备注</div></div>';
+  html += '<div class="remark-list" id="noteListContainer"><div class="note-empty">暂无备注</div></div>';
   html += '</div>';
 
   document.getElementById('noteDialogTitle').textContent = name;
@@ -3076,7 +3076,7 @@ var _noteTheme = localStorage.getItem('note_theme') || 'warm';
 var _noteLeftCollapsed = localStorage.getItem('note_leftCollapsed') === '1';
 var _noteSaveTimer = null;
 
-// JS sets exact pixel heights for all note elements - no CSS bottom reliance
+// JS sets exact pixel heights for all note elements
 function _noteResizeLayout() {
   var page = document.getElementById('pageNote');
   var header = page ? page.querySelector('.header') : null;
@@ -3095,25 +3095,13 @@ function _noteResizeLayout() {
   if (layoutH < 100) layoutH = 300;
   var listH = layoutH - barH;
   if (listH < 50) listH = 200;
-  // Set layout position and height
   layout.style.top = headerH + 'px';
   layout.style.height = layoutH + 'px';
-  // Set note-left height  
   if (noteLeft) noteLeft.style.height = layoutH + 'px';
-  // Set note-list height  
   if (noteList) noteList.style.height = listH + 'px';
-  // Set note-editor height
   if (noteEditor) noteEditor.style.height = layoutH + 'px';
-  // Set editor-area height
   if (noteEditorArea) noteEditorArea.style.height = listH + 'px';
-  // Set empty height
   if (noteEmpty) noteEmpty.style.height = listH + 'px';
-  // Debug: confirm heights
-  setTimeout(function() {
-    var nl = document.getElementById('noteList');
-    var nlLeft = document.getElementById('noteLeft');
-    showToast('left:h=' + (nlLeft ? nlLeft.style.height : '?') + ' computed=' + (nlLeft ? Math.round(nlLeft.getBoundingClientRect().height) : '?') + ' list:h=' + (nl ? nl.style.height : '?') + ' computed=' + (nl ? Math.round(nl.getBoundingClientRect().height) : '?'), 5000);
-  }, 300);
 }
 window.addEventListener('resize', function() {
   if (document.getElementById('pageNote').classList.contains('active')) _noteResizeLayout();
