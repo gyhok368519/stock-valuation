@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='4.5.2';</script>
+<script>var APP_VER='5.0.0';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -486,38 +486,42 @@ body {
   .note-act-icon.del-icon { color:var(--red); }
   .note-edit-input { font-size:13px; padding:8px 10px; border:1px solid var(--primary); border-radius:6px; background:var(--card); color:var(--text); resize:none; min-height:72px; width:100%; box-sizing:border-box; }
   .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:8px 0; }
-  /* Reader (阅读器页) */
-  .reader-upload-btn { display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--primary);cursor:pointer;padding:6px 14px;border:1px solid var(--primary);border-radius:8px;background:var(--card);margin-bottom:12px;font-family:inherit;outline:none;-webkit-appearance:none;appearance:none; }
-  .reader-upload-btn:active { opacity:0.7; }
-  .reader-book-item { display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border-radius:10px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer; }
-  .reader-book-item:active { opacity:0.8; }
-  .reader-book-icon { font-size:28px;flex-shrink:0; }
-  .reader-book-info { flex:1;min-width:0; }
-  .reader-book-name { font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-  .reader-book-meta { font-size:11px;color:var(--text3);margin-top:2px; }
-  .reader-book-del { font-size:18px;color:var(--red);opacity:0.5;cursor:pointer;padding:8px;flex-shrink:0; }
-  .reader-book-del:active { opacity:1; }
-  .reader-toolbar { display:flex;align-items:center;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--gray-light);position:sticky;top:0;z-index:10;gap:8px; }
-  .reader-toolbar-btn { font-size:13px;color:var(--primary);cursor:pointer;padding:4px 8px;white-space:nowrap; }
-  .reader-settings-panel { padding:12px 16px;background:var(--card);border-bottom:1px solid var(--gray-light); }
-  .reader-settings-row { display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px;color:var(--text); }
-  .reader-settings-row:last-child { margin-bottom:0; }
-  .reader-settings-btn { font-size:12px;padding:4px 12px;border:1px solid var(--gray-light);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer; }
-  .reader-settings-btn.active { background:var(--primary);color:var(--text-inv);border-color:var(--primary); }
-  .reader-bg-btn { width:28px;height:28px;border-radius:50%;border:2px solid var(--gray-light);cursor:pointer; }
-  .reader-bg-btn.active { border-color:var(--primary);box-shadow:0 0 0 2px var(--primary); }
-  .reader-bg-light { background:#fff; }
-  .reader-bg-warm { background:#f5efc1; }
-  .reader-bg-dark { background:#2a2a2a; }
-  .reader-content { padding:20px 16px 80px;line-height:1.8;word-break:break-all;white-space:pre-wrap;min-height:60vh;box-sizing:border-box; }
-  .reader-theme-light { background:#fff;color:#333; }
-  .reader-theme-warm { background:#f5efc1;color:#5b4618; }
-  .reader-theme-dark { background:#2a2a2a;color:#ccc; }
-  .reader-mode-scroll { overflow-y:auto; }
-  .reader-mode-page { overflow:hidden; }
-  .reader-page-ctrl { display:flex;justify-content:space-between;align-items:center;padding:10px 20px;background:var(--card);border-top:1px solid var(--gray-light);position:fixed;bottom:0;left:0;right:0;z-index:10;font-size:13px;color:var(--primary);padding-bottom:calc(10px + env(safe-area-inset-bottom, 0)); }
-  .reader-page-ctrl span { cursor:pointer;padding:4px 12px; }
-  .reader-page-ctrl span:active { opacity:0.6; }
+  /* Notepad (便签页) */
+  .note-layout { display:flex; flex-direction:column; height:calc(100vh - 108px); }
+  .note-list { flex:0 0 auto; max-height:40vh; overflow-y:auto; border-bottom:1px solid var(--gray-light); background:var(--surface); }
+  .note-item { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--gray-light); cursor:pointer; transition:background 0.15s; }
+  .note-item:active, .note-item.active { background:var(--primary-light); }
+  .note-item-icon { font-size:18px; flex-shrink:0; }
+  .note-item-info { flex:1; min-width:0; }
+  .note-item-title { font-size:13px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .note-item-meta { font-size:11px; color:var(--text3); margin-top:1px; }
+  .note-item-del { font-size:16px; color:var(--red); opacity:0.4; cursor:pointer; padding:6px; flex-shrink:0; }
+  .note-item-del:active { opacity:1; }
+  .note-add-row { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--card); border-bottom:1px solid var(--gray-light); }
+  .note-add-btn { font-size:13px; color:var(--primary); cursor:pointer; padding:4px 12px; border:1px solid var(--primary); border-radius:6px; background:var(--card); font-family:inherit; }
+  .note-add-btn:active { opacity:0.7; }
+  .note-editor { flex:1; display:flex; flex-direction:column; min-height:0; }
+  .note-toolbar { display:flex; align-items:center; padding:6px 8px; background:var(--card); border-bottom:1px solid var(--gray-light); gap:4px; flex-shrink:0; flex-wrap:wrap; }
+  .note-toolbar-btn { font-size:12px; padding:4px 10px; border:1px solid var(--gray-light); border-radius:5px; background:var(--card); color:var(--text); cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .note-toolbar-btn:active { opacity:0.7; }
+  .note-toolbar-btn.active { background:var(--primary); color:var(--text-inv); border-color:var(--primary); }
+  .note-editor-area { flex:1; min-height:0; overflow:hidden; position:relative; }
+  .note-editor-scroll { width:100%; height:100%; overflow-y:auto; padding:12px; box-sizing:border-box; }
+  .note-editor-page { width:100%; height:100%; overflow:hidden; padding:12px; box-sizing:border-box; }
+  .note-editor-content { width:100%; min-height:100%; outline:none; border:none; background:transparent; color:var(--text); font-size:15px; line-height:1.7; word-break:break-all; white-space:pre-wrap; resize:none; -webkit-user-select:text; user-select:text; }
+  .note-editor-content:empty::before { content:attr(data-placeholder); color:var(--text3); pointer-events:none; }
+  .note-theme-light { background:#fff; color:#333; }
+  .note-theme-warm { background:#f5efc1; color:#5b4618; }
+  .note-theme-dark { background:#2a2a2a; color:#ccc; }
+  .note-bg-btn { width:22px; height:22px; border-radius:50%; border:2px solid var(--gray-light); cursor:pointer; flex-shrink:0; }
+  .note-bg-btn.active { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary); }
+  .note-bg-light { background:#fff; }
+  .note-bg-warm { background:#f5efc1; }
+  .note-bg-dark { background:#2a2a2a; }
+  .note-page-ctrl { display:flex; justify-content:space-between; align-items:center; padding:8px 16px; background:var(--card); border-top:1px solid var(--gray-light); font-size:13px; color:var(--primary); flex-shrink:0; padding-bottom:calc(8px + env(safe-area-inset-bottom, 0)); }
+  .note-page-ctrl span { cursor:pointer; padding:4px 12px; }
+  .note-page-ctrl span:active { opacity:0.6; }
+  .note-empty { color:var(--text3); font-size:12px; text-align:center; padding:16px 0; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
   .fav-empty p { font-size:14px; margin-bottom:6px; }
@@ -742,60 +746,50 @@ body {
   </div>
 </div>
 
-<!-- ========== PAGE 4: Reader (阅读器) ========== -->
+<!-- ========== PAGE 4: Notepad (便签) ========== -->
 <div class="page" id="pageNote">
-  <!-- 书架视图 -->
-  <div id="readerShelf">
-    <div class="header" style="position:relative;">
-      <h1>阅读</h1>
-      <p id="readerSubTitle">0 本书</p>
-      <button class="info-btn" style="right:12px;" id="themeBtnNote" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconNote"></span></button>
-    </div>
-    <div class="container">
-      <button class="reader-upload-btn" id="readerUploadBtn" type="button" onclick="document.getElementById('readerFileInput').click()">
-        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;vertical-align:middle;"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
-        <span>上传文件</span>
-      </button>
-      <input type="file" accept=".txt,.md,.epub,.text" id="readerFileInput" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;" onchange="readerHandleFiles(this)" multiple />
-      <div id="readerBookList"><div class="fav-empty"><div class="fav-empty-icon">📖</div><p>还没有书籍</p><small>上传 .txt / .md / .epub 文件</small></div></div>
-      <div class="btn-row" id="readerClearRow" style="display:none;"><button class="btn btn-danger" onclick="readerClearAll()">&#x1F5D1; 清空书架</button></div>
-    </div>
+  <div class="header" style="position:relative;">
+    <h1>便签</h1>
+    <p id="noteSubTitle">0 条</p>
+    <button class="info-btn" style="right:12px;" id="themeBtnNote" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconNote"></span></button>
   </div>
-  <!-- 阅读视图 -->
-  <div id="readerView" style="display:none;">
-    <div class="reader-toolbar">
-      <span class="reader-toolbar-btn" onclick="readerBackToShelf()">&#x2190; 书架</span>
-      <span id="readerBookTitle" style="flex:1;text-align:center;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-      <span class="reader-toolbar-btn" onclick="readerToggleSettings()">&#x2699;</span>
+  <div class="note-layout">
+    <!-- 便签列表 -->
+    <div class="note-add-row">
+      <span style="font-size:13px;color:var(--text3);">便签列表</span>
+      <button class="note-add-btn" onclick="noteNew()">&#x2795; 新建</button>
     </div>
-    <!-- 设置面板 -->
-    <div id="readerSettings" style="display:none;" class="reader-settings-panel">
-      <div class="reader-settings-row">
-        <span>字号</span>
-        <button class="reader-settings-btn" onclick="readerChangeFontSize(-1)">A-</button>
-        <span id="readerFontSizeLabel" style="min-width:32px;text-align:center;">16</span>
-        <button class="reader-settings-btn" onclick="readerChangeFontSize(1)">A+</button>
+    <div class="note-list" id="noteList"></div>
+    <!-- 编辑器 -->
+    <div class="note-editor" id="noteEditor" style="display:none;">
+      <div class="note-toolbar" id="noteToolbar">
+        <button class="note-toolbar-btn" onclick="noteCut()">&#x2702; 剪切</button>
+        <button class="note-toolbar-btn" onclick="noteCopy()">&#x2398; 复制</button>
+        <button class="note-toolbar-btn" onclick="notePaste()">&#x1F4CB; 粘贴</button>
+        <button class="note-toolbar-btn" onclick="noteSelectAll()">&#x2611; 全选</button>
+        <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
+        <span id="noteFontSizeLabel" style="font-size:12px;min-width:26px;text-align:center;color:var(--text);">15</span>
+        <button class="note-toolbar-btn" onclick="noteFontSize(1)">A+</button>
+        <button class="note-bg-btn note-bg-light active" id="noteBgLight" onclick="noteSetTheme('light')" title="浅色"></button>
+        <button class="note-bg-btn note-bg-warm" id="noteBgWarm" onclick="noteSetTheme('warm')" title="护眼"></button>
+        <button class="note-bg-btn note-bg-dark" id="noteBgDark" onclick="noteSetTheme('dark')" title="深色"></button>
+        <button class="note-toolbar-btn" id="noteModeScroll" onclick="noteSetMode('scroll')">滚动</button>
+        <button class="note-toolbar-btn active" id="noteModePage" onclick="noteSetMode('page')">翻页</button>
       </div>
-      <div class="reader-settings-row">
-        <span>背景</span>
-        <button class="reader-bg-btn reader-bg-light active" onclick="readerSetTheme('light')" title="浅色"></button>
-        <button class="reader-bg-btn reader-bg-warm" onclick="readerSetTheme('warm')" title="护眼"></button>
-        <button class="reader-bg-btn reader-bg-dark" onclick="readerSetTheme('dark')" title="深色"></button>
+      <div class="note-editor-area">
+        <div class="note-editor-scroll" id="noteEditorScroll">
+          <div class="note-editor-content note-theme-light" id="noteEditorContent" contenteditable="true" data-placeholder="开始输入内容..." oninput="noteOnInput()"></div>
+        </div>
       </div>
-      <div class="reader-settings-row">
-        <span>模式</span>
-        <button class="reader-settings-btn" id="readerModeScroll" onclick="readerSetMode('scroll')">滚动</button>
-        <button class="reader-settings-btn active" id="readerModePage" onclick="readerSetMode('page')">翻页</button>
+      <!-- 翻页控制 -->
+      <div class="note-page-ctrl" id="notePageCtrl">
+        <span onclick="notePrevPage()">上一页</span>
+        <span id="notePageInfo">1 / 1</span>
+        <span onclick="noteNextPage()">下一页</span>
       </div>
     </div>
-    <!-- 阅读内容区 -->
-    <div id="readerContent" class="reader-content reader-theme-light reader-mode-page"></div>
-    <!-- 翻页控制 -->
-    <div id="readerPageCtrl" class="reader-page-ctrl">
-      <span onclick="readerPrevPage()">上一页</span>
-      <span id="readerPageInfo">1 / 1</span>
-      <span onclick="readerNextPage()">下一页</span>
-    </div>
+    <!-- 空状态 -->
+    <div id="noteEmpty" class="note-empty" style="padding:24px 0;">点击「新建」创建便签</div>
   </div>
 </div>
 
@@ -814,8 +808,8 @@ body {
     <span>收藏</span>
   </div>
   <div class="tab-item" onclick="switchTab('note')">
-    <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
-    <span>阅读</span>
+    <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 16H6V4h7v5h5v9z"/></svg>
+    <span>便签</span>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -3068,369 +3062,388 @@ function saveFavNote(code, index) {
   });
 }
 
-// === Reader (阅读器) - local only, stored in IndexedDB ===
-var _readerDB = null;
-var _readerCurrentBook = null; // current book being read
-var _readerPages = []; // pages for page mode
-var _readerCurrentPage = 0;
-var _readerFontSize = parseInt(localStorage.getItem('reader_fontSize') || '16');
-var _readerTheme = localStorage.getItem('reader_theme') || 'light';
-var _readerMode = localStorage.getItem('reader_mode') || 'page'; // 'page' or 'scroll'
+// === Notepad (便签) - stored in IndexedDB ===
+var _noteDB = null;
+var _noteList = [];
+var _noteActiveId = null;
+var _noteFontSize = parseInt(localStorage.getItem('note_fontSize') || '15');
+var _noteTheme = localStorage.getItem('note_theme') || 'light';
+var _noteMode = localStorage.getItem('note_mode') || 'scroll';
+var _notePages = [];
+var _noteCurrentPage = 0;
+var _noteSaveTimer = null;
 
-function _openReaderDB() {
-  if (_readerDB) return Promise.resolve(_readerDB);
+function _openNoteDB() {
+  if (_noteDB) return Promise.resolve(_noteDB);
   return new Promise(function(resolve, reject) {
     try {
-      var req = indexedDB.open('ReaderDB', 1);
+      var req = indexedDB.open('NotePadDB', 1);
       req.onupgradeneeded = function(e) {
         var db = e.target.result;
-        if (!db.objectStoreNames.contains('books')) db.createObjectStore('books', {keyPath: 'id'});
+        if (!db.objectStoreNames.contains('notes')) db.createObjectStore('notes', {keyPath: 'id'});
       };
-      req.onsuccess = function(e) { _readerDB = e.target.result; resolve(_readerDB); };
+      req.onsuccess = function(e) { _noteDB = e.target.result; resolve(_noteDB); };
       req.onerror = function(e) { reject(e.target.error); };
     } catch(e) { reject(e); }
   });
 }
 
-function _readerSaveBook(book) {
-  return _openReaderDB().then(function(db) {
+function _noteSave(note) {
+  return _openNoteDB().then(function(db) {
     return new Promise(function(resolve, reject) {
-      var tx = db.transaction('books', 'readwrite');
-      tx.objectStore('books').put(book);
+      var tx = db.transaction('notes', 'readwrite');
+      tx.objectStore('notes').put(note);
       tx.oncomplete = function() { resolve(); };
       tx.onerror = function(e) { reject(e.target.error); };
     });
   });
 }
 
-function _readerGetAllBooks() {
-  return _openReaderDB().then(function(db) {
+function _noteGetAll() {
+  return _openNoteDB().then(function(db) {
     return new Promise(function(resolve, reject) {
-      var tx = db.transaction('books', 'readonly');
-      var req = tx.objectStore('books').getAll();
+      var tx = db.transaction('notes', 'readonly');
+      var req = tx.objectStore('notes').getAll();
       req.onsuccess = function() { resolve(req.result || []); };
       req.onerror = function(e) { reject(e.target.error); };
     });
   });
 }
 
-function _readerDeleteBook(id) {
-  return _openReaderDB().then(function(db) {
+function _noteDelete(id) {
+  return _openNoteDB().then(function(db) {
     return new Promise(function(resolve, reject) {
-      var tx = db.transaction('books', 'readwrite');
-      tx.objectStore('books').delete(id);
+      var tx = db.transaction('notes', 'readwrite');
+      tx.objectStore('notes').delete(id);
       tx.oncomplete = function() { resolve(); };
       tx.onerror = function(e) { reject(e.target.error); };
     });
   });
 }
 
-function _readerGetBook(id) {
-  return _openReaderDB().then(function(db) {
+function _noteGet(id) {
+  return _openNoteDB().then(function(db) {
     return new Promise(function(resolve, reject) {
-      var tx = db.transaction('books', 'readonly');
-      var req = tx.objectStore('books').get(id);
+      var tx = db.transaction('notes', 'readonly');
+      var req = tx.objectStore('notes').get(id);
       req.onsuccess = function() { resolve(req.result || null); };
       req.onerror = function(e) { reject(e.target.error); };
     });
   });
 }
 
-// Parse epub (simple: extract text from XHTML chapters)
-function _parseEpub(arrayBuffer) {
-  return new Promise(function(resolve) {
-    try {
-      // Simple epub parser: find .xhtml/.html files in the zip and extract text
-      var JSZipLib = window.JSZip;
-      if (!JSZipLib) {
-        // Fallback: try to extract text content using basic approach
-        resolve('[EPUB格式需要JSZip库支持，暂时只支持.txt和.md文件]');
-        return;
-      }
-      JSZipLib.loadAsync(arrayBuffer).then(function(zip) {
-        var textParts = [];
-        var files = Object.keys(zip.files).filter(function(f) {
-          return f.endsWith('.xhtml') || f.endsWith('.html') || f.endsWith('.htm');
-        }).sort();
-        var idx = 0;
-        function next() {
-          if (idx >= files.length) {
-            resolve(textParts.join('\n\n'));
-            return;
-          }
-          zip.files[files[idx]].async('string').then(function(content) {
-            // Strip HTML tags
-            var text = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
-            if (text) textParts.push(text);
-            idx++;
-            next();
-          }).catch(function() { idx++; next(); });
-        }
-        next();
-      }).catch(function() { resolve('[EPUB解析失败]'); });
-    } catch(e) { resolve('[EPUB解析出错: ' + e.message + ']'); }
-  });
+function _notePreview(text, max) {
+  max = max || 30;
+  var s = (text || '').replace(/\n/g, ' ').trim();
+  return s.length > max ? s.substring(0, max) + '...' : s || '空白便签';
 }
 
-function readerHandleFiles(input) {
-  if (!input.files || input.files.length === 0) return;
-  var files = Array.from(input.files);
-  var processed = 0;
-
-  files.forEach(function(file) {
-    var ext = file.name.split('.').pop().toLowerCase();
-    var readType = (ext === 'epub') ? 'arraybuffer' : 'text';
-
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var content;
-      if (ext === 'epub') {
-        _parseEpub(e.target.result).then(function(text) {
-          _readerAddBook(file.name, text, ext, file.size, function() {
-            processed++;
-            if (processed === files.length) { readerRenderList(); input.value = ''; }
-          });
-        });
-        return;
-      }
-      content = e.target.result;
-      _readerAddBook(file.name, content, ext, file.size, function() {
-        processed++;
-        if (processed === files.length) { readerRenderList(); input.value = ''; }
-      });
-    };
-    if (readType === 'arraybuffer') reader.readAsArrayBuffer(file);
-    else reader.readAsText(file, 'UTF-8');
-  });
-}
-
-function _readerAddBook(name, content, ext, size, cb) {
-  var book = {
-    id: Date.now() + '_' + Math.random().toString(36).substr(2,6),
-    name: name,
-    content: content,
-    ext: ext,
-    size: size,
-    addedAt: Date.now(),
-    lastRead: 0,
-    scrollPos: 0,
-    pageIdx: 0
-  };
-  _readerSaveBook(book).then(function() { if (cb) cb(); });
-}
-
-function _formatSize(bytes) {
-  if (bytes < 1024) return bytes + 'B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
-}
-
-function _formatTime(ts) {
+function _noteTimeStr(ts) {
   if (!ts) return '';
-  return new Date(ts).toLocaleString('zh-CN');
+  var d = new Date(ts);
+  var now = new Date();
+  var pad = function(n) { return n < 10 ? '0' + n : n; };
+  var time = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  if (d.toDateString() === now.toDateString()) return '今天 ' + time;
+  var yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return '昨天 ' + time;
+  return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + time;
 }
 
-function readerRenderList() {
-  _readerGetAllBooks().then(function(books) {
-    var container = document.getElementById('readerBookList');
-    var clearRow = document.getElementById('readerClearRow');
-    var subTitle = document.getElementById('readerSubTitle');
-    if (!container) return;
-    books.sort(function(a, b) { return (b.lastRead || b.addedAt) - (a.lastRead || a.addedAt); });
-    subTitle.textContent = books.length + ' 本书';
-    clearRow.style.display = books.length > 0 ? '' : 'none';
-    if (books.length === 0) {
-      container.innerHTML = '<div class="fav-empty"><div class="fav-empty-icon">📖</div><p>还没有书籍</p><small>上传 .txt / .md / .epub 文件</small></div>';
+function noteNew() {
+  var note = {
+    id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+    title: '',
+    content: '',
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  _noteSave(note).then(function() {
+    _noteActiveId = note.id;
+    notePadRender();
+    noteOpenEditor(note.id);
+  });
+}
+
+function notePadRender() {
+  _noteGetAll().then(function(notes) {
+    _noteList = notes.sort(function(a, b) { return (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt); });
+    var subTitle = document.getElementById('noteSubTitle');
+    if (subTitle) subTitle.textContent = notes.length + ' 条';
+    var listEl = document.getElementById('noteList');
+    var emptyEl = document.getElementById('noteEmpty');
+    if (!listEl) return;
+    if (notes.length === 0) {
+      listEl.innerHTML = '';
+      if (emptyEl) emptyEl.style.display = '';
+      document.getElementById('noteEditor').style.display = 'none';
       return;
     }
-    var iconMap = { txt: '📄', md: '📝', epub: '📕' };
+    if (emptyEl) emptyEl.style.display = 'none';
     var html = '';
-    for (var i = 0; i < books.length; i++) {
-      var b = books[i];
-      var icon = iconMap[b.ext] || '📄';
-      var meta = _formatSize(b.size);
-      if (b.lastRead) meta += ' · 最近 ' + _formatTime(b.lastRead);
-      html += '<div class="reader-book-item" onclick="readerOpen(\'' + b.id + '\')">';
-      html += '<span class="reader-book-icon">' + icon + '</span>';
-      html += '<div class="reader-book-info"><div class="reader-book-name">' + _esc(b.name) + '</div>';
-      html += '<div class="reader-book-meta">' + meta + '</div></div>';
-      html += '<span class="reader-book-del" onclick="event.stopPropagation();readerDel(\'' + b.id + '\')">&#x2716;</span>';
+    for (var i = 0; i < notes.length; i++) {
+      var n = notes[i];
+      var isActive = (n.id === _noteActiveId);
+      html += '<div class="note-item' + (isActive ? ' active' : '') + '" onclick="noteOpenEditor(\'' + n.id + '\')">';
+      html += '<span class="note-item-icon">&#x1F4DD;</span>';
+      html += '<div class="note-item-info">';
+      html += '<div class="note-item-title">' + _esc(_notePreview(n.content, 40)) + '</div>';
+      html += '<div class="note-item-meta">' + _noteTimeStr(n.updatedAt || n.createdAt) + '</div>';
+      html += '</div>';
+      html += '<span class="note-item-del" onclick="event.stopPropagation();noteDel(\'' + n.id + '\')">&#x2716;</span>';
       html += '</div>';
     }
-    container.innerHTML = html;
+    listEl.innerHTML = html;
   });
 }
 
-function readerDel(id) {
-  _readerDeleteBook(id).then(function() { readerRenderList(); showToast('已删除'); });
-}
-
-function readerClearAll() {
-  _openReaderDB().then(function(db) {
-    var tx = db.transaction('books', 'readwrite');
-    tx.objectStore('books').clear();
-    tx.oncomplete = function() { readerRenderList(); showToast('已清空'); };
+function noteDel(id) {
+  _noteDelete(id).then(function() {
+    if (_noteActiveId === id) {
+      _noteActiveId = null;
+      document.getElementById('noteEditor').style.display = 'none';
+    }
+    notePadRender();
+    showToast('已删除');
   });
 }
 
-// === Reader View ===
-function readerOpen(id) {
-  _readerGetBook(id).then(function(book) {
-    if (!book) return;
-    _readerCurrentBook = book;
-    // Update last read
-    book.lastRead = Date.now();
-    _readerSaveBook(book);
-
-    document.getElementById('readerShelf').style.display = 'none';
-    document.getElementById('readerView').style.display = 'flex';
-    document.getElementById('readerView').style.flexDirection = 'column';
-    document.getElementById('readerView').style.height = '100vh';
-    document.getElementById('readerBookTitle').textContent = book.name;
-    document.getElementById('readerSettings').style.display = 'none';
-
+function noteOpenEditor(id) {
+  _noteGet(id).then(function(note) {
+    if (!note) return;
+    _noteActiveId = id;
+    document.getElementById('noteEditor').style.display = 'flex';
+    document.getElementById('noteEmpty').style.display = 'none';
+    var contentEl = document.getElementById('noteEditorContent');
     // Apply settings
-    _readerApplySettings();
-
-    if (_readerMode === 'page') {
-      _readerBuildPages(book.content);
+    _noteApplySettings();
+    if (_noteMode === 'scroll') {
+      contentEl.textContent = note.content || '';
     } else {
-      document.getElementById('readerContent').textContent = book.content;
+      _noteBuildPages(note.content || '');
     }
-
-    // Restore scroll/position
-    if (_readerMode === 'scroll' && book.scrollPos) {
-      setTimeout(function() { document.getElementById('readerContent').scrollTop = book.scrollPos; }, 50);
+    // Re-render list to highlight active
+    var listItems = document.querySelectorAll('.note-item');
+    for (var i = 0; i < listItems.length; i++) {
+      listItems[i].classList.toggle('active', listItems[i].getAttribute('onclick').indexOf(id) >= 0);
     }
+    // Focus editor
+    setTimeout(function() { contentEl.focus(); }, 100);
   });
 }
 
-function readerBackToShelf() {
-  // Save current position
-  if (_readerCurrentBook) {
-    if (_readerMode === 'scroll') {
-      _readerCurrentBook.scrollPos = document.getElementById('readerContent').scrollTop;
-    } else {
-      _readerCurrentBook.pageIdx = _readerCurrentPage;
-    }
-    _readerSaveBook(_readerCurrentBook);
+function noteOnInput() {
+  if (!_noteActiveId) return;
+  clearTimeout(_noteSaveTimer);
+  _noteSaveTimer = setTimeout(function() {
+    _noteSaveCurrent();
+  }, 500);
+}
+
+function _noteSaveCurrent() {
+  if (!_noteActiveId) return;
+  var contentEl = document.getElementById('noteEditorContent');
+  var text = '';
+  if (_noteMode === 'page') {
+    // In page mode, reconstruct full text from pages + current page content
+    _notePages[_noteCurrentPage] = contentEl.textContent || '';
+    text = _notePages.join('\n');
+  } else {
+    text = contentEl.textContent || '';
   }
-  document.getElementById('readerView').style.display = 'none';
-  document.getElementById('readerShelf').style.display = '';
-  readerRenderList();
-  _readerCurrentBook = null;
-}
-
-function readerToggleSettings() {
-  var panel = document.getElementById('readerSettings');
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-}
-
-function _readerApplySettings() {
-  var content = document.getElementById('readerContent');
-  content.style.fontSize = _readerFontSize + 'px';
-  document.getElementById('readerFontSizeLabel').textContent = _readerFontSize;
-  // Theme
-  content.className = 'reader-content reader-theme-' + _readerTheme;
-  if (_readerMode === 'page') content.className += ' reader-mode-page';
-  else content.className += ' reader-mode-scroll';
-  // Theme buttons
-  document.querySelectorAll('.reader-bg-btn').forEach(function(b) { b.classList.remove('active'); });
-  var activeBtn = document.querySelector('.reader-bg-' + _readerTheme);
-  if (activeBtn) activeBtn.classList.add('active');
-  // Mode buttons
-  document.getElementById('readerModeScroll').classList.toggle('active', _readerMode === 'scroll');
-  document.getElementById('readerModePage').classList.toggle('active', _readerMode === 'page');
-  // Page controls visibility
-  document.getElementById('readerPageCtrl').style.display = _readerMode === 'page' ? 'flex' : 'none';
-}
-
-function readerChangeFontSize(delta) {
-  _readerFontSize = Math.max(12, Math.min(28, _readerFontSize + delta));
-  localStorage.setItem('reader_fontSize', _readerFontSize);
-  var content = document.getElementById('readerContent');
-  content.style.fontSize = _readerFontSize + 'px';
-  document.getElementById('readerFontSizeLabel').textContent = _readerFontSize;
-  // Rebuild pages if in page mode
-  if (_readerMode === 'page' && _readerCurrentBook) {
-    _readerBuildPages(_readerCurrentBook.content);
-  }
-}
-
-function readerSetTheme(theme) {
-  _readerTheme = theme;
-  localStorage.setItem('reader_theme', theme);
-  _readerApplySettings();
-}
-
-function readerSetMode(mode) {
-  _readerMode = mode;
-  localStorage.setItem('reader_mode', mode);
-  if (_readerCurrentBook) {
-    if (mode === 'scroll') {
-      _readerCurrentBook.pageIdx = _readerCurrentPage;
-    } else {
-      _readerCurrentBook.scrollPos = document.getElementById('readerContent').scrollTop;
-    }
-    _readerSaveBook(_readerCurrentBook);
-  }
-  _readerApplySettings();
-  if (_readerCurrentBook) {
-    if (mode === 'page') {
-      _readerBuildPages(_readerCurrentBook.content);
-    } else {
-      _readerPages = [];
-      document.getElementById('readerContent').textContent = _readerCurrentBook.content;
-      if (_readerCurrentBook.scrollPos) {
-        setTimeout(function() { document.getElementById('readerContent').scrollTop = _readerCurrentBook.scrollPos; }, 50);
+  _noteGet(_noteActiveId).then(function(note) {
+    if (!note) return;
+    note.content = text;
+    note.updatedAt = Date.now();
+    _noteSave(note);
+    // Update list preview
+    var listItems = document.querySelectorAll('.note-item-title');
+    for (var i = 0; i < listItems.length; i++) {
+      var parentItem = listItems[i].closest('.note-item');
+      if (parentItem && parentItem.getAttribute('onclick').indexOf(_noteActiveId) >= 0) {
+        listItems[i].textContent = _notePreview(text, 40);
       }
     }
+    var subTitle = document.getElementById('noteSubTitle');
+    // Update meta
+    var metas = document.querySelectorAll('.note-item-meta');
+    for (var j = 0; j < metas.length; j++) {
+      var pItem = metas[j].closest('.note-item');
+      if (pItem && pItem.getAttribute('onclick').indexOf(_noteActiveId) >= 0) {
+        metas[j].textContent = _noteTimeStr(Date.now());
+      }
+    }
+  });
+}
+
+// === Edit operations ===
+function noteCut() {
+  var sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return;
+  var text = sel.toString();
+  navigator.clipboard.writeText(text).catch(function() {});
+  document.execCommand('cut');
+  noteOnInput();
+}
+
+function noteCopy() {
+  var sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return;
+  var text = sel.toString();
+  navigator.clipboard.writeText(text).catch(function() {});
+}
+
+function notePaste() {
+  var contentEl = document.getElementById('noteEditorContent');
+  contentEl.focus();
+  navigator.clipboard.readText().then(function(text) {
+    document.execCommand('insertText', false, text);
+    noteOnInput();
+  }).catch(function() {
+    // Fallback: try execCommand paste
+    document.execCommand('paste');
+    noteOnInput();
+  });
+}
+
+function noteSelectAll() {
+  var contentEl = document.getElementById('noteEditorContent');
+  contentEl.focus();
+  var range = document.createRange();
+  range.selectNodeContents(contentEl);
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+// === Settings ===
+function noteFontSize(delta) {
+  _noteFontSize = Math.max(12, Math.min(28, _noteFontSize + delta));
+  localStorage.setItem('note_fontSize', _noteFontSize);
+  var contentEl = document.getElementById('noteEditorContent');
+  contentEl.style.fontSize = _noteFontSize + 'px';
+  document.getElementById('noteFontSizeLabel').textContent = _noteFontSize;
+  if (_noteMode === 'page' && _noteActiveId) {
+    _noteGet(_noteActiveId).then(function(note) {
+      if (note) _noteBuildPages(note.content || '');
+    });
   }
 }
 
-function _readerBuildPages(text) {
-  // Split text into pages based on character count (approximate)
-  var charsPerPage = Math.max(300, Math.floor(window.innerHeight * (_readerFontSize <= 16 ? 40 : _readerFontSize <= 20 ? 30 : 22)));
-  _readerPages = [];
+function noteSetTheme(theme) {
+  _noteTheme = theme;
+  localStorage.setItem('note_theme', theme);
+  _noteApplySettings();
+}
+
+function noteSetMode(mode) {
+  // Save current content first
+  if (_noteActiveId) {
+    var contentEl = document.getElementById('noteEditorContent');
+    if (_noteMode === 'page' && mode === 'scroll') {
+      _notePages[_noteCurrentPage] = contentEl.textContent || '';
+      var fullText = _notePages.join('\n');
+      _noteSaveFullText(fullText);
+    } else if (_noteMode === 'scroll' && mode === 'page') {
+      _noteSaveFullText(contentEl.textContent || '');
+    }
+  }
+  _noteMode = mode;
+  localStorage.setItem('note_mode', mode);
+  _noteApplySettings();
+  // Reload content in new mode
+  if (_noteActiveId) {
+    _noteGet(_noteActiveId).then(function(note) {
+      if (!note) return;
+      if (mode === 'page') {
+        _noteBuildPages(note.content || '');
+      } else {
+        document.getElementById('noteEditorContent').textContent = note.content || '';
+      }
+    });
+  }
+}
+
+function _noteSaveFullText(text) {
+  if (!_noteActiveId) return;
+  _noteGet(_noteActiveId).then(function(note) {
+    if (!note) return;
+    note.content = text;
+    note.updatedAt = Date.now();
+    _noteSave(note);
+  });
+}
+
+function _noteApplySettings() {
+  var contentEl = document.getElementById('noteEditorContent');
+  contentEl.style.fontSize = _noteFontSize + 'px';
+  document.getElementById('noteFontSizeLabel').textContent = _noteFontSize;
+  // Theme class
+  contentEl.className = 'note-editor-content note-theme-' + _noteTheme;
+  if (_noteMode === 'scroll') contentEl.className += ' note-mode-scroll';
+  // Theme buttons
+  document.querySelectorAll('.note-bg-btn').forEach(function(b) { b.classList.remove('active'); });
+  var activeBtn = document.getElementById('noteBg' + _noteTheme.charAt(0).toUpperCase() + _noteTheme.slice(1));
+  if (activeBtn) activeBtn.classList.add('active');
+  // Mode buttons
+  document.getElementById('noteModeScroll').classList.toggle('active', _noteMode === 'scroll');
+  document.getElementById('noteModePage').classList.toggle('active', _noteMode === 'page');
+  // Page controls
+  document.getElementById('notePageCtrl').style.display = _noteMode === 'page' ? 'flex' : 'none';
+  // Scroll wrapper style
+  var scrollWrap = document.getElementById('noteEditorScroll');
+  scrollWrap.style.overflowY = (_noteMode === 'scroll') ? 'auto' : 'hidden';
+}
+
+// === Page mode ===
+function _noteBuildPages(text) {
+  var charsPerPage = Math.max(200, Math.floor(window.innerHeight * (_noteFontSize <= 16 ? 35 : _noteFontSize <= 20 ? 25 : 18)));
+  _notePages = [];
   var lines = text.split('\n');
   var currentPage = '';
   var charCount = 0;
   for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    if (charCount + line.length > charsPerPage && currentPage) {
-      _readerPages.push(currentPage);
-      currentPage = line + '\n';
-      charCount = line.length + 1;
+    if (charCount + lines[i].length > charsPerPage && currentPage) {
+      _notePages.push(currentPage);
+      currentPage = lines[i] + '\n';
+      charCount = lines[i].length + 1;
     } else {
-      currentPage += line + '\n';
-      charCount += line.length + 1;
+      currentPage += lines[i] + '\n';
+      charCount += lines[i].length + 1;
     }
   }
-  if (currentPage) _readerPages.push(currentPage);
-  if (_readerPages.length === 0) _readerPages = [''];
-
-  // Restore page index
-  _readerCurrentPage = (_readerCurrentBook && _readerCurrentBook.pageIdx) ? Math.min(_readerCurrentBook.pageIdx, _readerPages.length - 1) : 0;
-  _readerShowPage();
+  if (currentPage) _notePages.push(currentPage);
+  if (_notePages.length === 0) _notePages = [''];
+  _noteCurrentPage = 0;
+  _noteShowPage();
 }
 
-function _readerShowPage() {
-  var content = document.getElementById('readerContent');
-  content.textContent = _readerPages[_readerCurrentPage] || '';
-  document.getElementById('readerPageInfo').textContent = (_readerCurrentPage + 1) + ' / ' + _readerPages.length;
+function _noteShowPage() {
+  var contentEl = document.getElementById('noteEditorContent');
+  contentEl.textContent = _notePages[_noteCurrentPage] || '';
+  document.getElementById('notePageInfo').textContent = (_noteCurrentPage + 1) + ' / ' + _notePages.length;
 }
 
-function readerPrevPage() {
-  if (_readerCurrentPage > 0) {
-    _readerCurrentPage--;
-    _readerShowPage();
+function notePrevPage() {
+  if (_noteMode !== 'page' || !_noteActiveId) return;
+  // Save current page
+  var contentEl = document.getElementById('noteEditorContent');
+  _notePages[_noteCurrentPage] = contentEl.textContent || '';
+  if (_noteCurrentPage > 0) {
+    _noteCurrentPage--;
+    _noteShowPage();
+    contentEl.focus();
   }
 }
 
-function readerNextPage() {
-  if (_readerCurrentPage < _readerPages.length - 1) {
-    _readerCurrentPage++;
-    _readerShowPage();
+function noteNextPage() {
+  if (_noteMode !== 'page' || !_noteActiveId) return;
+  var contentEl = document.getElementById('noteEditorContent');
+  _notePages[_noteCurrentPage] = contentEl.textContent || '';
+  if (_noteCurrentPage < _notePages.length - 1) {
+    _noteCurrentPage++;
+    _noteShowPage();
+    contentEl.focus();
   }
 }
 
@@ -3438,27 +3451,26 @@ function readerNextPage() {
 (function() {
   var startX = 0, startY = 0;
   document.addEventListener('touchstart', function(e) {
-    if (!_readerCurrentBook || _readerMode !== 'page') return;
-    var target = document.getElementById('readerContent');
-    if (!target.contains(e.target) && e.target !== target) return;
+    if (_noteMode !== 'page' || !_noteActiveId) return;
+    var target = document.getElementById('noteEditorContent');
+    if (!target || !target.contains(e.target)) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, {passive: true});
   document.addEventListener('touchend', function(e) {
-    if (!_readerCurrentBook || _readerMode !== 'page') return;
-    if (!startX) return;
+    if (_noteMode !== 'page' || !_noteActiveId || !startX) return;
     var dx = e.changedTouches[0].clientX - startX;
     var dy = e.changedTouches[0].clientY - startY;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      if (dx > 0) readerPrevPage();
-      else readerNextPage();
+      if (dx > 0) notePrevPage();
+      else noteNextPage();
     }
     startX = 0;
   }, {passive: true});
 })();
 
-// Init reader on first load
-setTimeout(function() { readerRenderList(); }, 100);
+// Init notepad on first load
+setTimeout(function() { notePadRender(); }, 100);
 
 // === Custom Calendar Popup (replaces native date picker to avoid black theme on Android) ===
 var _calDate = null; // current calendar year/month being viewed
@@ -3722,7 +3734,7 @@ function switchTab(tab) {
   if (tab === 'db') { document.getElementById('pageDB').classList.add('active'); tabs[0].classList.add('active'); }
   else if (tab === 'calc') { document.getElementById('pageCalc').classList.add('active'); tabs[1].classList.add('active'); }
   else if (tab === 'fav') { document.getElementById('pageFav').classList.add('active'); tabs[2].classList.add('active'); renderFavList(); }
-  else if (tab === 'note') { document.getElementById('pageNote').classList.add('active'); tabs[3].classList.add('active'); readerRenderList(); }
+  else if (tab === 'note') { document.getElementById('pageNote').classList.add('active'); tabs[3].classList.add('active'); notePadRender(); }
 }
 
 // ===== Build search indexes (with pinyin) =====
