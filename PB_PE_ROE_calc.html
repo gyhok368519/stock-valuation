@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.4.3';</script>
+<script>var APP_VER='5.4.4';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -711,7 +711,7 @@ body {
       <div class="card-title" style="position:relative;">&#x1F4DD; 录入数据<span class="calc-fav-btn" id="calcInputFavBtn" style="display:block;position:absolute;right:0;top:50%;transform:translateY(-50%);" onclick="toggleFavCalc()">☆</span></div>
       <div class="formula-tabs">
         <div class="formula-tab active" id="formulaTabPEROE" onclick="switchFormula('peroe')">PE×ROE</div>
-        <div class="formula-tab" id="formulaTabGraham" onclick="switchFormula('graham')">Graham估值</div>
+        <div class="formula-tab" id="formulaTabGraham" onclick="switchFormula('graham')">Graham</div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -738,7 +738,6 @@ body {
         </div>
         <div class="form-row">
           <div class="form-group"><label>预期增长率g(%)</label><input type="text" id="grahamG" placeholder="默认0" inputmode="decimal" autocomplete="off"></div>
-          <div class="form-group"><label>债券收益率Y(%)</label><input type="text" id="grahamY" placeholder="如 4.4 默认4.4" inputmode="decimal" autocomplete="off"></div>
         </div>
       </div>
       <div style="text-align:right;margin-top:0;margin-bottom:10px;">
@@ -4353,8 +4352,6 @@ function switchFormula(f) {
     t1.classList.remove('active'); t2.classList.add('active');
     gp.classList.add('show');
     pr.classList.add('hide');
-    var yEl = document.getElementById('grahamY');
-    if (!yEl.value.trim()) yEl.value = '4.4';
   } else {
     t1.classList.add('active'); t2.classList.remove('active');
     gp.classList.remove('show');
@@ -4391,11 +4388,10 @@ function calculate() {
     var priceVal = getCalcVal('grahamPrice');
     var gRaw = document.getElementById('grahamG').value.trim();
     var gVal = gRaw === '' ? 0 : getCalcVal('grahamG');
-    var yVal = getCalcVal('grahamY');
+    var yVal = 4.4;
     if (isNaN(epsVal) || epsVal <= 0) { showToast('请输入有效的EPS（支持四则运算）'); return; }
     if (isNaN(priceVal) || priceVal <= 0) { showToast('请输入有效的当前股价（支持四则运算）'); return; }
     if (isNaN(gVal)) { showToast('请输入有效的预期增长率g'); return; }
-    if (isNaN(yVal) || yVal <= 0) { showToast('请输入有效的债券收益率Y（如4.4）'); return; }
     var grahamPE = (8.5 + 2 * gVal) * 4.4 / yVal;
     var grahamV = epsVal * grahamPE;
     if (grahamV <= 0) { showToast('Graham公式计算结果异常，请检查参数'); return; }
@@ -4533,7 +4529,7 @@ function _renderQuickView(code) {
 }
 
 function clearForm() {
-  ['code','name','pe','roe','pb','grahamEPS','grahamPrice','grahamG','grahamY'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
+  ['code','name','pe','roe','pb','grahamEPS','grahamPrice','grahamG'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('resultCard').classList.remove('show');
   var jb = document.getElementById('judgeBox'); if (jb) jb.style.display = 'none';
   var fb = document.getElementById('formulaBox'); if (fb) fb.style.display = 'none';
@@ -4625,7 +4621,6 @@ function loadHistory(idx) {
     document.getElementById('grahamEPS').value = '';
     document.getElementById('grahamPrice').value = r.marketPB ? r.marketPB.toFixed(2) : '';
     document.getElementById('grahamG').value = '';
-    document.getElementById('grahamY').value = '4.4';
   } else {
     switchFormula('peroe');
     document.getElementById('pe').value = r.pe;
