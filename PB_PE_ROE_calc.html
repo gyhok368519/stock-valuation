@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.3.5';</script>
+<script>var APP_VER='5.3.6';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -557,7 +557,7 @@ body {
   .calc-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay); z-index:9999; align-items:center; justify-content:center; }
   .calc-overlay.show { display:flex; }
   .calc-card { background:var(--card); border-radius:16px; width:90%; max-width:360px; max-height:95vh; min-height:60vh; padding:16px; box-shadow:var(--shadow-xl); animation:gpIn 0.2s ease; display:flex; flex-direction:column; }
-  .calc-display { background:var(--bg); border-radius:10px; padding:14px 18px; margin-bottom:4px; text-align:right; min-height:80px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
+  .calc-display { background:var(--bg); border-radius:10px; padding:14px 18px; margin-top:12px; margin-bottom:2px; text-align:right; min-height:80px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
   .calc-expr { font-size:13px; color:var(--text3); min-height:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .calc-result { font-size:40px; font-weight:700; color:var(--text); line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:'SF Mono','Menlo','Consolas',monospace; }
   .calc-grid-btn { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; flex:1; align-content:center; }
