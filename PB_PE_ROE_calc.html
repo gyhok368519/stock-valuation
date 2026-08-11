@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.4.2';</script>
+<script>var APP_VER='5.4.3';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -4399,15 +4399,16 @@ function calculate() {
     var grahamPE = (8.5 + 2 * gVal) * 4.4 / yVal;
     var grahamV = epsVal * grahamPE;
     if (grahamV <= 0) { showToast('Graham公式计算结果异常，请检查参数'); return; }
+    var grahamEY = (epsVal / priceVal * 100);
     deviation = (priceVal - grahamV) / grahamV;
-    calcVal = grahamV;
-    marketVal = priceVal;
-    extraVal = grahamV.toFixed(2) + '元';
+    calcVal = grahamEY.toFixed(2) + '%';   // 第一格：盈利收益率（带%）
+    marketVal = priceVal.toFixed(2);        // 第二格：当前股价
+    extraVal = grahamV.toFixed(2) + '元';  // 第四格：内在价值V
     extraLabel = '内在价值V';
-    lblCalc = '合理PE';
+    lblCalc = '盈利收益率';
     lblMarket = '当前股价';
     formulaLabel = 'Graham';
-    formulaHtml = '<span>' + _esc(name||code) + '</span> | 合理PE=<span>' + grahamPE.toFixed(2) + '</span>，内在价值V=<span>' + grahamV.toFixed(2) + '元</span><br>' +
+    formulaHtml = '<span>' + _esc(name||code) + '</span> | 盈利收益率=<span>' + grahamEY.toFixed(2) + '%</span>，内在价值V=<span>' + grahamV.toFixed(2) + '元</span><br>' +
       '当前股价=' + priceVal.toFixed(2) + '元 &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span>';
   } else {
     // PE × ROE
@@ -4447,8 +4448,12 @@ function calculate() {
   document.getElementById('lblMarket').textContent = lblMarket;
   document.getElementById('lblExtra').textContent = extraLabel;
   // Update values
-  document.getElementById('calcPB').textContent = calcVal.toFixed(2);
-  document.getElementById('marketPB').textContent = marketVal.toFixed(2);
+  var calcPBEl = document.getElementById('calcPB');
+  if (typeof calcVal === 'string') { calcPBEl.textContent = calcVal; }
+  else { calcPBEl.textContent = calcVal.toFixed(2); }
+  var marketPBEl = document.getElementById('marketPB');
+  if (typeof marketVal === 'string') { marketPBEl.textContent = marketVal; }
+  else { marketPBEl.textContent = marketVal.toFixed(2); }
   var devEl = document.getElementById('deviation');
   devEl.textContent = (deviation >= 0 ? '+' : '') + (deviation * 100).toFixed(2) + '%';
   devEl.className = 'value ' + (deviation < -DEVIATION_THRESHOLD ? 'green' : deviation > DEVIATION_THRESHOLD ? 'red' : 'blue');
