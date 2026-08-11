@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.4.0';</script>
+<script>var APP_VER='5.4.1';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -271,6 +271,8 @@ body {
 .formula-tab:active { background:var(--primary-light); }
 .graham-params { display:none; }
 .graham-params.show { display:block; }
+.peroe-params { display:grid; }
+.peroe-params.hide { display:none; }
 
 .history-card { background:var(--card); border-radius:var(--radius); margin-bottom:12px; box-shadow:var(--shadow); overflow:hidden; }
 .history-item { border-bottom:1px solid var(--gray-light); display:flex; align-items:center; justify-content:space-between; position:relative; overflow:hidden; }
@@ -724,12 +726,16 @@ body {
           <input type="text" id="name" placeholder="自动填充" readonly>
         </div>
       </div>
-      <div class="form-row three">
+      <div class="form-row three peroe-params" id="peroeRow">
         <div class="form-group"><label>PE(TTM)</label><input type="text" id="pe" placeholder="7.49 或 100/13" inputmode="decimal" autocomplete="off"></div>
         <div class="form-group"><label>ROE(%)</label><input type="text" id="roe" placeholder="13.63 或 50-36" inputmode="decimal" autocomplete="off"></div>
         <div class="form-group"><label>市场PB</label><input type="text" id="pb" placeholder="0.70 或 2.1/3" inputmode="decimal" autocomplete="off"></div>
       </div>
       <div class="graham-params" id="grahamParams">
+        <div class="form-row">
+          <div class="form-group"><label>EPS（扣非每股收益）</label><input type="text" id="grahamEPS" placeholder="如 1.50" inputmode="decimal" autocomplete="off"></div>
+          <div class="form-group"><label>当前股价</label><input type="text" id="grahamPrice" placeholder="如 25.00" inputmode="decimal" autocomplete="off"></div>
+        </div>
         <div class="form-row">
           <div class="form-group"><label>预期增长率g(%)</label><input type="text" id="grahamG" placeholder="如 8 表示年增长8%" inputmode="decimal" autocomplete="off"></div>
           <div class="form-group"><label>债券收益率Y(%)</label><input type="text" id="grahamY" placeholder="如 4.4 默认4.4" inputmode="decimal" autocomplete="off"></div>
@@ -751,14 +757,14 @@ body {
         <div id="quickViewContent" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
       </div>
       <div class="card-title">&#x1F4C8; 计算结果</div>
-      <div class="result-grid">
-        <div class="result-item"><div class="label">计算PB</div><div class="value" id="calcPB">-</div></div>
-        <div class="result-item"><div class="label">市场PB</div><div class="value" id="marketPB">-</div></div>
+      <div class="result-grid" id="resultGrid">
+        <div class="result-item" id="riCalc"><div class="label" id="lblCalc">计算PB</div><div class="value" id="calcPB">-</div></div>
+        <div class="result-item" id="riMarket"><div class="label" id="lblMarket">市场PB</div><div class="value" id="marketPB">-</div></div>
         <div class="result-item"><div class="label">偏差</div><div class="value" id="deviation">-</div></div>
-        <div class="result-item"><div class="label">隐含ROE</div><div class="value" id="impliedROE">-</div></div>
+        <div class="result-item" id="riExtra"><div class="label" id="lblExtra">隐含ROE</div><div class="value" id="impliedROE">-</div></div>
       </div>
-      <div class="judge-box" id="judgeBox">-</div>
-      <div class="formula-box" id="formulaBox"></div>
+      <div class="judge-box" id="judgeBox" style="display:none;">-</div>
+      <div class="formula-box" id="formulaBox" style="display:none;"></div>
       <!-- 极端情况下投资收益率 -->
       <div id="investRateBox" style="display:none;margin-top:12px;padding:12px 14px;background:var(--input-readonly-bg);border-radius:8px;">
         <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;">极端情况 · 投资收益率</div>
@@ -4342,16 +4348,22 @@ function switchFormula(f) {
   var t1 = document.getElementById('formulaTabPEROE');
   var t2 = document.getElementById('formulaTabGraham');
   var gp = document.getElementById('grahamParams');
+  var pr = document.getElementById('peroeRow');
   if (f === 'graham') {
     t1.classList.remove('active'); t2.classList.add('active');
     gp.classList.add('show');
-    // pre-fill Y default
+    pr.classList.add('hide');
     var yEl = document.getElementById('grahamY');
     if (!yEl.value.trim()) yEl.value = '4.4';
   } else {
     t1.classList.add('active'); t2.classList.remove('active');
     gp.classList.remove('show');
+    pr.classList.remove('hide');
   }
+  // Hide previous results when switching formula
+  document.getElementById('resultCard').classList.remove('show');
+  var jb = document.getElementById('judgeBox'); jb.style.display = 'none';
+  var fb = document.getElementById('formulaBox'); fb.style.display = 'none';
 }
 
 function getCalcVal(id) {
@@ -4367,80 +4379,119 @@ function getCalcVal(id) {
 
 function calculate() {
   const code = codeInput.value.trim(), name = nameInput.value.trim();
-  const peVal = getCalcVal('pe');
-  const roeVal = getCalcVal('roe');
-  const pbVal = getCalcVal('pb');
   if (!code) { showToast('请输入股票代码'); return; }
-  if (isNaN(peVal)) { showToast('请输入有效的PE（支持四则运算，如 100/13）'); return; }
-  if (peVal <= 0) { showToast('亏损公司PE为负值，估值公式不适用'); return; }
-  if (isNaN(roeVal)) { showToast('请输入有效的ROE（支持四则运算，如 50-36）'); return; }
-  if (roeVal <= 0) { showToast('ROE为负值表示股东亏损，无法用此公式估值'); return; }
-  if (isNaN(pbVal)) { showToast('请输入有效的市场PB（支持四则运算，如 2.1/3）'); return; }
-  if (pbVal <= 0) { showToast('市场PB应大于0，破净股可参考其他估值方法'); return; }
 
-  var calcPB, deviation, formulaHtml, formulaLabel;
-  var roeDecimal = roeVal / 100;
+  var deviation, formulaHtml, formulaLabel;
+  var calcVal, marketVal, extraVal, extraLabel, lblCalc, lblMarket;
+  var judge, judgeClass;
 
   if (_calcFormula === 'graham') {
-    // Graham: 合理PE = (8.5 + 2g) * 4.4 / Y,  合理PB = 合理PE * ROE
+    // Graham: V = EPS × (8.5 + 2g) × 4.4 / Y
+    var epsVal = getCalcVal('grahamEPS');
+    var priceVal = getCalcVal('grahamPrice');
     var gVal = getCalcVal('grahamG');
     var yVal = getCalcVal('grahamY');
+    if (isNaN(epsVal) || epsVal <= 0) { showToast('请输入有效的EPS（扣非每股收益）'); return; }
+    if (isNaN(priceVal) || priceVal <= 0) { showToast('请输入有效的当前股价'); return; }
     if (isNaN(gVal)) { showToast('请输入预期增长率g（如8表示年增长8%）'); return; }
     if (isNaN(yVal) || yVal <= 0) { showToast('请输入有效的债券收益率Y（如4.4）'); return; }
     var grahamPE = (8.5 + 2 * gVal) * 4.4 / yVal;
-    calcPB = grahamPE * roeDecimal;
-    if (calcPB <= 0) { showToast('Graham公式计算结果异常，请检查参数'); return; }
-    deviation = (pbVal - calcPB) / calcPB;
+    var grahamV = epsVal * grahamPE;
+    if (grahamV <= 0) { showToast('Graham公式计算结果异常，请检查参数'); return; }
+    deviation = (priceVal - grahamV) / grahamV;
+    calcVal = grahamV;
+    marketVal = priceVal;
+    extraVal = grahamPE.toFixed(2);
+    extraLabel = '合理PE';
+    lblCalc = 'Graham估值';
+    lblMarket = '当前股价';
     formulaLabel = 'Graham';
-    formulaHtml = '<span>' + _esc(name||code) + '</span> | Graham计算PB=<span>' + calcPB.toFixed(2) + '</span><br>' +
-      '合理PE=(8.5+2×' + gVal + ')×4.4/' + yVal + '=<span>' + grahamPE.toFixed(2) + '</span>，×ROE=' + roeVal + '%<br>' +
-      '市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span>';
+    formulaHtml = '<span>' + _esc(name||code) + '</span> | Graham估值=<span>' + grahamV.toFixed(2) + '元</span><br>' +
+      'V=EPS×(8.5+2g)×4.4/Y = ' + epsVal + '×(8.5+2×' + gVal + ')×4.4/' + yVal + '<br>' +
+      '合理PE=<span>' + grahamPE.toFixed(2) + '</span>，当前股价=' + priceVal.toFixed(2) + '元 &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span>';
   } else {
     // PE × ROE
-    calcPB = peVal * roeDecimal;
+    const peVal = getCalcVal('pe');
+    const roeVal = getCalcVal('roe');
+    const pbVal = getCalcVal('pb');
+    if (isNaN(peVal)) { showToast('请输入有效的PE（支持四则运算，如 100/13）'); return; }
+    if (peVal <= 0) { showToast('亏损公司PE为负值，估值公式不适用'); return; }
+    if (isNaN(roeVal)) { showToast('请输入有效的ROE（支持四则运算，如 50-36）'); return; }
+    if (roeVal <= 0) { showToast('ROE为负值表示股东亏损，无法用此公式估值'); return; }
+    if (isNaN(pbVal)) { showToast('请输入有效的市场PB（支持四则运算，如 2.1/3）'); return; }
+    if (pbVal <= 0) { showToast('市场PB应大于0，破净股可参考其他估值方法'); return; }
+    var roeDecimal = roeVal / 100;
+    var calcPB = peVal * roeDecimal;
     deviation = (pbVal - calcPB) / calcPB;
+    calcVal = calcPB;
+    marketVal = pbVal;
+    extraVal = ((pbVal / peVal) * 100).toFixed(2) + '%';
+    extraLabel = '隐含ROE';
+    lblCalc = '计算PB';
+    lblMarket = '市场PB';
     formulaLabel = 'PE×ROE';
     formulaHtml = '<span>' + _esc(name||code) + '</span> | 计算PB=<span>' + calcPB.toFixed(2) + '</span><br>' +
       '市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>' +
       '隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
+    // store for history & invest rate
+    var _peVal = peVal, _roeVal = roeVal, _pbVal = pbVal, _roeDecimal = roeDecimal, _calcPB = calcPB;
   }
 
-  let judge, judgeClass;
   if (deviation < -DEVIATION_THRESHOLD) { judge = '低估'; judgeClass = 'under'; }
   else if (deviation > DEVIATION_THRESHOLD) { judge = '高估'; judgeClass = 'over'; }
   else { judge = '合理'; judgeClass = 'fair'; }
+
   document.getElementById('resultCard').classList.add('show');
-  document.getElementById('calcPB').textContent = calcPB.toFixed(2);
-  document.getElementById('marketPB').textContent = pbVal.toFixed(2);
-  const devEl = document.getElementById('deviation');
+  // Update labels
+  document.getElementById('lblCalc').textContent = lblCalc;
+  document.getElementById('lblMarket').textContent = lblMarket;
+  document.getElementById('lblExtra').textContent = extraLabel;
+  // Update values
+  document.getElementById('calcPB').textContent = calcVal.toFixed(2);
+  document.getElementById('marketPB').textContent = marketVal.toFixed(2);
+  var devEl = document.getElementById('deviation');
   devEl.textContent = (deviation >= 0 ? '+' : '') + (deviation * 100).toFixed(2) + '%';
   devEl.className = 'value ' + (deviation < -DEVIATION_THRESHOLD ? 'green' : deviation > DEVIATION_THRESHOLD ? 'red' : 'blue');
-  document.getElementById('impliedROE').textContent = ((pbVal / peVal) * 100).toFixed(2) + '%';
-  const jb = document.getElementById('judgeBox'); jb.className = 'judge-box ' + judgeClass;
-  let jd = '';
-  if (judgeClass === 'under') jd = '<div class="judge-detail">市场PB低于理论值 ' + Math.abs(deviation*100).toFixed(1) + '%，可能低估</div>';
-  else if (judgeClass === 'over') jd = '<div class="judge-detail">市场PB高于理论值 ' + (deviation*100).toFixed(1) + '%，含成长溢价</div>';
+  document.getElementById('impliedROE').textContent = extraVal;
+  // Judge box
+  var jb = document.getElementById('judgeBox');
+  jb.className = 'judge-box ' + judgeClass;
+  jb.style.display = 'block';
+  var judgeSubject = (_calcFormula === 'graham') ? '股价' : '市场PB';
+  var judgeRef = (_calcFormula === 'graham') ? '估值' : '理论值';
+  var jd = '';
+  if (judgeClass === 'under') jd = '<div class="judge-detail">' + judgeSubject + '低于' + judgeRef + ' ' + Math.abs(deviation*100).toFixed(1) + '%，可能低估</div>';
+  else if (judgeClass === 'over') jd = '<div class="judge-detail">' + judgeSubject + '高于' + judgeRef + ' ' + (deviation*100).toFixed(1) + '%，含成长溢价</div>';
   else jd = '<div class="judge-detail">偏差在10%以内，估值合理</div>';
   jb.innerHTML = '&#x1F4CC; ' + judge + jd;
-  document.getElementById('formulaBox').innerHTML = formulaHtml;
-  // 投资收益率 = ROE*(1-股利支付率) + 1/PE*股利支付率
+  // Formula box
+  var fb = document.getElementById('formulaBox');
+  fb.innerHTML = formulaHtml;
+  fb.style.display = 'block';
+  // Invest rate box (only for PE×ROE)
   var _irBox = document.getElementById('investRateBox');
-  var _irVal = document.getElementById('investRateVal');
-  var _dbRow = DB_DATA[code];
-  if (_dbRow) {
-    var _dpr = _dbRow[16]; // 股利支付率，小数格式
-    if (_dpr !== null && _dpr !== undefined && _dpr > 0) {
-      var _ir = roeDecimal * (1 - _dpr) + (1 / peVal) * _dpr;
-      _irVal.textContent = (_ir * 100).toFixed(2) + '%';
-      _irBox.style.display = 'block';
-    } else {
-      _irBox.style.display = 'none';
-    }
+  if (_calcFormula === 'peroe') {
+    var _irVal = document.getElementById('investRateVal');
+    var _dbRow = DB_DATA[code];
+    if (_dbRow) {
+      var _dpr = _dbRow[16];
+      if (_dpr !== null && _dpr !== undefined && _dpr > 0) {
+        var _ir = _roeDecimal * (1 - _dpr) + (1 / _peVal) * _dpr;
+        _irVal.textContent = (_ir * 100).toFixed(2) + '%';
+        _irBox.style.display = 'block';
+      } else { _irBox.style.display = 'none'; }
+    } else { _irBox.style.display = 'none'; }
   } else {
     _irBox.style.display = 'none';
   }
-  const record = { code, name:name||'-', pe:peVal, roe:roeVal, marketPB:pbVal, calcPB:+calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:formulaLabel, time:new Date().toLocaleString('zh-CN') };
-  const hist = getHistory(); hist.unshift(record); if (hist.length > MAX_HISTORY) hist.pop();
+  // History record
+  var record;
+  if (_calcFormula === 'graham') {
+    record = { code, name:name||'-', pe:0, roe:0, marketPB:0, calcPB:+calcVal.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'Graham', time:new Date().toLocaleString('zh-CN') };
+  } else {
+    record = { code, name:name||'-', pe:_peVal, roe:_roeVal, marketPB:_pbVal, calcPB:+_calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'PE×ROE', time:new Date().toLocaleString('zh-CN') };
+  }
+  var hist = getHistory(); hist.unshift(record); if (hist.length > MAX_HISTORY) hist.pop();
   saveHistory(hist); renderHistory();
   _renderQuickView(code);
   setTimeout(function() { document.getElementById('resultCard').scrollIntoView({behavior:'smooth', block:'nearest'}); }, 100);
@@ -4477,8 +4528,10 @@ function _renderQuickView(code) {
 }
 
 function clearForm() {
-  ['code','name','pe','roe','pb','grahamG','grahamY'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
+  ['code','name','pe','roe','pb','grahamEPS','grahamPrice','grahamG','grahamY'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('resultCard').classList.remove('show');
+  var jb = document.getElementById('judgeBox'); if (jb) jb.style.display = 'none';
+  var fb = document.getElementById('formulaBox'); if (fb) fb.style.display = 'none';
   var qv = document.getElementById('quickView'); if (qv) qv.style.display = 'none';
   var inputBtn = document.getElementById('calcInputFavBtn');
   if (inputBtn) { inputBtn.classList.remove('active'); inputBtn.textContent = '☆'; }
@@ -4499,7 +4552,15 @@ function renderHistory() {
   count.textContent = hist.length + ' 条';
   if (!hist.length) { list.innerHTML = '<div class="empty-state">暂无记录</div>'; clearRow.style.display='none'; return; }
   clearRow.style.display = '';
-  list.innerHTML = show.map((r,i) => '<div class="history-item" data-idx="'+i+'"><div class="history-swipe-del">删除</div><div class="history-item-content" style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;background:var(--card);width:100%;padding:12px 16px;box-sizing:border-box;"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+_esc(r.code)+'</span><span class="history-name">'+_esc(r.name)+'</span><div class="history-params">'+(r.formula==='Graham'?'[Graham] ':'')+'PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div>'+(r.time?'<div class="history-time">'+_esc(r.time)+'</div>':'')+'</div><div class="history-right" onclick="loadHistory('+i+')"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="event.stopPropagation();delHistory('+i+')">&times;</button></div></div>').join('');
+  list.innerHTML = show.map((r,i) => {
+    var params;
+    if (r.formula === 'Graham') {
+      params = '[Graham] 估值=' + r.calcPB.toFixed(2) + '元 | 偏差=' + (r.deviation>=0?'+':'') + (r.deviation*100).toFixed(1) + '%';
+    } else {
+      params = 'PE=' + r.pe.toFixed(2) + ' | ROE=' + r.roe.toFixed(2) + '% | PB=' + r.marketPB.toFixed(2);
+    }
+    return '<div class="history-item" data-idx="'+i+'"><div class="history-swipe-del">删除</div><div class="history-item-content" style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;background:var(--card);width:100%;padding:12px 16px;box-sizing:border-box;"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+_esc(r.code)+'</span><span class="history-name">'+_esc(r.name)+'</span><div class="history-params">'+params+'</div>'+(r.time?'<div class="history-time">'+_esc(r.time)+'</div>':'')+'</div><div class="history-right" onclick="loadHistory('+i+')"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="event.stopPropagation();delHistory('+i+')">&times;</button></div></div>';
+  }).join('');
   // Bind swipe events
   _bindHistorySwipe();
 }
@@ -4552,14 +4613,19 @@ function loadHistory(idx) {
   switchTab('calc');
   codeInput.value = r.code;
   nameInput.value = r.name === '-' ? '' : r.name;
-  document.getElementById('pe').value = r.pe;
-  document.getElementById('roe').value = r.roe;
-  document.getElementById('pb').value = r.marketPB;
   // Restore formula mode
   if (r.formula === 'Graham') {
     switchFormula('graham');
+    // Graham records: calcPB stores valuation, marketPB stores price
+    document.getElementById('grahamEPS').value = '';
+    document.getElementById('grahamPrice').value = r.marketPB ? r.marketPB.toFixed(2) : '';
+    document.getElementById('grahamG').value = '';
+    document.getElementById('grahamY').value = '4.4';
   } else {
     switchFormula('peroe');
+    document.getElementById('pe').value = r.pe;
+    document.getElementById('roe').value = r.roe;
+    document.getElementById('pb').value = r.marketPB;
   }
   document.getElementById('resultCard').classList.remove('show');
   var inputBtn = document.getElementById('calcInputFavBtn');
