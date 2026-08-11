@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.3.6';</script>
+<script>var APP_VER='5.4.0';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -263,6 +263,14 @@ body {
 .judge-detail { font-size:12px; font-weight:400; margin-top:4px; opacity:0.8; }
 .formula-box { background:var(--surface); border-radius:8px; padding:10px 12px; margin-top:10px; font-size:12px; color:var(--text2); line-height:1.8; }
 .formula-box span { color:var(--primary); font-weight:600; }
+
+/* Formula tab switch */
+.formula-tabs { display:flex; gap:0; margin-bottom:12px; border-bottom:2px solid var(--gray-light); }
+.formula-tab { padding:8px 16px; font-size:13px; font-weight:500; color:var(--text2); cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent; transition:all 0.2s; -webkit-user-select:none; user-select:none; flex:1; text-align:center; margin-bottom:-2px; }
+.formula-tab.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+.formula-tab:active { background:var(--primary-light); }
+.graham-params { display:none; }
+.graham-params.show { display:block; }
 
 .history-card { background:var(--card); border-radius:var(--radius); margin-bottom:12px; box-shadow:var(--shadow); overflow:hidden; }
 .history-item { border-bottom:1px solid var(--gray-light); display:flex; align-items:center; justify-content:space-between; position:relative; overflow:hidden; }
@@ -699,6 +707,10 @@ body {
   <div class="container">
     <div class="card">
       <div class="card-title" style="position:relative;">&#x1F4DD; 录入数据<span class="calc-fav-btn" id="calcInputFavBtn" style="display:block;position:absolute;right:0;top:50%;transform:translateY(-50%);" onclick="toggleFavCalc()">☆</span></div>
+      <div class="formula-tabs">
+        <div class="formula-tab active" id="formulaTabPEROE" onclick="switchFormula('peroe')">PE×ROE</div>
+        <div class="formula-tab" id="formulaTabGraham" onclick="switchFormula('graham')">Graham估值</div>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label>股票代码</label>
@@ -716,6 +728,12 @@ body {
         <div class="form-group"><label>PE(TTM)</label><input type="text" id="pe" placeholder="7.49 或 100/13" inputmode="decimal" autocomplete="off"></div>
         <div class="form-group"><label>ROE(%)</label><input type="text" id="roe" placeholder="13.63 或 50-36" inputmode="decimal" autocomplete="off"></div>
         <div class="form-group"><label>市场PB</label><input type="text" id="pb" placeholder="0.70 或 2.1/3" inputmode="decimal" autocomplete="off"></div>
+      </div>
+      <div class="graham-params" id="grahamParams">
+        <div class="form-row">
+          <div class="form-group"><label>预期增长率g(%)</label><input type="text" id="grahamG" placeholder="如 8 表示年增长8%" inputmode="decimal" autocomplete="off"></div>
+          <div class="form-group"><label>债券收益率Y(%)</label><input type="text" id="grahamY" placeholder="如 4.4 默认4.4" inputmode="decimal" autocomplete="off"></div>
+        </div>
       </div>
       <div style="text-align:right;margin-top:0;margin-bottom:10px;">
         <span id="rtBtn" style="font-size:12px;color:var(--primary);cursor:pointer;" onclick="fetchRealTimeData(codeInput.value.trim())">&#x1F504; 刷新实时数据</span>
@@ -4316,6 +4334,26 @@ function calcExpr(str) {
 
 function round2(n) { return Math.round(n * 100) / 100; }
 
+// ===== Formula Switch =====
+var _calcFormula = 'peroe'; // 'peroe' or 'graham'
+
+function switchFormula(f) {
+  _calcFormula = f;
+  var t1 = document.getElementById('formulaTabPEROE');
+  var t2 = document.getElementById('formulaTabGraham');
+  var gp = document.getElementById('grahamParams');
+  if (f === 'graham') {
+    t1.classList.remove('active'); t2.classList.add('active');
+    gp.classList.add('show');
+    // pre-fill Y default
+    var yEl = document.getElementById('grahamY');
+    if (!yEl.value.trim()) yEl.value = '4.4';
+  } else {
+    t1.classList.add('active'); t2.classList.remove('active');
+    gp.classList.remove('show');
+  }
+}
+
 function getCalcVal(id) {
   const raw = document.getElementById(id).value;
   const v = calcExpr(raw);
@@ -4334,20 +4372,44 @@ function calculate() {
   const pbVal = getCalcVal('pb');
   if (!code) { showToast('请输入股票代码'); return; }
   if (isNaN(peVal)) { showToast('请输入有效的PE（支持四则运算，如 100/13）'); return; }
-  if (peVal <= 0) { showToast('亏损公司PE为负值，PB=PE×ROE公式不适用'); return; }
+  if (peVal <= 0) { showToast('亏损公司PE为负值，估值公式不适用'); return; }
   if (isNaN(roeVal)) { showToast('请输入有效的ROE（支持四则运算，如 50-36）'); return; }
   if (roeVal <= 0) { showToast('ROE为负值表示股东亏损，无法用此公式估值'); return; }
   if (isNaN(pbVal)) { showToast('请输入有效的市场PB（支持四则运算，如 2.1/3）'); return; }
   if (pbVal <= 0) { showToast('市场PB应大于0，破净股可参考其他估值方法'); return; }
-  const roeDecimal = roeVal / 100;
-  const calcPB = peVal * roeDecimal;
-  const deviation = (pbVal - calcPB) / calcPB;
+
+  var calcPB, deviation, formulaHtml, formulaLabel;
+  var roeDecimal = roeVal / 100;
+
+  if (_calcFormula === 'graham') {
+    // Graham: 合理PE = (8.5 + 2g) * 4.4 / Y,  合理PB = 合理PE * ROE
+    var gVal = getCalcVal('grahamG');
+    var yVal = getCalcVal('grahamY');
+    if (isNaN(gVal)) { showToast('请输入预期增长率g（如8表示年增长8%）'); return; }
+    if (isNaN(yVal) || yVal <= 0) { showToast('请输入有效的债券收益率Y（如4.4）'); return; }
+    var grahamPE = (8.5 + 2 * gVal) * 4.4 / yVal;
+    calcPB = grahamPE * roeDecimal;
+    if (calcPB <= 0) { showToast('Graham公式计算结果异常，请检查参数'); return; }
+    deviation = (pbVal - calcPB) / calcPB;
+    formulaLabel = 'Graham';
+    formulaHtml = '<span>' + _esc(name||code) + '</span> | Graham计算PB=<span>' + calcPB.toFixed(2) + '</span><br>' +
+      '合理PE=(8.5+2×' + gVal + ')×4.4/' + yVal + '=<span>' + grahamPE.toFixed(2) + '</span>，×ROE=' + roeVal + '%<br>' +
+      '市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span>';
+  } else {
+    // PE × ROE
+    calcPB = peVal * roeDecimal;
+    deviation = (pbVal - calcPB) / calcPB;
+    formulaLabel = 'PE×ROE';
+    formulaHtml = '<span>' + _esc(name||code) + '</span> | 计算PB=<span>' + calcPB.toFixed(2) + '</span><br>' +
+      '市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>' +
+      '隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
+  }
+
   let judge, judgeClass;
   if (deviation < -DEVIATION_THRESHOLD) { judge = '低估'; judgeClass = 'under'; }
   else if (deviation > DEVIATION_THRESHOLD) { judge = '高估'; judgeClass = 'over'; }
   else { judge = '合理'; judgeClass = 'fair'; }
   document.getElementById('resultCard').classList.add('show');
-  // Update calc favorite button
   document.getElementById('calcPB').textContent = calcPB.toFixed(2);
   document.getElementById('marketPB').textContent = pbVal.toFixed(2);
   const devEl = document.getElementById('deviation');
@@ -4360,7 +4422,7 @@ function calculate() {
   else if (judgeClass === 'over') jd = '<div class="judge-detail">市场PB高于理论值 ' + (deviation*100).toFixed(1) + '%，含成长溢价</div>';
   else jd = '<div class="judge-detail">偏差在10%以内，估值合理</div>';
   jb.innerHTML = '&#x1F4CC; ' + judge + jd;
-  document.getElementById('formulaBox').innerHTML = '<span>' + _esc(name||code) + '</span> | 计算PB=<span>' + calcPB.toFixed(2) + '</span><br>市场PB=' + pbVal.toFixed(2) + ' &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
+  document.getElementById('formulaBox').innerHTML = formulaHtml;
   // 投资收益率 = ROE*(1-股利支付率) + 1/PE*股利支付率
   var _irBox = document.getElementById('investRateBox');
   var _irVal = document.getElementById('investRateVal');
@@ -4377,14 +4439,11 @@ function calculate() {
   } else {
     _irBox.style.display = 'none';
   }
-  const record = { code, name:name||'-', pe:peVal, roe:roeVal, marketPB:pbVal, calcPB:+calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, time:new Date().toLocaleString('zh-CN') };
+  const record = { code, name:name||'-', pe:peVal, roe:roeVal, marketPB:pbVal, calcPB:+calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:formulaLabel, time:new Date().toLocaleString('zh-CN') };
   const hist = getHistory(); hist.unshift(record); if (hist.length > MAX_HISTORY) hist.pop();
   saveHistory(hist); renderHistory();
-  // Render quick view from DB
   _renderQuickView(code);
-  // Scroll result into view
   setTimeout(function() { document.getElementById('resultCard').scrollIntoView({behavior:'smooth', block:'nearest'}); }, 100);
-  // Dismiss keyboard
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
 }
 
@@ -4418,7 +4477,7 @@ function _renderQuickView(code) {
 }
 
 function clearForm() {
-  ['code','name','pe','roe','pb'].forEach(id => document.getElementById(id).value = '');
+  ['code','name','pe','roe','pb','grahamG','grahamY'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('resultCard').classList.remove('show');
   var qv = document.getElementById('quickView'); if (qv) qv.style.display = 'none';
   var inputBtn = document.getElementById('calcInputFavBtn');
@@ -4440,7 +4499,7 @@ function renderHistory() {
   count.textContent = hist.length + ' 条';
   if (!hist.length) { list.innerHTML = '<div class="empty-state">暂无记录</div>'; clearRow.style.display='none'; return; }
   clearRow.style.display = '';
-  list.innerHTML = show.map((r,i) => '<div class="history-item" data-idx="'+i+'"><div class="history-swipe-del">删除</div><div class="history-item-content" style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;background:var(--card);width:100%;padding:12px 16px;box-sizing:border-box;"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+_esc(r.code)+'</span><span class="history-name">'+_esc(r.name)+'</span><div class="history-params">PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div>'+(r.time?'<div class="history-time">'+_esc(r.time)+'</div>':'')+'</div><div class="history-right" onclick="loadHistory('+i+')"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="event.stopPropagation();delHistory('+i+')">&times;</button></div></div>').join('');
+  list.innerHTML = show.map((r,i) => '<div class="history-item" data-idx="'+i+'"><div class="history-swipe-del">删除</div><div class="history-item-content" style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;background:var(--card);width:100%;padding:12px 16px;box-sizing:border-box;"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+_esc(r.code)+'</span><span class="history-name">'+_esc(r.name)+'</span><div class="history-params">'+(r.formula==='Graham'?'[Graham] ':'')+'PE='+r.pe.toFixed(2)+' | ROE='+r.roe.toFixed(2)+'% | PB='+r.marketPB.toFixed(2)+'</div>'+(r.time?'<div class="history-time">'+_esc(r.time)+'</div>':'')+'</div><div class="history-right" onclick="loadHistory('+i+')"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="event.stopPropagation();delHistory('+i+')">&times;</button></div></div>').join('');
   // Bind swipe events
   _bindHistorySwipe();
 }
@@ -4496,8 +4555,13 @@ function loadHistory(idx) {
   document.getElementById('pe').value = r.pe;
   document.getElementById('roe').value = r.roe;
   document.getElementById('pb').value = r.marketPB;
+  // Restore formula mode
+  if (r.formula === 'Graham') {
+    switchFormula('graham');
+  } else {
+    switchFormula('peroe');
+  }
   document.getElementById('resultCard').classList.remove('show');
-  // Sync input fav star for this code
   var inputBtn = document.getElementById('calcInputFavBtn');
   if (inputBtn && r.code) { var f = isFav(r.code); inputBtn.classList.toggle('active', f); inputBtn.textContent = f ? '★' : '☆'; }
   showToast('已加载，可修改后重新计算');
