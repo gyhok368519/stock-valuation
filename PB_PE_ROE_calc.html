@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.4.1';</script>
+<script>var APP_VER='5.4.2';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -733,11 +733,11 @@ body {
       </div>
       <div class="graham-params" id="grahamParams">
         <div class="form-row">
-          <div class="form-group"><label>EPS（扣非每股收益）</label><input type="text" id="grahamEPS" placeholder="如 1.50" inputmode="decimal" autocomplete="off"></div>
-          <div class="form-group"><label>当前股价</label><input type="text" id="grahamPrice" placeholder="如 25.00" inputmode="decimal" autocomplete="off"></div>
+          <div class="form-group"><label>EPS（扣非每股收益）</label><input type="text" id="grahamEPS" placeholder="如 1.50 或 3+0.5" inputmode="decimal" autocomplete="off"></div>
+          <div class="form-group"><label>当前股价</label><input type="text" id="grahamPrice" placeholder="如 25.00 或 100/4" inputmode="decimal" autocomplete="off"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>预期增长率g(%)</label><input type="text" id="grahamG" placeholder="如 8 表示年增长8%" inputmode="decimal" autocomplete="off"></div>
+          <div class="form-group"><label>预期增长率g(%)</label><input type="text" id="grahamG" placeholder="默认0" inputmode="decimal" autocomplete="off"></div>
           <div class="form-group"><label>债券收益率Y(%)</label><input type="text" id="grahamY" placeholder="如 4.4 默认4.4" inputmode="decimal" autocomplete="off"></div>
         </div>
       </div>
@@ -4389,11 +4389,12 @@ function calculate() {
     // Graham: V = EPS × (8.5 + 2g) × 4.4 / Y
     var epsVal = getCalcVal('grahamEPS');
     var priceVal = getCalcVal('grahamPrice');
-    var gVal = getCalcVal('grahamG');
+    var gRaw = document.getElementById('grahamG').value.trim();
+    var gVal = gRaw === '' ? 0 : getCalcVal('grahamG');
     var yVal = getCalcVal('grahamY');
-    if (isNaN(epsVal) || epsVal <= 0) { showToast('请输入有效的EPS（扣非每股收益）'); return; }
-    if (isNaN(priceVal) || priceVal <= 0) { showToast('请输入有效的当前股价'); return; }
-    if (isNaN(gVal)) { showToast('请输入预期增长率g（如8表示年增长8%）'); return; }
+    if (isNaN(epsVal) || epsVal <= 0) { showToast('请输入有效的EPS（支持四则运算）'); return; }
+    if (isNaN(priceVal) || priceVal <= 0) { showToast('请输入有效的当前股价（支持四则运算）'); return; }
+    if (isNaN(gVal)) { showToast('请输入有效的预期增长率g'); return; }
     if (isNaN(yVal) || yVal <= 0) { showToast('请输入有效的债券收益率Y（如4.4）'); return; }
     var grahamPE = (8.5 + 2 * gVal) * 4.4 / yVal;
     var grahamV = epsVal * grahamPE;
@@ -4401,14 +4402,13 @@ function calculate() {
     deviation = (priceVal - grahamV) / grahamV;
     calcVal = grahamV;
     marketVal = priceVal;
-    extraVal = grahamPE.toFixed(2);
-    extraLabel = '合理PE';
-    lblCalc = 'Graham估值';
+    extraVal = grahamV.toFixed(2) + '元';
+    extraLabel = '内在价值V';
+    lblCalc = '合理PE';
     lblMarket = '当前股价';
     formulaLabel = 'Graham';
-    formulaHtml = '<span>' + _esc(name||code) + '</span> | Graham估值=<span>' + grahamV.toFixed(2) + '元</span><br>' +
-      'V=EPS×(8.5+2g)×4.4/Y = ' + epsVal + '×(8.5+2×' + gVal + ')×4.4/' + yVal + '<br>' +
-      '合理PE=<span>' + grahamPE.toFixed(2) + '</span>，当前股价=' + priceVal.toFixed(2) + '元 &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span>';
+    formulaHtml = '<span>' + _esc(name||code) + '</span> | 合理PE=<span>' + grahamPE.toFixed(2) + '</span>，内在价值V=<span>' + grahamV.toFixed(2) + '元</span><br>' +
+      '当前股价=' + priceVal.toFixed(2) + '元 &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span>';
   } else {
     // PE × ROE
     const peVal = getCalcVal('pe');
