@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.3.4';</script>
+<script>var APP_VER='5.3.5';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -557,7 +557,7 @@ body {
   .calc-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay); z-index:9999; align-items:center; justify-content:center; }
   .calc-overlay.show { display:flex; }
   .calc-card { background:var(--card); border-radius:16px; width:90%; max-width:360px; max-height:95vh; min-height:60vh; padding:16px; box-shadow:var(--shadow-xl); animation:gpIn 0.2s ease; display:flex; flex-direction:column; }
-  .calc-display { background:var(--bg); border-radius:10px; padding:14px 18px; margin-bottom:8px; text-align:right; min-height:80px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
+  .calc-display { background:var(--bg); border-radius:10px; padding:14px 18px; margin-bottom:4px; text-align:right; min-height:80px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
   .calc-expr { font-size:13px; color:var(--text3); min-height:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .calc-result { font-size:40px; font-weight:700; color:var(--text); line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:'SF Mono','Menlo','Consolas',monospace; }
   .calc-grid-btn { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; flex:1; align-content:center; }
@@ -801,7 +801,7 @@ body {
           <button class="note-toolbar-btn" onclick="noteCopy()" title="复制">&#x2398;</button>
           <button class="note-toolbar-btn" onclick="notePaste()" title="粘贴">&#x1F4CB;</button>
           <button class="note-toolbar-btn" onclick="noteSelectAll()" title="全选">&#x2611;</button>
-          <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器"><svg class="calc-icon-svg" viewBox="0 0 24 24"><path d="M7 2h10c1.1 0 2 .9 2 2v16c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2zm0 4v3h10V6H7zm0 5v2h2v-2H7zm4 0v2h2v-2h-2zm4 0v2h2v-2h-2zm-8 4v2h2v-2H7zm4 0v2h2v-2h-2zm4 0v2h2v-2h-2z"/></svg></button>
+          <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器"><svg class="calc-icon-svg" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="8" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="16" r="1" fill="currentColor"/><circle cx="15" cy="16" r="1" fill="currentColor"/></svg></button>
           <div style="flex:1;"></div>
           <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
           <span id="noteFontSizeLabel" style="font-size:12px;min-width:20px;text-align:center;color:var(--text);">15</span>
