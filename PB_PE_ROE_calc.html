@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.3.1';</script>
+<script>var APP_VER='5.3.2';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -560,8 +560,8 @@ body {
   .calc-display { background:var(--bg); border-radius:10px; padding:14px 18px; margin-bottom:16px; text-align:right; min-height:80px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
   .calc-expr { font-size:13px; color:var(--text3); min-height:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .calc-result { font-size:40px; font-weight:700; color:var(--text); line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:'SF Mono','Menlo','Consolas',monospace; }
-  .calc-grid-btn { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; flex:1; align-content:center; }
-  .calc-btn { border:none; border-radius:12px; font-size:22px; font-weight:500; cursor:pointer; aspect-ratio:1.6/1; display:flex; align-items:center; justify-content:center; transition:opacity 0.1s; font-family:inherit; -webkit-user-select:none; user-select:none; }
+  .calc-grid-btn { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; flex:1; align-content:center; }
+  .calc-btn { border:none; border-radius:12px; font-size:22px; font-weight:500; cursor:pointer; aspect-ratio:1.8/1; display:flex; align-items:center; justify-content:center; transition:opacity 0.1s; font-family:inherit; -webkit-user-select:none; user-select:none; }
   .calc-btn:active { opacity:0.65; }
   .calc-btn-num { background:var(--primary-light); color:var(--text); }
   .calc-btn-op { background:var(--primary); color:var(--text-inv); }
@@ -569,7 +569,7 @@ body {
   .calc-btn-fn { background:var(--bg); color:var(--text2); font-size:18px; }
   .calc-btn-eq { background:var(--green); color:var(--text-inv); }
   .calc-btn-zero { grid-column:span 2; aspect-ratio:auto; }
-  .calc-close { text-align:center; margin-top:12px; color:var(--text3); font-size:14px; cursor:pointer; flex-shrink:0; }
+  .calc-close { text-align:center; margin-top:4px; color:var(--text3); font-size:14px; cursor:pointer; flex-shrink:0; }
   .calc-close:active { color:var(--text2); }
 
 
@@ -800,7 +800,7 @@ body {
           <button class="note-toolbar-btn" onclick="noteCopy()" title="复制">&#x2398;</button>
           <button class="note-toolbar-btn" onclick="notePaste()" title="粘贴">&#x1F4CB;</button>
           <button class="note-toolbar-btn" onclick="noteSelectAll()" title="全选">&#x2611;</button>
-          <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器" style="font-size:17px;">&#x1F5A9;</button>
+          <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器">&#xFEFF;&#x1F5AE;</button>
           <div style="flex:1;"></div>
           <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
           <span id="noteFontSizeLabel" style="font-size:12px;min-width:20px;text-align:center;color:var(--text);">15</span>
