@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.2.3';</script>
+<script>var APP_VER='5.3.0';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -553,6 +553,25 @@ body {
   .cal-grid .cal-d.other { color:var(--text3); opacity:0.4; }
   /* Calendar dark overrides handled by CSS variables */
 
+  /* === Mini Calculator === */
+  .calc-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay); z-index:9999; align-items:center; justify-content:center; }
+  .calc-overlay.show { display:flex; }
+  .calc-card { background:var(--card); border-radius:16px; width:90%; max-width:320px; padding:16px; box-shadow:var(--shadow-xl); animation:gpIn 0.2s ease; }
+  .calc-display { background:var(--bg); border-radius:10px; padding:12px 16px; margin-bottom:12px; text-align:right; min-height:72px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
+  .calc-expr { font-size:13px; color:var(--text3); min-height:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .calc-result { font-size:36px; font-weight:700; color:var(--text); line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:'SF Mono','Menlo','Consolas',monospace; }
+  .calc-grid-btn { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .calc-btn { border:none; border-radius:10px; font-size:20px; font-weight:500; cursor:pointer; aspect-ratio:1.4/1; display:flex; align-items:center; justify-content:center; transition:opacity 0.1s; font-family:inherit; -webkit-user-select:none; user-select:none; }
+  .calc-btn:active { opacity:0.65; }
+  .calc-btn-num { background:var(--primary-light); color:var(--text); }
+  .calc-btn-op { background:var(--primary); color:var(--text-inv); }
+  .calc-btn-op.active { background:var(--green); }
+  .calc-btn-fn { background:var(--bg); color:var(--text2); font-size:16px; }
+  .calc-btn-eq { background:var(--green); color:var(--text-inv); }
+  .calc-btn-zero { grid-column:span 2; aspect-ratio:auto; }
+  .calc-close { text-align:center; margin-top:10px; color:var(--text3); font-size:14px; cursor:pointer; }
+  .calc-close:active { color:var(--text2); }
+
 
 </style>
 </head>
@@ -781,6 +800,7 @@ body {
           <button class="note-toolbar-btn" onclick="noteCopy()" title="复制">&#x2398;</button>
           <button class="note-toolbar-btn" onclick="notePaste()" title="粘贴">&#x1F4CB;</button>
           <button class="note-toolbar-btn" onclick="noteSelectAll()" title="全选">&#x2611;</button>
+          <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器">&#x1F5A9;</button>
           <div style="flex:1;"></div>
           <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
           <span id="noteFontSizeLabel" style="font-size:12px;min-width:20px;text-align:center;color:var(--text);">15</span>
@@ -795,6 +815,38 @@ body {
     </div>
     <!-- 空状态 -->
     <div id="noteEmpty" class="note-empty">点击「新建」创建投资笔记</div>
+  </div>
+</div>
+
+<!-- ========== Mini Calculator ========== -->
+<div class="calc-overlay" id="calcOverlay" onclick="calcClose(event)">
+  <div class="calc-card" onclick="event.stopPropagation()">
+    <div class="calc-display">
+      <div class="calc-expr" id="calcExpr"></div>
+      <div class="calc-result" id="calcResult">0</div>
+    </div>
+    <div class="calc-grid-btn">
+      <button class="calc-btn calc-btn-fn" onclick="calcClear()">C</button>
+      <button class="calc-btn calc-btn-fn" onclick="calcBack()">&#x232B;</button>
+      <button class="calc-btn calc-btn-fn" onclick="calcPercent()">%</button>
+      <button class="calc-btn calc-btn-op" id="calcBtnDiv" onclick="calcOp('/')">&#xF7;</button>
+      <button class="calc-btn calc-btn-num" onclick="calcInput('7')">7</button>
+      <button class="calc-btn calc-btn-num" onclick="calcInput('8')">8</button>
+      <button class="calc-btn calc-btn-num" onclick="calcInput('9')">9</button>
+      <button class="calc-btn calc-btn-op" id="calcBtnMul" onclick="calcOp('*')">&times;</button>
+      <button class="calc-btn calc-btn-num" onclick="calcInput('4')">4</button>
+      <button class="calc-btn calc-btn-num" onclick="calcInput('5')">5</button>
+      <button class="calc-btn calc-btn-num" onclick="calcInput('6')">6</button>
+      <button class="calc-btn calc-btn-op" id="calcBtnSub" onclick="calcOp('-')">&minus;</button>
+      <button class="calc-btn calc-btn-num" onclick="calcInput('1')">1</button>
+      <button class="calc-btn calc-btn-num" onclick="calcInput('2')">2</button>
+      <button class="calc-btn calc-btn-num" onclick="calcInput('3')">3</button>
+      <button class="calc-btn calc-btn-op" id="calcBtnAdd" onclick="calcOp('+')">+</button>
+      <button class="calc-btn calc-btn-num calc-btn-zero" onclick="calcInput('0')">0</button>
+      <button class="calc-btn calc-btn-num" onclick="calcInput('.')">.</button>
+      <button class="calc-btn calc-btn-eq" onclick="calcEq()">=</button>
+    </div>
+    <div class="calc-close" onclick="calcClose()">关闭</div>
   </div>
 </div>
 
@@ -3349,6 +3401,130 @@ function noteSelectAll() {
   var sel = window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
+}
+
+// === Mini Calculator ===
+var _calcCur = '0';      // current number being typed
+var _calcPrev = null;    // previous operand (stored after operator)
+var _calcOp = null;       // pending operator
+var _calcReset = false;  // next digit starts new number
+
+function calcOpen() {
+  var ov = document.getElementById('calcOverlay');
+  ov.classList.add('show');
+  _calcCur = '0'; _calcPrev = null; _calcOp = null; _calcReset = false;
+  _calcUpdate();
+}
+
+function calcClose(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('calcOverlay').classList.remove('show');
+}
+
+function calcInput(ch) {
+  if (_calcReset) { _calcCur = '0'; _calcReset = false; }
+  if (ch === '.') {
+    if (_calcCur.indexOf('.') >= 0) return;
+    _calcCur = _calcCur + '.';
+  } else {
+    if (_calcCur === '0') _calcCur = ch;
+    else _calcCur = _calcCur + ch;
+  }
+  _calcUpdate();
+}
+
+function calcBack() {
+  if (_calcReset) return;
+  if (_calcCur.length > 1) _calcCur = _calcCur.slice(0, -1);
+  else _calcCur = '0';
+  _calcUpdate();
+}
+
+function calcClear() {
+  _calcCur = '0'; _calcPrev = null; _calcOp = null; _calcReset = false;
+  _calcUpdate();
+}
+
+function calcPercent() {
+  var v = parseFloat(_calcCur);
+  if (isNaN(v)) return;
+  _calcCur = String(v / 100);
+  _calcUpdate();
+}
+
+function calcOp(op) {
+  var v = parseFloat(_calcCur);
+  if (_calcPrev !== null && _calcOp && !_calcReset) {
+    var r = _calcCompute(_calcPrev, v, _calcOp);
+    _calcPrev = r;
+    _calcCur = String(r);
+  } else {
+    _calcPrev = v;
+  }
+  _calcOp = op;
+  _calcReset = true;
+  _calcUpdate();
+}
+
+function calcEq() {
+  if (_calcOp === null || _calcPrev === null) return;
+  var v = parseFloat(_calcCur);
+  var r = _calcCompute(_calcPrev, v, _calcOp);
+  _calcCur = String(r);
+  _calcPrev = null;
+  _calcOp = null;
+  _calcReset = true;
+  _calcUpdate();
+}
+
+function _calcCompute(a, b, op) {
+  switch (op) {
+    case '+': return _calcRound(a + b);
+    case '-': return _calcRound(a - b);
+    case '*': return _calcRound(a * b);
+    case '/': return b === 0 ? 0 : _calcRound(a / b);
+  }
+  return b;
+}
+
+function _calcRound(n) {
+  // round to 10 decimal places, strip trailing zeros
+  var s = (Math.round(n * 1e10) / 1e10).toString();
+  if (s.indexOf('.') >= 0) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  return s;
+}
+
+function _calcUpdate() {
+  var exprEl = document.getElementById('calcExpr');
+  var resEl = document.getElementById('calcResult');
+  var opSym = {'+':'+','-':"\u2212",'*':"\u00D7",'/':"\u00F7"};
+  if (_calcOp && _calcPrev !== null) {
+    exprEl.textContent = _calcFmt(_calcPrev) + ' ' + (opSym[_calcOp] || _calcOp);
+  } else {
+    exprEl.textContent = '';
+  }
+  resEl.textContent = _calcFmt(_calcCur);
+  // highlight active operator
+  ['Add','Sub','Mul','Div'].forEach(function(s) {
+    document.getElementById('calcBtn' + s).classList.remove('active');
+  });
+  if (_calcOp) {
+    var map = {'+':'Add','-':'Sub','*':'Mul','/':'Div'};
+    var btn = document.getElementById('calcBtn' + map[_calcOp]);
+    if (btn) btn.classList.add('active');
+  }
+}
+
+function _calcFmt(s) {
+  // format number: keep as-is but limit display length
+  if (s.length > 14) {
+    var n = parseFloat(s);
+    if (Math.abs(n) >= 1e12 || (Math.abs(n) < 1e-10 && n !== 0)) {
+      return n.toExponential(6);
+    }
+    return n.toPrecision(12).replace(/0+$/,'').replace(/\.$/, '');
+  }
+  return s;
 }
 
 // === Settings ===
