@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.5.8';;;;;;;</script>
+<script>var APP_VER='5.5.9';;;;;;;;</script>
 <style>
 :root {
   /* 基础背景 */
@@ -2864,8 +2864,12 @@ function _gpCreateGroup() {
   _saveFavGroups();
   input.value = '';
   showToast('已添加分组: ' + name);
-  // Refresh picker to show new group
-  _showGroupPicker(document.getElementById('gpTitle').textContent, _gpCurrentGroup, _gpCallback);
+  // Auto-select the new group and close picker
+  document.getElementById('gpOverlay').classList.remove('show');
+  if (_gpCallback) {
+    _gpCallback(name);
+    _gpCallback = null;
+  }
 }
 
 // Group action menu (rename/delete)
@@ -3937,10 +3941,10 @@ function loadDBData() {
 
   // 2. Always check remote for updates (with timeout and auto-retry)
   var _fetchRetryCount = 0;
-  var _fetchMaxRetries = 2; // auto-retry up to 2 times (total 3 attempts)
+  var _fetchMaxRetries = 1; // auto-retry up to 1 time (total 2 attempts)
   function fetchRemote() {
     _dbDataLoading = true;
-    var timeout = hasCache ? 8000 : 15000;
+    var timeout = hasCache ? 8000 : 30000;
     var controller = new AbortController();
     var timer = setTimeout(function() { controller.abort(); }, timeout);
     return fetch('./db_data.json?_t=' + Date.now(), {cache: 'no-store', signal: controller.signal}).then(function(r) {
@@ -4817,8 +4821,8 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
     if (!v && dbHint) dbHint.style.display = 'block';
   }).catch(function() { if (dbHint) dbHint.style.display = 'block'; });
   
-  // Safety: always hide loading hint after 30s max (even if fetch hangs)
-  // 30s allows for 3 retry attempts of ~8s each
+  // Safety: always hide loading hint after 60s max (even if fetch hangs)
+  // 60s allows for 2 retry attempts of ~30s each
   var safetyTimer = setTimeout(function() {
     if (dbHint) dbHint.style.display = 'none';
     _dbDataLoading = false;
@@ -4828,7 +4832,7 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
       var container = document.getElementById('dbContent');
       if (container) container.innerHTML = '<div class="db-load-fail"><p>数据库加载超时</p><button class="db-retry-btn" onclick="retryLoadDB()">点击重试</button></div>';
     }
-  }, 30000);
+  }, 60000);
   
   loadDBData().then(function() {
     clearTimeout(safetyTimer);
@@ -4881,7 +4885,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812w').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812x').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
