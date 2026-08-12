@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.5.9';;;;;;;;</script>
+<script>var APP_VER='5.6.0';;;;;;;;;</script>
 <style>
 :root {
   /* 基础背景 */
@@ -2380,9 +2380,13 @@ function uploadDBFile() {
 function pushToGitHub() {
   var log = document.getElementById('pushLog');
   var btn = document.getElementById('pushBtn');
+  if (dbCount() === 0) {
+    log.innerHTML = '<span style="color:var(--red);">数据库为空，无法推送。请先加载或更新数据库。</span>';
+    return;
+  }
   btn.disabled = true;
   btn.textContent = '推送中...';
-  log.innerHTML = '准备上传 db_data.json...<br>';
+  log.innerHTML = '准备上传 db_data.json（' + dbCount() + ' 只股票）...<br>';
 
   // Embed _meta with version for cache invalidation
   var pushVer = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10) + 1;
@@ -4885,7 +4889,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812x').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812y').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
