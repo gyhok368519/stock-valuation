@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.5.3';;</script>
+<script>var APP_VER='5.5.4';;;</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1390,7 +1390,7 @@ async function favCloudPut(data, retryCount) {
   } catch (e) { console.error('favCloudPut error:', e); return false; }
 }
 
-// Pull cloud favorites and merge with local (union, newest timestamp wins)
+// Pull cloud favorites and merge with local (sync stock list only, group stays local)
 async function favCloudPull() {
   if (_favSyncBusy) return;
   var user = localStorage.getItem(SESSION_KEY);
@@ -1402,60 +1402,41 @@ async function favCloudPull() {
     var userData = cloudData[user];
 
     // Compatibility: old format was [items], new format is {items:[], groups:[]}
-    var cloudItems, cloudGroups;
+    var cloudItems;
     if (userData && Array.isArray(userData)) {
       cloudItems = userData; // old format
-      cloudGroups = null;
     } else if (userData && typeof userData === 'object') {
       cloudItems = userData.items || [];
-      cloudGroups = userData.groups || null;
     } else {
       cloudItems = [];
-      cloudGroups = null;
     }
     if (!Array.isArray(cloudItems)) cloudItems = [];
-
-    // Merge groups from cloud into local
-    if (cloudGroups && Array.isArray(cloudGroups)) {
-      var gChanged = false;
-      cloudGroups.forEach(function(g) {
-        if (_favGroups.indexOf(g) < 0) {
-          _favGroups.push(g);
-          gChanged = true;
-        }
-      });
-      if (gChanged) _saveFavGroups();
-    }
 
     // Build map from cloud items
     var cloudMap = {};
     cloudItems.forEach(function(item) { if (item.code) cloudMap[item.code] = item; });
 
-    // Merge: local wins if newer, else cloud wins
+    // Merge: only sync which stocks are favorited, not group assignment
     var changed = false;
     for (var code in cloudMap) {
       if (!_favCache[code]) {
-        // Cloud has item not in local → add
-        _favCache[code] = cloudMap[code];
-        _favSave(cloudMap[code]);
-        changed = true;
-      } else if (cloudMap[code].time && (!_favCache[code].time || cloudMap[code].time > _favCache[code].time)) {
-        // Cloud is newer → overwrite local
-        _favCache[code] = cloudMap[code];
-        _favSave(cloudMap[code]);
+        // Cloud has item not in local → add to 默认 group
+        var newItem = {code: cloudMap[code].code, name: cloudMap[code].name, group: '默认', time: cloudMap[code].time || Date.now()};
+        _favCache[code] = newItem;
+        _favSave(newItem);
         changed = true;
       }
+      // Local item already exists → keep local group assignment, don't overwrite
     }
-    // Also push local items that cloud doesn't have
+    // Push local items that cloud doesn't have
     for (var code in _favCache) {
       if (!cloudMap[code]) {
-        changed = true; // will need to push
+        changed = true;
       }
     }
-    if (changed || (cloudGroups && cloudGroups.length > 0)) {
+    if (changed) {
       updateFavCount();
       renderFavList();
-      // Push merged result back to cloud
       await favCloudPush();
     }
   } catch(e) { console.warn('favCloudPull error:', e); }
@@ -1472,16 +1453,15 @@ async function favCloudPush() {
     if (!cloudData) cloudData = {};
     if (typeof cloudData !== 'object' || Array.isArray(cloudData)) cloudData = {};
 
-    // Build current user's favorites from local cache
+    // Build current user's favorites from local cache (stock list only, group is per-device)
     var myItems = [];
     for (var code in _favCache) {
       var item = _favCache[code];
-      // Strip notes from cloud (notes can be large and are per-device)
-      var cloudItem = {code: item.code, name: item.name, group: item.group || '默认', time: item.time || Date.now()};
+      // Strip notes and group from cloud (both are per-device)
+      var cloudItem = {code: item.code, name: item.name, time: item.time || Date.now()};
       myItems.push(cloudItem);
     }
-    // v5.5.3+: store both items and groups list
-    cloudData[user] = {items: myItems, groups: _favGroups.slice()};
+    cloudData[user] = myItems;
     return await favCloudPut(cloudData);
   } catch(e) { console.error('favCloudPush error:', e); return false; }
 }
@@ -4901,7 +4881,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812r').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812s').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
