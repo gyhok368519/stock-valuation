@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.6.2';;;;;;;;;;</script>
+<script>var APP_VER='5.6.3';;;;;;;;;;</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1050,6 +1050,8 @@ var STOCK_MAP = {};
 var PINYIN_IDX = {};
 var _indexReady = false;
 var _indexReadyCallbacks = [];
+var _indexRetryCount = 0;
+var _INDEX_MAX_RETRY = 5;
 
 function loadStockIndex() {
   // 1. Try IndexedDB cache first (instant)
@@ -1064,15 +1066,13 @@ function loadStockIndex() {
       console.log('[index] loaded from IDB cache: ' + Object.keys(STOCK_MAP).length + ' stocks');
     }
     // 2. Background fetch to refresh cache (non-blocking if cache hit)
-    var fetchPromise = fetch('./stock_index.json').then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }).then(function(data) {
+    var fetchPromise = _fetchStockIndex().then(function(data) {
       if (data.stocks) {
         STOCK_MAP = data.stocks;
         PINYIN_IDX = data.pinyin || {};
       }
       _indexReady = true;
+      _indexRetryCount = 0;
       _buildIndex();
       // Save to IDB for next instant load
       _dbSave('stock_index', data).catch(function() {});
@@ -1081,10 +1081,15 @@ function loadStockIndex() {
       _indexReadyCallbacks = [];
       console.log('[index] refreshed from network: ' + Object.keys(STOCK_MAP).length + ' stocks');
     }).catch(function(e) {
-      console.warn('[index] network fetch failed:', e);
+      console.warn('[index] fetch failed:', e);
       if (!_indexReady) {
-        // No cache AND network failed — retry
-        setTimeout(loadStockIndex, 3000);
+        _indexRetryCount++;
+        if (_indexRetryCount <= _INDEX_MAX_RETRY) {
+          setTimeout(loadStockIndex, 3000);
+        } else {
+          console.error('[index] max retries reached, giving up');
+          _indexReadyCallbacks = [];
+        }
       }
     });
     // If no IDB cache, wait for fetch
@@ -1093,23 +1098,50 @@ function loadStockIndex() {
     }
   }).catch(function() {
     // IDB failed, go straight to fetch
-    return fetch('./stock_index.json').then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }).then(function(data) {
+    return _fetchStockIndex().then(function(data) {
       if (data.stocks) {
         STOCK_MAP = data.stocks;
         PINYIN_IDX = data.pinyin || {};
       }
       _indexReady = true;
+      _indexRetryCount = 0;
       _buildIndex();
       _dbSave('stock_index', data).catch(function() {});
       _indexReadyCallbacks.forEach(function(cb) { try { cb(); } catch(e) {} });
       _indexReadyCallbacks = [];
       console.log('[index] loaded from network: ' + Object.keys(STOCK_MAP).length + ' stocks');
     }).catch(function(e) {
-      console.warn('[index] load failed, retry in 3s:', e);
-      setTimeout(loadStockIndex, 3000);
+      console.warn('[index] load failed:', e);
+      _indexRetryCount++;
+      if (_indexRetryCount <= _INDEX_MAX_RETRY) {
+        setTimeout(loadStockIndex, 3000);
+      } else {
+        console.error('[index] max retries reached, giving up');
+        _indexReadyCallbacks = [];
+      }
+    });
+  });
+}
+
+// Fetch stock_index.json with cache-bust, then fallback to GitHub API
+function _fetchStockIndex() {
+  var url = './stock_index.json?_t=' + Date.now();
+  return fetch(url, { cache: 'no-store' }).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).catch(function(e1) {
+    // GitHub Pages failed — try GitHub API (same domain as auth)
+    console.log('[index] Pages fetch failed (' + e1.message + '), trying API fallback...');
+    var apiUrl = 'https://api.github.com/repos/' + GH_REPO + '/contents/stock_index.json';
+    var headers = { 'Accept': 'application/vnd.github.v3+json' };
+    if (typeof GH_TOKEN !== 'undefined' && GH_TOKEN) headers['Authorization'] = 'token ' + GH_TOKEN;
+    return fetch(apiUrl, { headers: headers }).then(function(r) {
+      if (!r.ok) throw new Error('API HTTP ' + r.status);
+      return r.json();
+    }).then(function(data) {
+      if (!data.content) throw new Error('No content in API response');
+      var rawStr = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+      return JSON.parse(rawStr);
     });
   });
 }
@@ -2054,9 +2086,17 @@ function startApiFetch() {
 
   // Collect target codes (full only) - wait for index if needed
   if (!_indexReady) {
-    apiLog('等待股票索引加载...');
-    btn.textContent = '手动更新数据库';
-    onIndexReady(function() { startApiFetch(); });
+    apiLog('等待股票索引加载（最多30秒）...');
+    btn.textContent = '停止';
+    var _idxTimeout = setTimeout(function() {
+      apiLog('<span style="color:var(--red);">股票索引加载超时，请检查网络后刷新页面重试</span>');
+      btn.textContent = '手动更新数据库';
+      progressDiv.style.display = 'none';
+    }, 30000);
+    onIndexReady(function() {
+      clearTimeout(_idxTimeout);
+      startApiFetch();
+    });
     return;
   }
   var codes = Object.keys(STOCK_MAP);
@@ -4926,7 +4966,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812aa').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812bb').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
