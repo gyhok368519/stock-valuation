@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.4.8';</script>
+<script>var APP_VER='5.4.9';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -727,15 +727,15 @@ body {
         </div>
       </div>
       <div class="form-row three peroe-params" id="peroeRow">
-        <div class="form-group"><label>PE(TTM)</label><input type="text" id="pe" placeholder="7.49 或 100/13" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)"></div>
-        <div class="form-group"><label>ROE(%)</label><input type="text" id="roe" placeholder="13.63 或 50-36" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)"></div>
-        <div class="form-group"><label>市场PB</label><input type="text" id="pb" placeholder="0.70 或 2.1/3" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)"></div>
+        <div class="form-group"><label>PE(TTM)</label><input type="text" id="pe" placeholder="7.49 或 100/13" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
+        <div class="form-group"><label>ROE(%)</label><input type="text" id="roe" placeholder="13.63 或 50-36" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
+        <div class="form-group"><label>市场PB</label><input type="text" id="pb" placeholder="0.70 或 2.1/3" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
       </div>
       <div class="graham-params" id="grahamParams">
         <div class="form-row three">
-          <div class="form-group"><label>EPS</label><input type="text" id="grahamEPS" placeholder="如 1.50 或 3+0.5" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)"></div>
-          <div class="form-group"><label>股价</label><input type="text" id="grahamPrice" placeholder="如 25.00 或 100/4" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)"></div>
-          <div class="form-group"><label>预期g(%)</label><input type="text" id="grahamG" placeholder="默认0 或 5+2" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)"></div>
+          <div class="form-group"><label>EPS</label><input type="text" id="grahamEPS" placeholder="如 1.50 或 3+0.5" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
+          <div class="form-group"><label>股价</label><input type="text" id="grahamPrice" placeholder="如 25.00 或 100/4" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
+          <div class="form-group"><label>预期g(%)</label><input type="text" id="grahamG" placeholder="默认0 或 5+2" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
         </div>
       </div>
       <div style="text-align:right;margin-top:0;margin-bottom:10px;">
