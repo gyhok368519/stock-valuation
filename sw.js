@@ -1,8 +1,7 @@
-const CACHE_NAME = 'pb-calc-v148';
+const CACHE_NAME = 'pb-calc-v149';;
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './stock_index.json',
-  './db_data.json',
   './manifest.json',
   './icon-512.jpg',
   './sw.js'
@@ -106,8 +105,25 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Stale-While-Revalidate for static assets & data files
-  // - PB_PE_ROE_calc.html, sw.js, manifest.json → SWR (instant open, background refresh)
-  // - db_data.json, stock_index.json → SWR (instant load, background refresh)
+  // db_data.json: network-first (always try fresh data from GitHub, fallback to cache)
+  if (url.indexOf('db_data.json') !== -1) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' }).then(function(response) {
+        if (response.ok) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
+        }
+        return response;
+      }).catch(function() {
+        return caches.match(e.request).then(function(cached) {
+          return cached || new Response('{}', { status: 502, headers: { 'Content-Type': 'application/json' } });
+        });
+      })
+    );
+    return;
+  }
+
+  // Stale-While-Revalidate for static assets
+  // - PB_PE_ROE_calc.html, sw.js, manifest.json, stock_index.json → SWR
   e.respondWith(swr(e.request));
 });
