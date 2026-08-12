@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pb-calc-v136';
+const CACHE_NAME = 'pb-calc-v137';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './stock_index.json',
@@ -32,7 +32,7 @@ self.addEventListener('message', e => {
 
 // === Stale-While-Revalidate helper ===
 // Return cached response immediately (if available), fetch fresh copy in background for next visit.
-// If no cache, wait for network. Network failure falls back to whatever cache exists.
+// If no cache, wait for network. Network failure falls back to ANY cache across all cache stores.
 function swr(request) {
   return caches.match(request).then(function(cached) {
     var fetchPromise = fetch(request, { cache: 'no-store' }).then(function(response) {
@@ -40,6 +40,31 @@ function swr(request) {
         var clone = response.clone();
         caches.open(CACHE_NAME).then(function(cache) { cache.put(request, clone); });
       }
+      return response;
+    }).catch(function() {});
+
+    if (cached) return cached; // SWR: instant cache, background refresh
+    return fetchPromise.then(function(r) { return r; }).catch(function() {
+      // Network failed & no exact cache match: search ALL caches for a fallback
+      return caches.keys().then(function(cacheNames) {
+        var matchNext = function(i) {
+          if (i >= cacheNames.length) {
+            return new Response('network error', { status: 502, headers: { 'Content-Type': 'text/plain' } });
+          }
+          return caches.open(cacheNames[i]).then(function(cache) {
+            return cache.match(request);
+          }).then(function(resp) {
+            if (resp) return resp;
+            return matchNext(i + 1);
+          }).catch(function() {
+            return matchNext(i + 1);
+          });
+        };
+        return matchNext(0);
+      });
+    });
+  });
+}
       return response;
     }).catch(function() {});
 
