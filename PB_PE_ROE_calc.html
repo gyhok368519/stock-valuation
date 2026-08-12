@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.5.7';;;;;;</script>
+<script>var APP_VER='5.5.8';;;;;;;</script>
 <style>
 :root {
   /* 基础背景 */
@@ -3943,7 +3943,7 @@ function loadDBData() {
     var timeout = hasCache ? 8000 : 15000;
     var controller = new AbortController();
     var timer = setTimeout(function() { controller.abort(); }, timeout);
-    return fetch('./db_data.json', {cache: 'no-cache', signal: controller.signal}).then(function(r) {
+    return fetch('./db_data.json?_t=' + Date.now(), {cache: 'no-store', signal: controller.signal}).then(function(r) {
       clearTimeout(timer);
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
@@ -4881,7 +4881,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812v').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812w').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
