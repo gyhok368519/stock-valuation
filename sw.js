@@ -1,7 +1,8 @@
-const CACHE_NAME = 'pb-calc-v143';
+const CACHE_NAME = 'pb-calc-v144';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './stock_index.json',
+  './db_data.json',
   './manifest.json',
   './icon-512.jpg',
   './sw.js'
@@ -61,17 +62,6 @@ function swr(request) {
           });
         };
         return matchNext(0);
-      });
-    });
-  });
-}
-      return response;
-    }).catch(function() {});
-
-    if (cached) return cached; // SWR: instant cache, background refresh
-    return fetchPromise.then(function(r) { return r; }).catch(function() {
-      return new Response(JSON.stringify({error: 'network error'}), {
-        status: 502, headers: { 'Content-Type': 'application/json' }
       });
     });
   });
