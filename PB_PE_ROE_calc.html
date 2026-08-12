@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.4.7';</script>
+<script>var APP_VER='5.4.8';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -4302,7 +4302,15 @@ function saveHistory(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr
 // Safe math expression parser (recursive descent, no eval/new Function)
 function calcExpr(str) {
   if (!str) return NaN;
-  str = str.trim();
+  // Normalize full-width operators (Chinese IME) to ASCII
+  str = str.trim()
+    .replace(/\uff0b/g, '+')   // ＋ full-width plus
+    .replace(/\u2212/g, '-')    // − Unicode minus
+    .replace(/\u2013/g, '-')    // – en dash
+    .replace(/\u2014/g, '-')    // — em dash
+    .replace(/\uff0a/g, '*')    // ＊ full-width asterisk
+    .replace(/\uff0f/g, '/')    // ／ full-width slash
+    .replace(/\uff0d/g, '-');   // － full-width hyphen-minus
   if (/^-?[\d.]+$/.test(str)) return parseFloat(str);
   var pos = 0;
   function peek() { return pos < str.length ? str[pos] : ''; }
