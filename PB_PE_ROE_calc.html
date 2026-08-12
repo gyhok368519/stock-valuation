@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.6.1';;;;;;;;;;</script>
+<script>var APP_VER='5.6.2';;;;;;;;;;</script>
 <style>
 :root {
   /* 基础背景 */
@@ -2351,10 +2351,10 @@ function uploadDBFile() {
   var status = document.getElementById('uploadStatus');
   if (!input.files || !input.files.length) { status.innerHTML = '<span style="color:var(--red);">请选择文件</span>'; return; }
   var file = input.files[0];
-  var reader = new FileReader();
-  reader.onload = function(e) {
+  status.innerHTML = '<span style="color:var(--text2);">正在读取文件（' + (file.size / 1024 / 1024).toFixed(1) + ' MB）...</span>';
+  function processJSON(text) {
     try {
-      var data = JSON.parse(e.target.result);
+      var data = JSON.parse(text);
       if (!data || (typeof data !== 'object')) { status.innerHTML = '<span style="color:var(--red);">文件内容为空</span>'; return; }
       // Support both old-format (map) and new-format (array) JSON
       if (data && data.d && Array.isArray(data.d)) {
@@ -2372,7 +2372,32 @@ function uploadDBFile() {
     } catch(ex) {
       status.innerHTML = '<span style="color:var(--red);">JSON解析失败: ' + ex.message + '</span>';
     }
+  }
+  // readAsText can return empty string on some Android PWA/WebView
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var text = e.target.result;
+    if (text && text.length > 0) {
+      processJSON(text);
+    } else {
+      // readAsText returned empty — fallback to readAsArrayBuffer
+      console.log('uploadDBFile: readAsText returned empty, retrying with readAsArrayBuffer');
+      var reader2 = new FileReader();
+      reader2.onload = function(ev) {
+        try {
+          var buf = ev.target.result;
+          var decoder = new TextDecoder('utf-8');
+          var decoded = decoder.decode(new Uint8Array(buf));
+          processJSON(decoded);
+        } catch(ex2) {
+          status.innerHTML = '<span style="color:var(--red);">文件读取失败: ' + ex2.message + '</span>';
+        }
+      };
+      reader2.onerror = function() { status.innerHTML = '<span style="color:var(--red);">文件读取失败（ArrayBuffer方式）</span>'; };
+      reader2.readAsArrayBuffer(file);
+    }
   };
+  reader.onerror = function() { status.innerHTML = '<span style="color:var(--red);">文件读取失败</span>'; };
   reader.readAsText(file);
 }
 
@@ -4901,7 +4926,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812z').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812aa').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
