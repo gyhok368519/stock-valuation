@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.4.4';</script>
+<script>var APP_VER='5.4.5';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -4728,7 +4728,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260805n').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812n').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
@@ -4745,24 +4745,14 @@ if ('serviceWorker' in navigator) {
   }).catch(function(e) { console.log('SW fail', e); });
 }
 
-// Apply update: clear caches + unregister SW + force reload
+// Apply update: force reload with cache-bust (SW & caches kept for fallback)
 function _applyUpdate(remoteVer) {
   showToast('正在更新到 v' + remoteVer + '...');
-  // Step 1: Clear all Cache API caches
-  var cacheCleared = typeof caches !== 'undefined'
-    ? caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); return true; }).catch(function() { return true; })
-    : Promise.resolve(true);
-  // Step 2: Unregister all service workers
-  var swUnregistered = navigator.serviceWorker
-    ? navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); return true; }).catch(function() { return true; })
-    : Promise.resolve(true);
-  // Step 3: Wait for both, then force reload with cache-bust
-  Promise.all([cacheCleared, swUnregistered]).then(function() {
-    setTimeout(function() {
-      // Use location.href to fully reload, bypassing any remaining SW
-      location.href = location.pathname + '?v=' + remoteVer + '&_t=' + Date.now();
-    }, 1500);
-  });
+  // Direct reload: SW remains active to serve cached page if network fails
+  // New SW will clean old caches on activate after fresh page loads successfully
+  setTimeout(function() {
+    location.href = location.pathname + '?v=' + remoteVer + '&_t=' + Date.now();
+  }, 800);
 }
 
 // ===== Auto Update Check =====
