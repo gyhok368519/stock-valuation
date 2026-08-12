@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.5.2';</script>
+<script>var APP_VER='5.5.3';;</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1399,8 +1399,33 @@ async function favCloudPull() {
   try {
     var cloudData = await favCloudGet();
     if (!cloudData) { _favSyncBusy = false; return; }
-    var cloudItems = cloudData[user] || [];
+    var userData = cloudData[user];
+
+    // Compatibility: old format was [items], new format is {items:[], groups:[]}
+    var cloudItems, cloudGroups;
+    if (userData && Array.isArray(userData)) {
+      cloudItems = userData; // old format
+      cloudGroups = null;
+    } else if (userData && typeof userData === 'object') {
+      cloudItems = userData.items || [];
+      cloudGroups = userData.groups || null;
+    } else {
+      cloudItems = [];
+      cloudGroups = null;
+    }
     if (!Array.isArray(cloudItems)) cloudItems = [];
+
+    // Merge groups from cloud into local
+    if (cloudGroups && Array.isArray(cloudGroups)) {
+      var gChanged = false;
+      cloudGroups.forEach(function(g) {
+        if (_favGroups.indexOf(g) < 0) {
+          _favGroups.push(g);
+          gChanged = true;
+        }
+      });
+      if (gChanged) _saveFavGroups();
+    }
 
     // Build map from cloud items
     var cloudMap = {};
@@ -1427,7 +1452,7 @@ async function favCloudPull() {
         changed = true; // will need to push
       }
     }
-    if (changed) {
+    if (changed || (cloudGroups && cloudGroups.length > 0)) {
       updateFavCount();
       renderFavList();
       // Push merged result back to cloud
@@ -1455,7 +1480,8 @@ async function favCloudPush() {
       var cloudItem = {code: item.code, name: item.name, group: item.group || '默认', time: item.time || Date.now()};
       myItems.push(cloudItem);
     }
-    cloudData[user] = myItems;
+    // v5.5.3+: store both items and groups list
+    cloudData[user] = {items: myItems, groups: _favGroups.slice()};
     return await favCloudPut(cloudData);
   } catch(e) { console.error('favCloudPush error:', e); return false; }
 }
@@ -2579,7 +2605,7 @@ function _dbClearAll() {
 var _favCache = null; // in-memory cache: { code: {code, name, group, time} }
 var _favGroups = ['默认']; // group names
 var _favActiveTab = '全部'; // current active tab: '全部' or group name
-var MAX_FAV_GROUPS = 3; // max custom groups (excluding default)
+var MAX_FAV_GROUPS = 5; // max custom groups (excluding default)
 
 function _saveFavGroups() {
   try { localStorage.setItem('pb_calc_fav_groups', JSON.stringify(_favGroups)); } catch(e) {}
@@ -4875,7 +4901,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812q').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812r').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
