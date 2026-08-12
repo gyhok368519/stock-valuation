@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.5.0';</script>
+<script>var APP_VER='5.5.1';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -353,6 +353,7 @@ body {
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   line-height: 1; transition: background 0.2s;
 }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 /* SVG sun-moon icon for theme toggle */
 .theme-icon { display:inline-block; vertical-align:middle; width:18px; height:18px; }
 .theme-icon svg { width:100%; height:100%; }
@@ -779,6 +780,7 @@ body {
   <div class="header" style="position:relative;">
     <h1>⭐ 我的收藏</h1>
     <p id="favSubTitle">0 只股票</p>
+    <button class="info-btn" style="right:52px;" onclick="favCloudSync()" title="同步收藏" id="favSyncBtn"><span style="font-size:14px;">&#x21BB;</span></button>
     <button class="info-btn" style="right:12px;" id="themeBtnFav" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconFav"></span></button>
   </div>
   <div class="container">
@@ -1456,6 +1458,21 @@ async function favCloudPush() {
     cloudData[user] = myItems;
     return await favCloudPut(cloudData);
   } catch(e) { console.error('favCloudPush error:', e); return false; }
+}
+
+// Manual sync button: pull + push
+async function favCloudSync() {
+  var user = localStorage.getItem(SESSION_KEY);
+  if (!user) { showToast('请先登录'); return; }
+  var btn = document.getElementById('favSyncBtn');
+  if (btn) btn.querySelector('span').style.animation = 'spin 0.8s linear infinite';
+  try {
+    await favCloudPull();
+    showToast('收藏已同步');
+  } catch(e) {
+    showToast('同步失败，请检查网络');
+  }
+  if (btn) btn.querySelector('span').style.animation = '';
 }
 
 // Persisted DB: read user DB from localStorage ignoring TTL (for auto-login)
@@ -4858,7 +4875,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812o').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812p').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
