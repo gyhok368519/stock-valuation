@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.6.0';;;;;;;;;</script>
+<script>var APP_VER='5.6.1';;;;;;;;;;</script>
 <style>
 :root {
   /* 基础背景 */
@@ -3945,16 +3945,21 @@ function loadDBData() {
 
   // 2. Always check remote for updates (with timeout and auto-retry)
   var _fetchRetryCount = 0;
-  var _fetchMaxRetries = 1; // auto-retry up to 1 time (total 2 attempts)
+  var _fetchMaxRetries = 0; // no retry for GitHub Pages (fallback to API below)
   function fetchRemote() {
     _dbDataLoading = true;
-    var timeout = hasCache ? 8000 : 30000;
+    var timeout = hasCache ? 8000 : 20000;
     var controller = new AbortController();
     var timer = setTimeout(function() { controller.abort(); }, timeout);
     return fetch('./db_data.json?_t=' + Date.now(), {cache: 'no-store', signal: controller.signal}).then(function(r) {
       clearTimeout(timer);
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
+    }).catch(function(e) {
+      // GitHub Pages failed (network/CORS/timeout) — fallback to GitHub API
+      clearTimeout(timer);
+      console.log('DB GitHub Pages fetch failed:', e.message, '— trying GitHub API fallback...');
+      return fetchDBViaAPI();
     }).then(function(raw) {
       if (!raw || typeof raw !== 'object') throw new Error('Invalid data');
       // Extract version from remote _meta
@@ -3985,18 +3990,25 @@ function loadDBData() {
       _dbDataLoading = false;
       return Promise.resolve();
     }).catch(function(e) {
-      clearTimeout(timer);
-      console.log('Remote DB fetch failed (attempt ' + (_fetchRetryCount + 1) + '):', e.message);
-      // Auto-retry: if no cache and retries left, wait and retry
-      if (!hasCache && _fetchRetryCount < _fetchMaxRetries) {
-        _fetchRetryCount++;
-        console.log('Auto-retry DB fetch (' + _fetchRetryCount + '/' + _fetchMaxRetries + ') in 3s...');
-        return new Promise(function(resolve) {
-          setTimeout(function() { resolve(fetchRemote()); }, 3000);
-        });
-      }
+      console.log('Remote DB fetch failed (all methods):', e.message);
       _dbDataLoading = false;
       return Promise.resolve();
+    });
+  }
+
+  // Fallback: fetch db_data.json via GitHub API (same domain as auth/fav sync)
+  function fetchDBViaAPI() {
+    var apiUrl = 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json';
+    var headers = { 'Accept': 'application/vnd.github.v3+json' };
+    if (GH_TOKEN) headers['Authorization'] = 'token ' + GH_TOKEN;
+    return fetch(apiUrl, { headers: headers }).then(function(r) {
+      if (!r.ok) throw new Error('API HTTP ' + r.status);
+      return r.json();
+    }).then(function(data) {
+      if (!data.content) throw new Error('No content in API response');
+      // Decode base64 content (GitHub API returns base64)
+      var rawStr = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+      return JSON.parse(rawStr);
     });
   }
 
@@ -4825,8 +4837,8 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
     if (!v && dbHint) dbHint.style.display = 'block';
   }).catch(function() { if (dbHint) dbHint.style.display = 'block'; });
   
-  // Safety: always hide loading hint after 60s max (even if fetch hangs)
-  // 60s allows for 2 retry attempts of ~30s each
+  // Safety: always hide loading hint after 120s max (GitHub API fallback may be slow)
+  // Allows: Pages fetch 20s + API fallback 60s + decode 40s
   var safetyTimer = setTimeout(function() {
     if (dbHint) dbHint.style.display = 'none';
     _dbDataLoading = false;
@@ -4836,7 +4848,7 @@ document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('key
       var container = document.getElementById('dbContent');
       if (container) container.innerHTML = '<div class="db-load-fail"><p>数据库加载超时</p><button class="db-retry-btn" onclick="retryLoadDB()">点击重试</button></div>';
     }
-  }, 60000);
+  }, 120000);
   
   loadDBData().then(function() {
     clearTimeout(safetyTimer);
@@ -4889,7 +4901,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812y').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812z').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
