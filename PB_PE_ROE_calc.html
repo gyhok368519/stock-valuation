@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.5.4';;;</script>
+<script>var APP_VER='5.5.5';;;;</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1420,8 +1420,8 @@ async function favCloudPull() {
     var changed = false;
     for (var code in cloudMap) {
       if (!_favCache[code]) {
-        // Cloud has item not in local → add to 默认 group
-        var newItem = {code: cloudMap[code].code, name: cloudMap[code].name, group: '默认', time: cloudMap[code].time || Date.now()};
+        // Cloud has item not in local → add, no group (only visible in "全部" tab)
+        var newItem = {code: cloudMap[code].code, name: cloudMap[code].name, group: '', time: cloudMap[code].time || Date.now()};
         _favCache[code] = newItem;
         _favSave(newItem);
         changed = true;
@@ -2713,9 +2713,9 @@ function renderFavList() {
   _favGroups.forEach(function(g) { grouped[g] = []; });
   for (var code in _favCache) {
     var item = _favCache[code];
-    var g = item.group || '默认';
-    if (!grouped[g]) grouped[g] = [];
-    grouped[g].push(item);
+    var g = item.group || '';
+    if (g && !grouped[g]) grouped[g] = [];
+    if (g) grouped[g].push(item);
   }
 
   // Render tabs bar
@@ -2762,7 +2762,7 @@ function renderFavList() {
     var pe = row ? getFieldVal('PE', row) : '-';
     var pb = row ? getFieldVal('PB', row) : '-';
     var roe = row ? getFieldVal('ROE', row) : '-';
-    var groupLabel = item.group || '默认';
+    var groupLabel = item.group || '未分组';
     html += '<div class="fav-item">';
     html += '<span class="fav-star" onclick="toggleFav(\''+_esc(item.code)+'\');renderFavList();">★</span>';
     html += '<div class="fav-info" onclick="goToFavDetail(\''+_esc(item.code)+'\')">';
@@ -2788,7 +2788,7 @@ function switchFavTab(tab) {
 function moveToGroup(code) {
   var item = _favCache[code];
   if (!item) return;
-  var currentGroup = item.group || '默认';
+  var currentGroup = item.group || '';
   _showGroupPicker('移动到分组', currentGroup, function(group) {
     if (group === currentGroup) return;
     item.group = group;
@@ -4881,7 +4881,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812s').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812t').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
