@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.4.9';</script>
+<script>var APP_VER='5.5.0';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1242,6 +1242,8 @@ const GH_TOKEN = _xorDec(_ET);
 const GH_REPO = 'gyhok368519/stock-valuation';
 const GH_PATH = 'customers.json';
 const GH_API = 'https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_PATH;
+const FAV_GH_PATH = 'favorites.json';
+const FAV_GH_API = 'https://api.github.com/repos/' + GH_REPO + '/contents/' + FAV_GH_PATH;
 
 // Beijing time helper (UTC+8)
 function bjTime() {
@@ -1345,6 +1347,117 @@ function getCachedDB() { return (_dbCache && (Date.now() - _dbCacheTime) < CACHE
 function getAuthDB() { const c = getCachedDB(); return c !== null ? Promise.resolve(c) : ghGet(); }
 function saveAuthDB(db) { return ghPut(db); }
 
+// ===== Favorites Cloud Sync (favorites.json on GitHub) =====
+var _favGhSha = null;
+var _favSyncBusy = false;
+
+// Read favorites.json from GitHub, return {username: [favItems]} or null
+async function favCloudGet() {
+  try {
+    const r = await fetch(FAV_GH_API, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
+    if (r.status === 404) { _favGhSha = null; return {}; }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    _favGhSha = d.sha;
+    return JSON.parse(decodeURIComponent(escape(atob(d.content))));
+  } catch (e) { console.warn('favCloudGet error:', e.message); return null; }
+}
+
+// Write favorites.json to GitHub
+async function favCloudPut(data, retryCount) {
+  retryCount = retryCount || 0;
+  try {
+    if (!_favGhSha || retryCount > 0) {
+      const r = await fetch(FAV_GH_API, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
+      if (r.status === 404) { _favGhSha = null; }
+      else if (r.ok) { const d = await r.json(); _favGhSha = d.sha; }
+    }
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    const body = { message: 'sync favorites ' + bjTime(), content: content };
+    if (_favGhSha) body.sha = _favGhSha;
+    const r = await fetch(FAV_GH_API, {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (r.status === 409 && retryCount < 3) { _favGhSha = null; return favCloudPut(data, retryCount + 1); }
+    if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'HTTP ' + r.status); }
+    const d = await r.json();
+    _favGhSha = d.content.sha;
+    return true;
+  } catch (e) { console.error('favCloudPut error:', e); return false; }
+}
+
+// Pull cloud favorites and merge with local (union, newest timestamp wins)
+async function favCloudPull() {
+  if (_favSyncBusy) return;
+  var user = localStorage.getItem(SESSION_KEY);
+  if (!user) return;
+  _favSyncBusy = true;
+  try {
+    var cloudData = await favCloudGet();
+    if (!cloudData) { _favSyncBusy = false; return; }
+    var cloudItems = cloudData[user] || [];
+    if (!Array.isArray(cloudItems)) cloudItems = [];
+
+    // Build map from cloud items
+    var cloudMap = {};
+    cloudItems.forEach(function(item) { if (item.code) cloudMap[item.code] = item; });
+
+    // Merge: local wins if newer, else cloud wins
+    var changed = false;
+    for (var code in cloudMap) {
+      if (!_favCache[code]) {
+        // Cloud has item not in local → add
+        _favCache[code] = cloudMap[code];
+        _favSave(cloudMap[code]);
+        changed = true;
+      } else if (cloudMap[code].time && (!_favCache[code].time || cloudMap[code].time > _favCache[code].time)) {
+        // Cloud is newer → overwrite local
+        _favCache[code] = cloudMap[code];
+        _favSave(cloudMap[code]);
+        changed = true;
+      }
+    }
+    // Also push local items that cloud doesn't have
+    for (var code in _favCache) {
+      if (!cloudMap[code]) {
+        changed = true; // will need to push
+      }
+    }
+    if (changed) {
+      updateFavCount();
+      renderFavList();
+      // Push merged result back to cloud
+      await favCloudPush();
+    }
+  } catch(e) { console.warn('favCloudPull error:', e); }
+  _favSyncBusy = false;
+}
+
+// Push local favorites to cloud (merge with existing cloud data for other users)
+async function favCloudPush() {
+  var user = localStorage.getItem(SESSION_KEY);
+  if (!user) return false;
+  try {
+    // Read full cloud data first (to preserve other users' favorites)
+    var cloudData = await favCloudGet();
+    if (!cloudData) cloudData = {};
+    if (typeof cloudData !== 'object' || Array.isArray(cloudData)) cloudData = {};
+
+    // Build current user's favorites from local cache
+    var myItems = [];
+    for (var code in _favCache) {
+      var item = _favCache[code];
+      // Strip notes from cloud (notes can be large and are per-device)
+      var cloudItem = {code: item.code, name: item.name, group: item.group || '默认', time: item.time || Date.now()};
+      myItems.push(cloudItem);
+    }
+    cloudData[user] = myItems;
+    return await favCloudPut(cloudData);
+  } catch(e) { console.error('favCloudPush error:', e); return false; }
+}
+
 // Persisted DB: read user DB from localStorage ignoring TTL (for auto-login)
 function _getPersistedDB() {
   try {
@@ -1424,6 +1537,7 @@ async function doRegister() {
     } else {
       saveAuthDB(db).then(ok => { if (!ok) { _loadCache(); } }); // fire-and-forget write
       showToast('注册成功！欢迎使用股票估值计算器');
+      loadFavCache().then(function() { favCloudPull(); });
     }
   } catch(e) { err.textContent = '网络错误，请稍后重试'; }
   btn.textContent = '注册'; btn.disabled = false;
@@ -1449,24 +1563,21 @@ async function doLogin() {
         _saveCache(cached);
         saveAuthDB(cached); // fire-and-forget sync to cloud
       }
-      localStorage.setItem(SESSION_KEY, user);
-      document.getElementById('authOverlay').classList.add('hidden');
-      updateMenuUser();
-      // Background cloud validation
+    localStorage.setItem(SESSION_KEY, user);
+    document.getElementById('authOverlay').classList.add('hidden');
+    updateMenuUser();
+    loadFavCache().then(function() { favCloudPull(); }); // sync favorites after login
+      // Background: cloud validation + fav sync
       ghGet().then(async db => {
         if (!db || !db[user]) { if (db !== null) doLogout(); return; }
         const cloudMatch = await _passMatchAsync(db[user].pass, pass);
         if (cloudMatch) {
-          // Auto-upgrade cloud password if still plain
-          if (db[user].pass === pass) {
-            db[user].pass = await hashPassword(pass);
-            saveAuthDB(db);
-          }
+          if (db[user].pass === pass) { db[user].pass = await hashPassword(pass); saveAuthDB(db); }
           return;
         }
         if (db !== null) doLogout();
       });
-      return;
+      loadFavCache().then(function() { favCloudPull(); }); // sync favorites after login
     }
   }
 
@@ -2537,6 +2648,7 @@ function toggleFav(code) {
     updateFavStar(code, false);
     showToast('已取消收藏 ' + name);
     updateFavCount();
+    favCloudPush();
   } else {
     // Show group picker, then save
     _showGroupPicker('收藏 ' + name, null, function(group) {
@@ -2546,6 +2658,7 @@ function toggleFav(code) {
       updateFavStar(code, true);
       showToast('已收藏 ' + name + (group !== '默认' ? ' → ' + group : ''));
       updateFavCount();
+      favCloudPush();
     });
   }
 }
@@ -2795,6 +2908,7 @@ function _gpDoRename(oldName) {
   if (_favActiveTab === oldName) _favActiveTab = newName;
   renderFavList();
   showToast('分组已重命名');
+  favCloudPush();
 }
 
 function _gpDelete(groupName) {
@@ -2834,6 +2948,7 @@ function _gpDoDelete(groupName) {
   if (_favActiveTab === groupName) _favActiveTab = '全部';
   renderFavList();
   showToast('分组已删除');
+  favCloudPush();
 }
 // Navigate to DB detail from favorites
 function goToFavDetail(code) {
@@ -3716,6 +3831,7 @@ function addFavGroup() {
     // If user clicked an existing group, just switch to it
     _favActiveTab = group;
     renderFavList();
+    favCloudPush();
   });
 }
 
@@ -4742,7 +4858,7 @@ function _updateDBSubTitle() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812n').then(function(reg) {
+  navigator.serviceWorker.register('./sw.js?v=20260812o').then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
