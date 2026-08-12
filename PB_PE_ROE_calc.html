@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.4.5';</script>
+<script>var APP_VER='5.4.6';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -732,12 +732,10 @@ body {
         <div class="form-group"><label>市场PB</label><input type="text" id="pb" placeholder="0.70 或 2.1/3" inputmode="decimal" autocomplete="off"></div>
       </div>
       <div class="graham-params" id="grahamParams">
-        <div class="form-row">
-          <div class="form-group"><label>EPS（扣非每股收益）</label><input type="text" id="grahamEPS" placeholder="如 1.50 或 3+0.5" inputmode="decimal" autocomplete="off"></div>
-          <div class="form-group"><label>当前股价</label><input type="text" id="grahamPrice" placeholder="如 25.00 或 100/4" inputmode="decimal" autocomplete="off"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>预期增长率g(%)</label><input type="text" id="grahamG" placeholder="默认0" inputmode="decimal" autocomplete="off"></div>
+        <div class="form-row three">
+          <div class="form-group"><label>EPS</label><input type="text" id="grahamEPS" placeholder="如 1.50 或 3+0.5" inputmode="decimal" autocomplete="off"></div>
+          <div class="form-group"><label>股价</label><input type="text" id="grahamPrice" placeholder="如 25.00 或 100/4" inputmode="decimal" autocomplete="off"></div>
+          <div class="form-group"><label>预期g(%)</label><input type="text" id="grahamG" placeholder="默认0 或 5+2" inputmode="decimal" autocomplete="off"></div>
         </div>
       </div>
       <div style="text-align:right;margin-top:0;margin-bottom:10px;">
