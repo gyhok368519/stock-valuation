@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.8.0';</script>
+<script>var APP_VER='5.8.1';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1264,8 +1264,18 @@ const PASS_SALT = 'pb_calc_2026'; // Salt for password hashing
 // Async SHA-256 hash: returns hex string of SHA-256(salt + password)
 async function hashPassword(pass) {
   const data = new TextEncoder().encode(PASS_SALT + pass);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  // crypto.subtle may be unavailable in iOS standalone PWA mode or non-HTTPS contexts
+  if (typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest) {
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  // Fallback: simple hash for environments without crypto.subtle
+  console.warn('[auth] crypto.subtle unavailable, using fallback hash');
+  var h = 0;
+  var str = PASS_SALT + pass;
+  for (var i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; }
+  return 'fb' + Math.abs(h).toString(16).padStart(14, '0') + Math.abs(h * 31).toString(16).padStart(14, '0') +
+         Math.abs(h * 127).toString(16).padStart(14, '0') + Math.abs(h * 8191).toString(16).padStart(14, '0');
 }
 // Constant-time string comparison to prevent timing attacks
 function _constantTimeEqual(a, b) {
@@ -1278,8 +1288,13 @@ function _constantTimeEqual(a, b) {
 async function _passMatchAsync(stored, input) {
   // Plain text match (old user, will auto-upgrade)
   if (_constantTimeEqual(String(stored), String(input))) return true;
-  // SHA-256 hash match
+  // SHA-256 hash match (standard 64-char hex)
   if (stored.length === 64 && /^[a-f0-9]+$/.test(stored)) {
+    const hashed = await hashPassword(input);
+    return _constantTimeEqual(hashed, stored);
+  }
+  // Fallback hash match (56-char hex starting with 'fb', from crypto.subtle fallback)
+  if (stored.length === 58 && stored.startsWith('fb')) {
     const hashed = await hashPassword(input);
     return _constantTimeEqual(hashed, stored);
   }
@@ -1603,7 +1618,7 @@ async function doRegister() {
       showToast('注册成功！欢迎使用股票估值计算器');
       loadFavCache().then(function() { favCloudPull(); });
     }
-  } catch(e) { err.textContent = '网络错误，请稍后重试'; }
+  } catch(e) { console.error('注册错误:', e); err.textContent = '注册失败: ' + (e.message || '未知错误'); }
   btn.textContent = '注册'; btn.disabled = false;
 }
 
@@ -1652,7 +1667,7 @@ async function doLogin() {
     _authHide();
     showToast('登录成功！');
     loadFavCache().then(function() { favCloudPull(); });
-  } catch(e) { err.textContent = '网络错误，请稍后重试'; }
+  } catch(e) { console.error('登录错误:', e); err.textContent = '登录失败: ' + (e.message || '未知错误'); }
   btn.textContent = '登录'; btn.disabled = false;
 }
 
