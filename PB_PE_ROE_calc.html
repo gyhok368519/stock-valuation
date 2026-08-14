@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.7.2';</script>
+<script>var APP_VER='5.7.3';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -2584,7 +2584,7 @@ const DB_FIELD_IDX = { CODE:0, NAME:1, ABBR:2, MKT_CAP:3, TOTAL_REV:4, PE:5, PB:
 const DEVIATION_THRESHOLD = 0.10; // PB偏离阈值：超过±10%视为高估/低估
 const MAX_SEARCH_RESULTS = 20;    // 搜索自动补全最大条数
 const MAX_HISTORY = 50;           // 计算历史记录上限
-const DEFAULT_GROUP = DEFAULT_GROUP;     // 默认分组名
+const DEFAULT_GROUP = '默认';     // 默认分组名
 const DB_GROUPS = ["基础信息", null, null, null, null, "估值指标", null, null, null, "盈利能力", null, null, "财务健康", "股东回报", null, null, null, null, "股权结构", null, "业务概览"];
 let DB_DATA = {};
 let _dbDataLoading = false; // flag: remote fetch in progress
