@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.8.1';</script>
+<script>var APP_VER='5.8.2';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -608,6 +608,7 @@ body {
     <div class="auth-logo">
       <h2>股票估值计算器</h2>
       <p>注册/登录后即可使用</p>
+      <div id="authFileWarning" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(255,152,0,0.15);border:1px solid rgba(255,152,0,0.3);border-radius:6px;font-size:12px;color:#ff9800;text-align:left;line-height:1.5;"></div>
     </div>
     <div class="auth-tab">
       <div class="auth-tab-item active" id="tabRegister" onclick="switchAuthTab('register')">注册</div>
@@ -1260,6 +1261,7 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
 const SESSION_KEY = 'current_user';
 const DEV_PASS = 'xxjqc2026';
 const PASS_SALT = 'pb_calc_2026'; // Salt for password hashing
+const IS_FILE_PROTOCOL = (location.protocol === 'file:');
 
 // Async SHA-256 hash: returns hex string of SHA-256(salt + password)
 async function hashPassword(pass) {
@@ -1612,7 +1614,11 @@ async function doRegister() {
     _authHide();
     if (offlineMode) {
       // Will auto-sync when network recovers (checkSession or next ghGet)
-      showToast('注册成功！（离线模式，恢复网络后自动同步）');
+      if (IS_FILE_PROTOCOL) {
+        showToast('注册成功！（本地模式，仅本设备可用。建议用浏览器打开线上版以获得完整功能）');
+      } else {
+        showToast('注册成功！（离线模式，恢复网络后自动同步）');
+      }
     } else {
       saveAuthDB(db).then(ok => { if (!ok) { _loadCache(); } }); // fire-and-forget write
       showToast('注册成功！欢迎使用股票估值计算器');
@@ -1721,7 +1727,19 @@ async function doResetPassword() {
 }
 
 // Auth helpers
-function _authShow() { var ao = document.getElementById('authOverlay'); if (ao) ao.classList.remove('hidden'); updateMenuUser(); }
+function _authShow() {
+  var ao = document.getElementById('authOverlay'); if (ao) ao.classList.remove('hidden'); updateMenuUser();
+  // Show file:// protocol warning
+  if (IS_FILE_PROTOCOL) {
+    var w = document.getElementById('authFileWarning');
+    if (w) {
+      w.style.display = 'block';
+      w.innerHTML = '您正在本地文件模式下使用，注册/登录仅本设备可用，收藏同步等功能受限。' +
+        '<br>建议：<a href="https://gyhok368519.github.io/stock-valuation/PB_PE_ROE_calc.html" target="_blank" ' +
+        'style="color:#4fc3f7;text-decoration:underline;">点击此处用浏览器打开线上版</a>，可享受完整功能。';
+    }
+  }
+}
 function _authHide() { var ao = document.getElementById('authOverlay'); if (ao) ao.classList.add('hidden'); updateMenuUser(); }
 function _cloudValidate(session) {
   ghGet().then(function(db) {
