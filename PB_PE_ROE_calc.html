@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.7.5';</script>
+<script>var APP_VER='5.8.0';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1156,8 +1156,7 @@ function _fetchStockIndex() {
       return r.json();
     }).then(function(data) {
       if (!data.content) throw new Error('No content in API response');
-      var rawStr = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
-      return JSON.parse(rawStr);
+      return JSON.parse(_safeAtob(data.content));
     });
   });
 }
@@ -1274,10 +1273,6 @@ function _constantTimeEqual(a, b) {
   var result = 0;
   for (var i = 0; i < a.length; i++) result |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return result === 0;
-}
-// Synchronous quick check: plain text match (backward compat)
-function _passMatch(stored, input) {
-  return _constantTimeEqual(String(stored), String(input));
 }
 // Async full check: supports both plain and hashed passwords, auto-upgrade on match
 async function _passMatchAsync(stored, input) {
@@ -1599,8 +1594,7 @@ async function doRegister() {
       _saveCache(db);
     }
     localStorage.setItem(SESSION_KEY, user);
-    document.getElementById('authOverlay').classList.add('hidden');
-    updateMenuUser();
+    _authHide();
     if (offlineMode) {
       // Will auto-sync when network recovers (checkSession or next ghGet)
       showToast('注册成功！（离线模式，恢复网络后自动同步）');
@@ -1622,54 +1616,29 @@ async function doLogin() {
   if (!user) { err.textContent = '请输入用户名'; return; }
   if (!pass) { err.textContent = '请输入密码'; return; }
 
-  // Check cache first for instant login
-  const cached = getCachedDB();
-  if (cached && cached[user]) {
-    const matched = await _passMatchAsync(cached[user].pass, pass);
-    if (matched) {
-      // Auto-upgrade: if cached password is old plain text, replace with hash
-      if (cached[user].pass === pass) {
-        cached[user].pass = await hashPassword(pass);
-        _saveCache(cached);
-        saveAuthDB(cached); // fire-and-forget sync to cloud
-      }
-    localStorage.setItem(SESSION_KEY, user);
-    document.getElementById('authOverlay').classList.add('hidden');
-    updateMenuUser();
-    loadFavCache().then(function() { favCloudPull(); }); // sync favorites after login
-      // Background: cloud validation + fav sync
-      ghGet().then(async db => {
-        if (!db || !db[user]) { if (db !== null && Object.keys(db).length > 0) doLogout(); return; }
-        const cloudMatch = await _passMatchAsync(db[user].pass, pass);
-        if (cloudMatch) {
-          if (db[user].pass === pass) { db[user].pass = await hashPassword(pass); saveAuthDB(db); }
-          return;
-        }
-        if (db !== null && Object.keys(db).length > 0) doLogout();
-      });
-    }
-  }
-
   btn.textContent = '登录中...'; btn.disabled = true;
   try {
-    const db = await getAuthDB();
-    if (db === null) {
-      // GitHub API unreachable — try offline DB for login
-      const offline = _getOfflineDB();
-      if (offline[user]) {
-        const matched = await _passMatchAsync(offline[user].pass, pass);
-        if (matched) {
-          _saveCache(offline);
-          localStorage.setItem(SESSION_KEY, user);
-          document.getElementById('authOverlay').classList.add('hidden');
-          updateMenuUser();
-          showToast('登录成功！（离线模式）');
-          btn.textContent = '登录'; btn.disabled = false;
-          return;
+    // Check cache first for instant login
+    const cached = getCachedDB();
+    if (cached && cached[user]) {
+      const matched = await _passMatchAsync(cached[user].pass, pass);
+      if (matched) {
+        // Auto-upgrade: if cached password is old plain text, replace with hash
+        if (cached[user].pass === pass) {
+          cached[user].pass = await hashPassword(pass);
+          _saveCache(cached);
+          saveAuthDB(cached); // fire-and-forget sync to cloud
         }
+        localStorage.setItem(SESSION_KEY, user);
+        _authHide();
+        showToast('登录成功！（离线模式）');
+        btn.textContent = '登录'; btn.disabled = false;
+        return;
       }
       err.textContent = '网络不可用，且本地无此用户记录'; btn.textContent = '登录'; btn.disabled = false; return;
     }
+    // Not in cache — fetch from cloud
+    const db = await getAuthDB();
     if (!db || !db[user]) { err.textContent = '用户名不存在，请先注册'; btn.textContent = '登录'; btn.disabled = false; return; }
     const matched = await _passMatchAsync(db[user].pass, pass);
     if (!matched) { err.textContent = '密码错误，请重新输入'; btn.textContent = '登录'; btn.disabled = false; return; }
@@ -1680,8 +1649,9 @@ async function doLogin() {
       saveAuthDB(db); // fire-and-forget upgrade
     }
     localStorage.setItem(SESSION_KEY, user);
-    document.getElementById('authOverlay').classList.add('hidden');
-    updateMenuUser();
+    _authHide();
+    showToast('登录成功！');
+    loadFavCache().then(function() { favCloudPull(); });
   } catch(e) { err.textContent = '网络错误，请稍后重试'; }
   btn.textContent = '登录'; btn.disabled = false;
 }
@@ -1735,101 +1705,50 @@ async function doResetPassword() {
   btn.textContent = '重置密码'; btn.disabled = false;
 }
 
+// Auth helpers
+function _authShow() { var ao = document.getElementById('authOverlay'); if (ao) ao.classList.remove('hidden'); updateMenuUser(); }
+function _authHide() { var ao = document.getElementById('authOverlay'); if (ao) ao.classList.add('hidden'); updateMenuUser(); }
+function _cloudValidate(session) {
+  ghGet().then(function(db) {
+    if (db === null) return;
+    if (db && db[session]) { _saveCache(db); return; }
+    if (Object.keys(db).length > 0) {
+      localStorage.removeItem(SESSION_KEY);
+      _authShow();
+    }
+  });
+}
+
 // Auto-login: persisted cache first for instant entry, then background cloud verify
 (async function checkSession() {
   const session = localStorage.getItem(SESSION_KEY);
   if (!session) return;
 
-  // 1. Instant: check in-memory cache (within TTL)
+  // 1. Check in-memory cache (within TTL)
   const cached = getCachedDB();
-  if (cached && cached[session]) {
-    const ao = document.getElementById('authOverlay');
-    if (ao) ao.classList.add('hidden');
-    updateMenuUser();
-    // Background cloud validation (non-blocking)
-    ghGet().then(db => {
-      if (db === null) return; // network error, keep session
-      if (db && db[session]) { _saveCache(db); return; } // valid, update cache
-      // User not found in cloud — only logout if cloud DB has other users (not empty)
-      if (Object.keys(db).length > 0) {
-        localStorage.removeItem(SESSION_KEY);
-        document.getElementById('authOverlay').classList.remove('hidden');
-        updateMenuUser();
-      }
-    });
-    return;
-  }
+  if (cached && cached[session]) { _authHide(); _cloudValidate(session); return; }
 
-  // 2. No in-memory cache: check persisted localStorage (ignores TTL)
+  // 2. Check persisted localStorage (ignores TTL)
   const persisted = _getPersistedDB();
   if (persisted && persisted[session]) {
-    // Restore cache from persisted data
-    _dbCache = persisted;
-    _dbCacheTime = Date.now();
-    const ao = document.getElementById('authOverlay');
-    if (ao) ao.classList.add('hidden');
-    updateMenuUser();
-    // Background cloud validation
-    ghGet().then(db => {
-      if (db === null) return; // network error, keep session
-      if (db && db[session]) { _saveCache(db); return; }
-      // Only logout if cloud DB has other users (not empty, so offline-only users aren't kicked)
-      if (Object.keys(db).length > 0) {
-        localStorage.removeItem(SESSION_KEY);
-        document.getElementById('authOverlay').classList.remove('hidden');
-        updateMenuUser();
-      }
-    });
-  }
-  const offline = _getOfflineDB();
-  if (offline[session]) {
-    _saveCache(offline);
-    const ao = document.getElementById('authOverlay');
-    if (ao) ao.classList.add('hidden');
-    updateMenuUser();
-    // Background cloud sync
-    ghGet().then(db => {
-      if (db === null) return;
-      if (db && db[session]) { _saveCache(db); return; }
-      if (Object.keys(db).length > 0) {
-        localStorage.removeItem(SESSION_KEY);
-        document.getElementById('authOverlay').classList.remove('hidden');
-        updateMenuUser();
-      }
-    });
-    return;
+    _dbCache = persisted; _dbCacheTime = Date.now();
+    _authHide(); _cloudValidate(session); return;
   }
 
-  // 4. Last resort: fetch from cloud (with 2s timeout to avoid blocking auth form)
+  // 3. Check offline DB
+  const offline = _getOfflineDB();
+  if (offline[session]) { _saveCache(offline); _authHide(); _cloudValidate(session); return; }
+
+  // 4. Last resort: fetch from cloud (with 2s timeout)
   try {
     const dbPromise = ghGet();
     const timeoutPromise = new Promise(r => setTimeout(() => r('timeout'), 2000));
     const result = await Promise.race([dbPromise, timeoutPromise]);
     if (result === 'timeout') {
-      // Cloud too slow — show auth form immediately, continue in background
-      dbPromise.then(db => {
-        if (db && db[session]) {
-          const ao = document.getElementById('authOverlay');
-          if (ao) ao.classList.add('hidden');
-          updateMenuUser();
-        } else if (db !== null) {
-          localStorage.removeItem(SESSION_KEY);
-        }
-      });
-    } else if (result && result[session]) {
-      const ao = document.getElementById('authOverlay');
-      if (ao) ao.classList.add('hidden');
-      updateMenuUser();
-    } else if (result === null) {
-      // Cloud unreachable AND no local data — still let user in to see auth form
-      // Don't remove SESSION_KEY so we can retry next time
-    } else {
-      // User confirmed not in cloud
-      localStorage.removeItem(SESSION_KEY);
-    }
-  } catch(e) {
-    // Network error — don't clear session, retry next launch
-  }
+      dbPromise.then(db => { if (db && db[session]) _authHide(); else if (db !== null) localStorage.removeItem(SESSION_KEY); });
+    } else if (result && result[session]) { _authHide(); }
+    else if (result !== null) { localStorage.removeItem(SESSION_KEY); }
+  } catch(e) { /* retry next launch */ }
 })();
 
 // Background sync: periodically try to merge offline users to cloud when network recovers
@@ -1865,7 +1784,7 @@ function updateMenuUser() {
 function doLogout() {
   localStorage.removeItem(SESSION_KEY);
   toggleInfoMenu();
-  document.getElementById('authOverlay').classList.remove('hidden');
+  _authShow();
   switchAuthTab('login');
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
@@ -1884,7 +1803,7 @@ async function doDeregister() {
     _saveCache(db);
     localStorage.removeItem(SESSION_KEY);
     toggleInfoMenu();
-    document.getElementById('authOverlay').classList.remove('hidden');
+    _authShow();
     switchAuthTab('register');
     document.getElementById('regPhone').value = '';
     document.getElementById('regUser').value = '';
@@ -2080,25 +1999,16 @@ function switchUpdaterTab(tab) {
 function checkRemoteDB() {
   var statusEl = document.getElementById('pushRemoteStatus');
   statusEl.textContent = '检测中...';
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', true);
-  xhr.setRequestHeader('Authorization', 'token ' + GH_TOKEN);
-  xhr.timeout = 30000;
-  xhr.ontimeout = function() { statusEl.textContent = '检测超时'; };
-  xhr.onload = function() {
-    if (xhr.status === 200) {
-      try {
-        var info = JSON.parse(xhr.responseText);
-        statusEl.textContent = (info.size || '?') + ' 字节，SHA=' + (info.sha || '?').substring(0,8);
-      } catch(e) {
-        statusEl.textContent = '解析失败';
-      }
-    } else {
-      statusEl.textContent = '未找到';
-    }
-  };
-  xhr.onerror = function() { statusEl.textContent = '检测失败'; };
-  xhr.send();
+  var headers = { 'Authorization': 'token ' + GH_TOKEN };
+  var ctrl = new AbortController();
+  var timer = setTimeout(function() { ctrl.abort(); }, 30000);
+  fetch('https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', { headers: headers, signal: ctrl.signal })
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(info) {
+      statusEl.textContent = (info.size || '?') + ' 字节，SHA=' + (info.sha || '?').substring(0,8);
+    })
+    .catch(function() { statusEl.textContent = '检测失败'; })
+    .finally(function() { clearTimeout(timer); });
 }
 
 // --- API Fetch ---
@@ -2483,7 +2393,8 @@ function uploadDBFile() {
 }
 
 // --- Push to GitHub ---
-function pushToGitHub() {
+var _dbDataSha = null; // SHA for db_data.json on GitHub
+async function pushToGitHub() {
   var log = document.getElementById('pushLog');
   var btn = document.getElementById('pushBtn');
   if (dbCount() === 0) {
@@ -2494,82 +2405,26 @@ function pushToGitHub() {
   btn.textContent = '推送中...';
   log.innerHTML = '准备上传 db_data.json（' + dbCount() + ' 只股票）...<br>';
 
-  // Embed _meta with version for cache invalidation
   var pushVer = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10) + 1;
-  // Convert DB_DATA map to compact array format for push
   var pushArr = [];
   for (var k in DB_DATA) { if (k !== '_meta') pushArr.push(DB_DATA[k]); }
   var pushData = { d: pushArr, _meta: { v: pushVer, t: Date.now(), c: pushArr.length } };
-  var content = JSON.stringify(pushData);
-  var contentB64 = btoa(unescape(encodeURIComponent(content)));
 
-  // Get current SHA first, then upload (with 409 retry)
-  pushWithRetry(contentB64, log, btn, pushVer, 0);
-}
+  var apiUrl = 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json';
+  var result = await _ghFilePut(apiUrl,
+    { get value(){ return _dbDataSha; }, set value(v){ _dbDataSha = v; } },
+    pushData, 'update db_data.json v' + pushVer);
 
-function pushWithRetry(contentB64, log, btn, pushVer, retryCount) {
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', true);
-  xhr.setRequestHeader('Authorization', 'token ' + GH_TOKEN);
-  xhr.timeout = 30000;
-  xhr.ontimeout = function() {
-    uploadToGitHub(null, contentB64, log, btn, pushVer, retryCount);
-  };
-  xhr.onload = function() {
-    var sha = null;
-    if (xhr.status === 200) {
-      try { sha = JSON.parse(xhr.responseText).sha; } catch(e) { console.warn('err:', e.message); }
-    }
-    uploadToGitHub(sha, contentB64, log, btn, pushVer, retryCount);
-  };
-  xhr.onerror = function() {
-    uploadToGitHub(null, contentB64, log, btn, pushVer, retryCount);
-  };
-  xhr.send();
-}
-
-function uploadToGitHub(sha, contentB64, log, btn, pushVer, retryCount) {
-  var body = {
-    message: 'update db_data.json v' + pushVer + ': ' + dbCount() + ' stocks @ ' + bjTime(),
-    content: contentB64
-  };
-  if (sha) body.sha = sha;
-
-  var xhr = new XMLHttpRequest();
-  xhr.open('PUT', 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', true);
-  xhr.setRequestHeader('Authorization', 'token ' + GH_TOKEN);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.timeout = 60000; // 60s timeout for large upload
-  xhr.ontimeout = function() {
-    log.insertAdjacentHTML('beforeend', '<span style="color:var(--red);">推送超时</span>');
-    btn.textContent = '一键推送到线上';
-    btn.disabled = false;
-  };
-  xhr.onload = function() {
-    if (xhr.status === 200 || xhr.status === 201) {
-      // Bump version so other devices/users will reload fresh data
-      localStorage.setItem('db_data_ver_num', pushVer);
-      try { _dbSave('db_data_v' + pushVer, DB_DATA); } catch(e) { console.warn('err:', e.message); }
-      log.insertAdjacentHTML('beforeend', '<span style="color:var(--green);">推送成功！线上数据库已更新（v' + pushVer + '）</span>');
-      btn.textContent = '一键推送到线上';
-      btn.disabled = false;
-      checkRemoteDB();
-    } else if (xhr.status === 409 && retryCount < 3) {
-      // SHA conflict: another device just pushed, retry with fresh SHA
-      log.insertAdjacentHTML('beforeend', '<span style="color:var(--orange);">检测到冲突，自动重试(' + (retryCount + 1) + '/3)...</span><br>');
-      setTimeout(function() { pushWithRetry(contentB64, log, btn, pushVer, retryCount + 1); }, 1000);
-    } else {
-      log.insertAdjacentHTML('beforeend', '<span style="color:var(--red);">推送失败: HTTP ' + xhr.status + (retryCount >= 3 ? '（重试3次仍冲突，请稍后再推）' : '') + '</span>');
-      btn.textContent = '一键推送到线上';
-      btn.disabled = false;
-    }
-  };
-  xhr.onerror = function() {
-    log.insertAdjacentHTML('beforeend', '<span style="color:var(--red);">网络错误</span>');
-    btn.textContent = '一键推送到线上';
-    btn.disabled = false;
-  };
-  xhr.send(JSON.stringify(body));
+  if (result) {
+    localStorage.setItem('db_data_ver_num', pushVer);
+    try { _dbSave('db_data_v' + pushVer, DB_DATA); } catch(e) { console.warn('err:', e.message); }
+    log.insertAdjacentHTML('beforeend', '<span style="color:var(--green);">推送成功！线上数据库已更新（v' + pushVer + '）</span>');
+    checkRemoteDB();
+  } else {
+    log.insertAdjacentHTML('beforeend', '<span style="color:var(--red);">推送失败，请稍后重试</span>');
+  }
+  btn.textContent = '一键推送到线上';
+  btn.disabled = false;
 }
 
 // ===== Info Menu =====
@@ -2589,39 +2444,30 @@ const DB_GROUPS = ["基础信息", null, null, null, null, "估值指标", null,
 let DB_DATA = {};
 let _dbDataLoading = false; // flag: remote fetch in progress
 
-// === IndexedDB Storage Layer (split: dataDB + favDB) ===
-var _dataDB = null; // cached IDBDatabase for data
-var _favDB = null;  // cached IDBDatabase for fav/notes
-function _openDataDB() {
-  if (_dataDB) return Promise.resolve(_dataDB);
+// === IndexedDB Storage Layer (generic factory) ===
+// Persistent cache wrappers (objects so mutations persist across calls)
+var _dataDB = {val: null}, _favDB = {val: null}, _noteDB = {val: null};
+
+// Generic IDB open factory — replaces _openDataDB/_openFavDB/_openNoteDB
+function _idbOpen(cacheRef, dbName, storeName, keyPath) {
+  if (cacheRef.val) return Promise.resolve(cacheRef.val);
   return new Promise(function(resolve, reject) {
     try {
-      var req = indexedDB.open('StockDataDB', 1);
+      var req = indexedDB.open(dbName, 1);
       req.onupgradeneeded = function(e) {
         var db = e.target.result;
-        if (!db.objectStoreNames.contains('data')) db.createObjectStore('data');
+        if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName, keyPath ? {keyPath: keyPath} : undefined);
       };
-      req.onsuccess = function(e) { _dataDB = e.target.result; resolve(_dataDB); };
+      req.onsuccess = function(e) { cacheRef.val = e.target.result; resolve(cacheRef.val); };
       req.onerror = function(e) { reject(e.target.error); };
     } catch(e) { reject(e); }
   });
 }
-function _openFavDB() {
-  if (_favDB) return Promise.resolve(_favDB);
-  return new Promise(function(resolve, reject) {
-    try {
-      var req = indexedDB.open('StockFavDB', 1);
-      req.onupgradeneeded = function(e) {
-        var db = e.target.result;
-        if (!db.objectStoreNames.contains('fav')) db.createObjectStore('fav', {keyPath: 'code'});
-      };
-      req.onsuccess = function(e) { _favDB = e.target.result; resolve(_favDB); };
-      req.onerror = function(e) { reject(e.target.error); };
-    } catch(e) { reject(e); }
-  });
-}
-// Legacy alias for backward compat
-function _openIDB() { return _openDataDB(); }
+
+// Cached open functions
+function _openDataDB() { return _idbOpen(_dataDB, 'StockDataDB', 'data'); }
+function _openFavDB()  { return _idbOpen(_favDB,  'StockFavDB',  'fav',  'code'); }
+function _openNoteDB() { return _idbOpen(_noteDB, 'NotePadDB',  'notes', 'id'); }
 
 // Migrate data from old StockDB to new split databases (one-time)
 function _migrateOldStockDB() {
@@ -2666,29 +2512,28 @@ function _migrateOldStockDB() {
   } catch(e) { localStorage.setItem('_db_migrated', '1'); }
 }
 _migrateOldStockDB();
-// Generic IDB operation helper
-function _idbOp(mode, storeOp) {
-  return _openDataDB().then(function(db) {
+// Generic IDB operation — openFn returns DB, then run storeOp on the named store
+function _idbRun(openFn, storeName, mode, storeOp) {
+  return openFn().then(function(db) {
     return new Promise(function(resolve, reject) {
-      var tx = db.transaction('data', mode);
-      var store = tx.objectStore('data');
+      var tx = db.transaction(storeName, mode);
+      var store = tx.objectStore(storeName);
       var result = storeOp(store);
       if (result && result.onsuccess !== undefined) {
-        // Request-style (e.g. get): resolve on req.onsuccess
         result.onsuccess = function(e) { resolve(e.target.result || null); };
         result.onerror = function(e) { reject(e.target.error); };
       } else {
-        // Transaction-style (e.g. put/delete/clear): resolve on tx.oncomplete
         tx.oncomplete = function() { resolve(); };
         tx.onerror = function(e) { reject(e.target.error); };
       }
     });
   });
 }
+// Data DB shortcuts
+function _idbOp(mode, storeOp) { return _idbRun(_openDataDB, 'data', mode, storeOp); }
 function _dbSave(key, value) { return _idbOp('readwrite', function(s) { return s.put(value, key); }); }
 function _dbLoad(key) { return _idbOp('readonly', function(s) { return s.get(key); }); }
 function _dbDelete(key) { return _idbOp('readwrite', function(s) { return s.delete(key); }); }
-function _dbClearAll() { return _idbOp('readwrite', function(s) { return s.clear(); }); }
 
 // ===== Favorites API =====
 var _favCache = null; // in-memory cache: { code: {code, name, group, time} }
@@ -2707,36 +2552,10 @@ function _loadFavGroups() {
 }
 _loadFavGroups();
 
-function _favSave(obj) {
-  return _openFavDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('fav', 'readwrite');
-      tx.objectStore('fav').put(obj);
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function(e) { reject(e.target.error); };
-    });
-  });
-}
-function _favDelete(code) {
-  return _openFavDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('fav', 'readwrite');
-      tx.objectStore('fav').delete(code);
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function(e) { reject(e.target.error); };
-    });
-  });
-}
-function _favLoadAll() {
-  return _openFavDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('fav', 'readonly');
-      var req = tx.objectStore('fav').getAll();
-      req.onsuccess = function() { resolve(req.result || []); };
-      req.onerror = function(e) { reject(e.target.error); };
-    });
-  });
-}
+// Fav DB shortcuts (via generic _idbRun)
+function _favSave(obj)     { return _idbRun(_openFavDB, 'fav', 'readwrite', function(s) { return s.put(obj); }); }
+function _favDelete(code) { return _idbRun(_openFavDB, 'fav', 'readwrite', function(s) { return s.delete(code); }); }
+function _favLoadAll()    { return _idbRun(_openFavDB, 'fav', 'readonly',  function(s) { return s.getAll(); }); }
 // Load favorites into memory cache
 function loadFavCache() {
   return _favLoadAll().then(function(list) {
@@ -3393,8 +3212,7 @@ function saveFavNote(code, index) {
   });
 }
 
-// === Notepad (投资笔记) - stored in IndexedDB ===
-var _noteDB = null;
+// === Notepad (投资笔记) - stored in IndexedDB (_noteDB declared above) ===
 var _noteList = [];
 var _noteActiveId = null;
 var _noteFontSize = parseInt(localStorage.getItem('note_fontSize') || '15');
@@ -3433,64 +3251,11 @@ window.addEventListener('resize', function() {
   if (document.getElementById('pageNote').classList.contains('active')) _noteResizeLayout();
 });
 
-function _openNoteDB() {
-  if (_noteDB) return Promise.resolve(_noteDB);
-  return new Promise(function(resolve, reject) {
-    try {
-      var req = indexedDB.open('NotePadDB', 1);
-      req.onupgradeneeded = function(e) {
-        var db = e.target.result;
-        if (!db.objectStoreNames.contains('notes')) db.createObjectStore('notes', {keyPath: 'id'});
-      };
-      req.onsuccess = function(e) { _noteDB = e.target.result; resolve(_noteDB); };
-      req.onerror = function(e) { reject(e.target.error); };
-    } catch(e) { reject(e); }
-  });
-}
-
-function _noteSave(note) {
-  return _openNoteDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('notes', 'readwrite');
-      tx.objectStore('notes').put(note);
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function(e) { reject(e.target.error); };
-    });
-  });
-}
-
-function _noteGetAll() {
-  return _openNoteDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('notes', 'readonly');
-      var req = tx.objectStore('notes').getAll();
-      req.onsuccess = function() { resolve(req.result || []); };
-      req.onerror = function(e) { reject(e.target.error); };
-    });
-  });
-}
-
-function _noteDelete(id) {
-  return _openNoteDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('notes', 'readwrite');
-      tx.objectStore('notes').delete(id);
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function(e) { reject(e.target.error); };
-    });
-  });
-}
-
-function _noteGet(id) {
-  return _openNoteDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('notes', 'readonly');
-      var req = tx.objectStore('notes').get(id);
-      req.onsuccess = function() { resolve(req.result || null); };
-      req.onerror = function(e) { reject(e.target.error); };
-    });
-  });
-}
+// Note DB shortcuts (via generic _idbRun)
+function _noteSave(note)   { return _idbRun(_openNoteDB, 'notes', 'readwrite', function(s) { return s.put(note); }); }
+function _noteGetAll()     { return _idbRun(_openNoteDB, 'notes', 'readonly',  function(s) { return s.getAll(); }); }
+function _noteDelete(id)   { return _idbRun(_openNoteDB, 'notes', 'readwrite', function(s) { return s.delete(id); }); }
+function _noteGet(id)       { return _idbRun(_openNoteDB, 'notes', 'readonly',  function(s) { return s.get(id); }); }
 
 function _notePreview(text, max) {
   max = max || 30;
@@ -4155,11 +3920,7 @@ function loadDBData() {
       if (!data.content) throw new Error('No content in API response');
       // Decode base64 content with error handling
       try {
-        var raw = atob(data.content.replace(/\n/g, ''));
-        var buf = new Uint8Array(raw.length);
-        for (var i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
-        var rawStr = new TextDecoder('utf-8').decode(buf);
-        return JSON.parse(rawStr);
+        return JSON.parse(_safeAtob(data.content));
       } catch(e) {
         throw new Error('db_data.json base64 decode/parse failed: ' + e.message);
       }
