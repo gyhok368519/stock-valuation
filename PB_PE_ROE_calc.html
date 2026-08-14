@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.7.4';</script>
+<script>var APP_VER='5.7.5';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1981,7 +1981,7 @@ async function showCustomerDB() {
       const time = d.time || '-';
       msg += (i+1) + '. 用户: ' + u + '\n   手机: ' + phone + '\n   注册: ' + time + '\n\n';
     });
-    await _devAlert('客户数据', msg.replace(/\n/g, '<br>'));
+    await _devAlert('客户数据', msg);
   } catch(e) { showToast('读取客户数据出错'); }
 }
 
