@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pb-calc-v155';;;;
+const CACHE_NAME = 'pb-calc-v157';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './stock_index.json',
@@ -9,18 +9,20 @@ const ASSETS = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(function() {
+      self.skipWaiting();
+    })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    ).then(function() {
+      return self.clients.claim();
+    })
   );
-  self.clients.claim();
 });
 
 // Handle SKIP_WAITING message from page
@@ -41,10 +43,12 @@ function swr(request) {
         caches.open(CACHE_NAME).then(function(cache) { cache.put(request, clone); });
       }
       return response;
-    }).catch(function() {});
+    }).catch(function(err) {
+      console.warn('[SW] SWR background refresh failed:', request.url, err && err.message);
+    });
 
     if (cached) return cached; // SWR: instant cache, background refresh
-    return fetchPromise.then(function(r) { return r; }).catch(function() {
+    return fetchPromise.catch(function() {
       // Network failed & no exact cache match: search ALL caches for a fallback
       return caches.keys().then(function(cacheNames) {
         var matchNext = function(i) {
@@ -66,29 +70,40 @@ function swr(request) {
   });
 }
 
+// Allowed emweb proxy paths (whitelist)
+var EMWEB_ALLOWED = ['BonusFinancing/PageAjax', 'CompanySurvey/PageAjax', 'ShareholderResearch/PageAjax'];
+
 self.addEventListener('fetch', e => {
   var url = e.request.url;
 
-  // Proxy emweb API: match same-origin path containing /emweb-proxy/
-  if (url.indexOf('/emweb-proxy/') !== -1) {
+  // Proxy emweb API: only same-origin + whitelisted paths + GET only
+  if (url.indexOf('/emweb-proxy/') !== -1 && new URL(url).origin === self.location.origin) {
+    if (e.request.method !== 'GET') return;
     var proxyIdx = url.indexOf('/emweb-proxy/');
     var afterProxy = url.substring(proxyIdx + '/emweb-proxy/'.length);
     var queryIdx = afterProxy.indexOf('?');
     var pathPart = queryIdx >= 0 ? afterProxy.substring(0, queryIdx) : afterProxy;
+    // Whitelist check
+    var allowed = false;
+    for (var i = 0; i < EMWEB_ALLOWED.length; i++) {
+      if (pathPart === EMWEB_ALLOWED[i]) { allowed = true; break; }
+    }
+    if (!allowed) return;
     var queryPart = queryIdx >= 0 ? afterProxy.substring(queryIdx + 1) : '';
     var realUrl = 'https://emweb.securities.eastmoney.com/PC_HSF10/' + pathPart + '?' + queryPart;
     e.respondWith(
       fetch(realUrl, { mode: 'cors', credentials: 'omit' })
         .then(function(resp) {
-          var headers = new Headers(resp.headers);
-          headers.set('Access-Control-Allow-Origin', '*');
+          // Only copy safe headers, not upstream sensitive ones
+          var headers = new Headers();
           headers.set('Content-Type', 'application/json; charset=utf-8');
+          headers.set('Access-Control-Allow-Origin', self.location.origin);
           return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers: headers });
         })
         .catch(function(err) {
           return new Response(JSON.stringify({error: err.message}), {
             status: 502,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': self.location.origin }
           });
         })
     );
@@ -99,8 +114,12 @@ self.addEventListener('fetch', e => {
   if (url.indexOf('_update=') !== -1) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' })
-        .then(function(response) { return response; })
-        .catch(function() { return caches.match(e.request); })
+        .catch(function() {
+          return new Response('{"error":"network_unavailable"}', {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        })
     );
     return;
   }
