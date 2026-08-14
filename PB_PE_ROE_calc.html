@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.7.3';</script>
+<script>var APP_VER='5.7.4';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1757,7 +1757,6 @@ async function doResetPassword() {
         updateMenuUser();
       }
     });
-    });
     return;
   }
 
@@ -1781,6 +1780,7 @@ async function doResetPassword() {
         updateMenuUser();
       }
     });
+  }
   const offline = _getOfflineDB();
   if (offline[session]) {
     _saveCache(offline);
