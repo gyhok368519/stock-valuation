@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>PB估值计算器</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a73e8" media="(prefers-color-scheme: light)">
@@ -11,21 +11,20 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.6.3';;;;;;;;;;</script>
+<script>var APP_VER='5.7.2';</script>
 <style>
 :root {
   /* 基础背景 */
-  --bg: #f0f2f5; --card: #ffffff; --input-bg: #ffffff; --input-readonly-bg: #f8f9fa;
-  --surface: #f8f9fa; --surface-deep: #f8f9fa;
+  --bg: #f0f2f5; --card: #ffffff; --input-readonly-bg: #f8f9fa;
+  --surface: #f8f9fa;
   /* 主色 */
-  --primary: #1a73e8; --primary-light: #e8f0fe; --primary-btn-start: #1a73e8; --primary-btn-end: #4285f4;
-  --primary-btn-active-start: #1a73e8; --primary-btn-active-end: #4285f4;
+  --primary: #1a73e8; --primary-light: #e8f0fe;
   /* 语义色 */
   --green: #0d904f; --green-bg: #e6f4ea; --red: #d93025; --red-bg: #fce8e6;
   --blue: #1a73e8; --blue-bg: #e8f0fe; --star: #f5a623;
   /* 文字 */
-  --text: #202124; --text2: #5f6368; --text3: #bbb; --text4: #999; --text-inv: #ffffff;
-  --text-readonly: #6c757d; --text-subtle: #888; --text-light: #ccc;
+  --text: #202124; --text2: #5f6368; --text3: #bbb; --text-inv: #ffffff;
+  --text-readonly: #6c757d; --text-light: #ccc;
   /* 边框与阴影 */
   --gray: #5f6368; --gray-light: #dadce0; --border: #dadce0;
   --shadow: 0 1px 3px rgba(0,0,0,0.08); --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
@@ -317,7 +316,7 @@ body {
 .auth-tab { display: flex; margin-bottom: 14px; border-bottom: 2px solid var(--gray-light); }
 .auth-tab-item {
   flex: 1; text-align: center; padding: 10px 0; font-size: 15px; font-weight: 600;
-  color: var(--text4); cursor: pointer; border-bottom: 2px solid transparent;
+  color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent;
   margin-bottom: -2px; transition: all 0.2s;
 }
 .auth-tab-item.active { color: var(--primary); border-bottom-color: var(--primary); }
@@ -353,7 +352,6 @@ body {
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   line-height: 1; transition: background 0.2s;
 }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 /* SVG sun-moon icon for theme toggle */
 .theme-icon { display:inline-block; vertical-align:middle; width:18px; height:18px; }
 .theme-icon svg { width:100%; height:100%; }
@@ -380,7 +378,7 @@ body {
 .info-menu-row .row-label { color:var(--text2); font-size:12px; }
 .info-menu-row .row-value { font-weight:500; }
 .info-menu-divider { border-top:1px solid var(--gray-light); }
-.info-menu-disclaimer { padding:8px 14px; background:var(--surface); font-size:11px; color:var(--text-subtle); line-height:1.5; }
+.info-menu-disclaimer { padding:8px 14px; background:var(--surface); font-size:11px; color:var(--text2); line-height:1.5; }
 
 /* ===== DB Updater Panel ===== */
 .db-updater-overlay { position:fixed; top:0; left:0; right:0; bottom:0; z-index:300; background:var(--overlay); display:flex; align-items:flex-end; justify-content:center; }
@@ -396,17 +394,16 @@ body {
   /* ===== Dark Theme ===== */
   [data-theme="dark"] {
     /* 基础背景 */
-    --bg: #0f0f1a; --card: #1a1a2e; --input-bg: #12121f; --input-readonly-bg: #0d0d1a;
-    --surface: #0d0d1a; --surface-deep: #0f0f1a;
+    --bg: #0f0f1a; --card: #1a1a2e; --input-readonly-bg: #0d0d1a;
+    --surface: #0d0d1a;
     /* 主色 */
-    --primary: #5b9cf5; --primary-light: #1e2a4a; --primary-btn-start: #3b7dd8; --primary-btn-end: #2563a8;
-    --primary-btn-active-start: #2a5fa8; --primary-btn-active-end: #1d4a8a;
+    --primary: #5b9cf5; --primary-light: #1e2a4a;
     /* 语义色 */
     --green: #34d399; --green-bg: #0d2818; --red: #f87171; --red-bg: #2d0f0f;
     --blue: #5b9cf5; --blue-bg: #1e2a4a; --star: #f5a623;
     /* 文字 */
-    --text: #e5e7eb; --text2: #9ca3af; --text3: #7a7a9a; --text4: #7a7a9a; --text-inv: #ffffff;
-    --text-readonly: #7a7a9a; --text-subtle: #9ca3af; --text-light: #ccc;
+    --text: #e5e7eb; --text2: #9ca3af; --text3: #7a7a9a; --text-inv: #ffffff;
+    --text-readonly: #7a7a9a; --text-light: #ccc;
     /* 边框与阴影 */
     --gray: #9ca3af; --gray-light: #2d2d44; --border: #2d2d44;
     --shadow: 0 1px 3px rgba(0,0,0,0.3); --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
@@ -422,6 +419,10 @@ body {
     --btn-overlay-hover: rgba(255,255,255,0.25); --btn-border: rgba(255,255,255,0.25);
     /* 提示 */
     --notice-bg: #1e2a1a; --notice-color: #a3b872; --notice-bg-ok: #0d2818; --notice-color-ok: #34d399;
+    /* 便签深色模式色 */
+    --note-warm-bg: #2d2815; --note-warm-text: #d4c89a;
+    --note-green-bg: #0d2818; --note-green-text: #6ee7b7;
+    --note-sage-bg: #1a2219; --note-sage-text: #a8c4a0;
     /* 其他 */
     --scrollbar: #444; --radius: 12px;
   }
@@ -530,14 +531,14 @@ body {
   .note-editor-content { width:100%; min-height:100%; outline:none; border:none; background:transparent; color:var(--text); font-size:15px; line-height:1.7; word-break:break-all; white-space:pre-wrap; resize:none; -webkit-user-select:text; user-select:text; }
   .note-editor-content:empty::before { content:attr(data-placeholder); color:var(--text3); pointer-events:none; }
   .note-editor-content img { max-width:100%; height:auto; border-radius:6px; margin:4px 0; display:block; }
-  .note-theme-warm { background:#f5efc1; color:#5b4618; }
-  .note-theme-green { background:#e8f5e9; color:#2e7d32; }
-  .note-theme-sage { background:#d5ddd0; color:#3e4a3a; }
+  .note-theme-warm { background:var(--note-warm-bg, #f5efc1); color:var(--note-warm-text, #5b4618); }
+  .note-theme-green { background:var(--note-green-bg, #e8f5e9); color:var(--note-green-text, #2e7d32); }
+  .note-theme-sage { background:var(--note-sage-bg, #d5ddd0); color:var(--note-sage-text, #3e4a3a); }
   .note-bg-btn { width:14px; height:14px; border-radius:50%; border:2px solid var(--gray-light); cursor:pointer; flex-shrink:0; margin:0 3px; }
   .note-bg-btn.active { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary); }
-  .note-bg-warm { background:#f5efc1; }
-  .note-bg-green { background:#c8e6c9; }
-  .note-bg-sage { background:#b5c4a9; }
+  .note-bg-warm { background:var(--note-warm-bg, #f5efc1); }
+  .note-bg-green { background:var(--note-green-bg, #c8e6c9); }
+  .note-bg-sage { background:var(--note-sage-bg, #b5c4a9); }
   .note-empty { position: absolute; top: 28px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; color: var(--text3); font-size: 13px; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
@@ -583,6 +584,18 @@ body {
   .calc-close { text-align:center; margin-top:4px; color:var(--text3); font-size:14px; cursor:pointer; flex-shrink:0; }
   .calc-close:active { color:var(--text2); }
   .calc-icon-svg { width:16px; height:16px; fill:currentColor; vertical-align:middle; }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 360px) {
+    .db-key-metrics { grid-template-columns: 1fr 1fr; }
+    .form-row, .form-row.three { flex-direction: column; }
+    .db-grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ===== Accessibility ===== */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
 
 
 </style>
@@ -876,19 +889,19 @@ body {
 
 <!-- Tab Bar -->
 <div class="tab-bar">
-  <div class="tab-item active" onclick="switchTab('db')">
+  <div class="tab-item active" data-tab="db" onclick="switchTab('db')">
     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
     <span>数据库</span>
   </div>
-  <div class="tab-item" onclick="switchTab('calc')">
+  <div class="tab-item" data-tab="calc" onclick="switchTab('calc')">
     <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm4 11H8v-1c0-1.7 2.7-2.5 4-2.5s4 .8 4 2.5v1z"/></svg>
     <span>计算器</span>
   </div>
-  <div class="tab-item" onclick="switchTab('fav')">
+  <div class="tab-item" data-tab="fav" onclick="switchTab('fav')">
     <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
     <span>收藏</span>
   </div>
-  <div class="tab-item" onclick="switchTab('note')">
+  <div class="tab-item" data-tab="note" onclick="switchTab('note')">
     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
     <span>我的</span>
   </div>
@@ -1053,6 +1066,12 @@ var _indexReadyCallbacks = [];
 var _indexRetryCount = 0;
 var _INDEX_MAX_RETRY = 5;
 
+function _notifyIndexReady() {
+  _indexReady = true;
+  _indexReadyCallbacks.forEach(function(cb) { try { cb(); } catch(e) {} });
+  _indexReadyCallbacks = [];
+}
+
 function loadStockIndex() {
   // 1. Try IndexedDB cache first (instant)
   return _dbLoad('stock_index').then(function(cached) {
@@ -1061,8 +1080,7 @@ function loadStockIndex() {
       PINYIN_IDX = cached.pinyin || {};
       _indexReady = true;
       _buildIndex();
-      _indexReadyCallbacks.forEach(function(cb) { try { cb(); } catch(e) {} });
-      _indexReadyCallbacks = [];
+      _notifyIndexReady();
       console.log('[index] loaded from IDB cache: ' + Object.keys(STOCK_MAP).length + ' stocks');
     }
     // 2. Background fetch to refresh cache (non-blocking if cache hit)
@@ -1077,8 +1095,7 @@ function loadStockIndex() {
       // Save to IDB for next instant load
       _dbSave('stock_index', data).catch(function() {});
       // Notify all waiting callbacks
-      _indexReadyCallbacks.forEach(function(cb) { try { cb(); } catch(e) {} });
-      _indexReadyCallbacks = [];
+      _notifyIndexReady();
       console.log('[index] refreshed from network: ' + Object.keys(STOCK_MAP).length + ' stocks');
     }).catch(function(e) {
       console.warn('[index] fetch failed:', e);
@@ -1107,8 +1124,7 @@ function loadStockIndex() {
       _indexRetryCount = 0;
       _buildIndex();
       _dbSave('stock_index', data).catch(function() {});
-      _indexReadyCallbacks.forEach(function(cb) { try { cb(); } catch(e) {} });
-      _indexReadyCallbacks = [];
+      _notifyIndexReady();
       console.log('[index] loaded from network: ' + Object.keys(STOCK_MAP).length + ' stocks');
     }).catch(function(e) {
       console.warn('[index] load failed:', e);
@@ -1155,6 +1171,14 @@ function onIndexReady(cb) {
 
 // HTML escape utility (XSS prevention)
 function _esc(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function _jsEsc(s) { return String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+// Safe base64 decode: handles UTF-8 content via TextDecoder
+function _safeAtob(b64) {
+  var raw = atob(b64.replace(/\n/g, ''));
+  var buf = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(buf);
+}
 
 // ===== Dark Mode =====
 var _isDarkMode = false;
@@ -1210,8 +1234,8 @@ function _updateThemeIcons() {
   _updateThemeIcons();
 })();
 function toggleTheme() {
-  _isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  if (_isDark) {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
     document.documentElement.removeAttribute('data-theme');
     localStorage.setItem('pb_calc_theme', 'light');
     _isDarkMode = false;
@@ -1244,19 +1268,25 @@ async function hashPassword(pass) {
   const hash = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
+// Constant-time string comparison to prevent timing attacks
+function _constantTimeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  var result = 0;
+  for (var i = 0; i < a.length; i++) result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return result === 0;
+}
 // Synchronous quick check: plain text match (backward compat)
 function _passMatch(stored, input) {
-  if (stored === input) return true;
-  return false;
+  return _constantTimeEqual(String(stored), String(input));
 }
 // Async full check: supports both plain and hashed passwords, auto-upgrade on match
 async function _passMatchAsync(stored, input) {
   // Plain text match (old user, will auto-upgrade)
-  if (stored === input) return true;
+  if (_constantTimeEqual(String(stored), String(input))) return true;
   // SHA-256 hash match
   if (stored.length === 64 && /^[a-f0-9]+$/.test(stored)) {
     const hashed = await hashPassword(input);
-    return stored === hashed;
+    return _constantTimeEqual(hashed, stored);
   }
   return false;
 }
@@ -1343,37 +1373,42 @@ async function ghGet() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     _ghSha = d.sha;
-    const db = JSON.parse(decodeURIComponent(escape(atob(d.content))));
+    const db = JSON.parse(_safeAtob(d.content));
     _saveCache(db);
     // Cloud success: merge offline users asynchronously (non-blocking)
     _mergeOfflineToCloud(db).catch(e => console.warn('merge err:', e));
     return db;
   } catch (e) { console.error('ghGet error:', e); return null; }
 }
-async function ghPut(db, retryCount) {
+// Generic GitHub file PUT (SHA→PUT→409 retry)
+async function _ghFilePut(apiUrl, shaRef, data, commitMsg, retryCount) {
   retryCount = retryCount || 0;
   try {
-    if (!_ghSha || retryCount > 0) {
-      const r = await fetch(GH_API, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
-      if (r.ok) { const d = await r.json(); _ghSha = d.sha; }
+    if (!shaRef.value || retryCount > 0) {
+      var r = await fetch(apiUrl, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
+      if (r.status === 404) { shaRef.value = null; }
+      else if (r.ok) { var d = await r.json(); shaRef.value = d.sha; }
     }
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(db))));
-    const body = { message: 'update customers ' + bjTime(), content: content, sha: _ghSha };
-    const r = await fetch(GH_API, {
+    var content = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    var body = { message: commitMsg + ' ' + bjTime(), content: content };
+    if (shaRef.value) body.sha = shaRef.value;
+    var r = await fetch(apiUrl, {
       method: 'PUT',
       headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    if (r.status === 409 && retryCount < 3) {
-      _ghSha = null;
-      return ghPut(db, retryCount + 1);
-    }
-    if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'HTTP ' + r.status); }
-    const d = await r.json();
-    _ghSha = d.content.sha;
-    _saveCache(db);
+    if (r.status === 409 && retryCount < 3) { shaRef.value = null; return _ghFilePut(apiUrl, shaRef, data, commitMsg, retryCount + 1); }
+    if (!r.ok) { var e = await r.json(); throw new Error(e.message || 'HTTP ' + r.status); }
+    var d = await r.json();
+    shaRef.value = d.content.sha;
     return true;
-  } catch (e) { console.error('ghPut error:', e); return false; }
+  } catch (e) { console.error('_ghFilePut error:', e); return false; }
+}
+
+async function ghPut(db, retryCount) {
+  var result = await _ghFilePut(GH_API, { get value(){ return _ghSha; }, set value(v){ _ghSha = v; } }, db, 'update customers');
+  if (result) _saveCache(db);
+  return result;
 }
 
 // Cached auth DB: returns cache if fresh, otherwise fetches from cloud
@@ -1393,33 +1428,13 @@ async function favCloudGet() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     _favGhSha = d.sha;
-    return JSON.parse(decodeURIComponent(escape(atob(d.content))));
+    return JSON.parse(_safeAtob(d.content));
   } catch (e) { console.warn('favCloudGet error:', e.message); return null; }
 }
 
 // Write favorites.json to GitHub
 async function favCloudPut(data, retryCount) {
-  retryCount = retryCount || 0;
-  try {
-    if (!_favGhSha || retryCount > 0) {
-      const r = await fetch(FAV_GH_API, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
-      if (r.status === 404) { _favGhSha = null; }
-      else if (r.ok) { const d = await r.json(); _favGhSha = d.sha; }
-    }
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-    const body = { message: 'sync favorites ' + bjTime(), content: content };
-    if (_favGhSha) body.sha = _favGhSha;
-    const r = await fetch(FAV_GH_API, {
-      method: 'PUT',
-      headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (r.status === 409 && retryCount < 3) { _favGhSha = null; return favCloudPut(data, retryCount + 1); }
-    if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'HTTP ' + r.status); }
-    const d = await r.json();
-    _favGhSha = d.content.sha;
-    return true;
-  } catch (e) { console.error('favCloudPut error:', e); return false; }
+  return _ghFilePut(FAV_GH_API, { get value(){ return _favGhSha; }, set value(v){ _favGhSha = v; } }, data, 'sync favorites');
 }
 
 // Pull cloud favorites and merge with local (sync stock list only, group stays local)
@@ -1624,15 +1639,14 @@ async function doLogin() {
     loadFavCache().then(function() { favCloudPull(); }); // sync favorites after login
       // Background: cloud validation + fav sync
       ghGet().then(async db => {
-        if (!db || !db[user]) { if (db !== null) doLogout(); return; }
+        if (!db || !db[user]) { if (db !== null && Object.keys(db).length > 0) doLogout(); return; }
         const cloudMatch = await _passMatchAsync(db[user].pass, pass);
         if (cloudMatch) {
           if (db[user].pass === pass) { db[user].pass = await hashPassword(pass); saveAuthDB(db); }
           return;
         }
-        if (db !== null) doLogout();
+        if (db !== null && Object.keys(db).length > 0) doLogout();
       });
-      loadFavCache().then(function() { favCloudPull(); }); // sync favorites after login
     }
   }
 
@@ -1736,10 +1750,13 @@ async function doResetPassword() {
     ghGet().then(db => {
       if (db === null) return; // network error, keep session
       if (db && db[session]) { _saveCache(db); return; } // valid, update cache
-      // User not found in cloud — only logout if cloud actually responded
-      localStorage.removeItem(SESSION_KEY);
-      document.getElementById('authOverlay').classList.remove('hidden');
-      updateMenuUser();
+      // User not found in cloud — only logout if cloud DB has other users (not empty)
+      if (Object.keys(db).length > 0) {
+        localStorage.removeItem(SESSION_KEY);
+        document.getElementById('authOverlay').classList.remove('hidden');
+        updateMenuUser();
+      }
+    });
     });
     return;
   }
@@ -1757,14 +1774,13 @@ async function doResetPassword() {
     ghGet().then(db => {
       if (db === null) return; // network error, keep session
       if (db && db[session]) { _saveCache(db); return; }
-      localStorage.removeItem(SESSION_KEY);
-      document.getElementById('authOverlay').classList.remove('hidden');
-      updateMenuUser();
+      // Only logout if cloud DB has other users (not empty, so offline-only users aren't kicked)
+      if (Object.keys(db).length > 0) {
+        localStorage.removeItem(SESSION_KEY);
+        document.getElementById('authOverlay').classList.remove('hidden');
+        updateMenuUser();
+      }
     });
-    return;
-  }
-
-  // 3. Not in persisted cache: check offline DB
   const offline = _getOfflineDB();
   if (offline[session]) {
     _saveCache(offline);
@@ -1775,9 +1791,11 @@ async function doResetPassword() {
     ghGet().then(db => {
       if (db === null) return;
       if (db && db[session]) { _saveCache(db); return; }
-      localStorage.removeItem(SESSION_KEY);
-      document.getElementById('authOverlay').classList.remove('hidden');
-      updateMenuUser();
+      if (Object.keys(db).length > 0) {
+        localStorage.removeItem(SESSION_KEY);
+        document.getElementById('authOverlay').classList.remove('hidden');
+        updateMenuUser();
+      }
     });
     return;
   }
@@ -1817,13 +1835,15 @@ async function doResetPassword() {
 // Background sync: periodically try to merge offline users to cloud when network recovers
 (function _offlineSyncLoop() {
   setTimeout(async () => {
-    const offline = _getOfflineDB();
-    if (Object.keys(offline).length > 0) {
-      const db = await ghGet();
-      // _mergeOfflineToCloud is called inside ghGet on success (async)
-    }
+    try {
+      const offline = _getOfflineDB();
+      if (Object.keys(offline).length > 0) {
+        const db = await ghGet();
+        // _mergeOfflineToCloud is called inside ghGet on success (async)
+      }
+    } catch(e) { console.warn('offlineSync error:', e); }
     _offlineSyncLoop(); // keep checking
-  }, 60000); // check every 60s (was 30s)
+  }, 60000); // check every 60s
 })();
 
 function updateMenuUser() {
@@ -1855,7 +1875,7 @@ function doLogout() {
 async function doDeregister() {
   const session = localStorage.getItem(SESSION_KEY);
   if (!session) return;
-  if (!confirm('注销后将清除您的所有账号数据，确定要注销吗？')) return;
+  if (!await _devConfirm('注销后将清除您的所有账号数据，确定要注销吗？')) return;
   try {
     let db = await getAuthDB();
     if (db === null) {     showToast('网络连接失败，请稍后重试'); return; }
@@ -1873,6 +1893,13 @@ async function doDeregister() {
     document.getElementById('regError').textContent = '';
     showToast('账号已注销');
     saveAuthDB(db); // background write to cloud
+    // Also clean up user's favorites from cloud
+    favCloudGet().then(function(favDb) {
+      if (favDb && favDb[session]) {
+        delete favDb[session];
+        favCloudPut(favDb);
+      }
+    }).catch(function() {});
   } catch(e) { showToast('注销失败，请稍后重试'); }
 }
 
@@ -1913,7 +1940,7 @@ function _devAlert(title, msg) {
     var alertDiv = document.createElement('div');
     alertDiv.id = 'devAlertDialogContent';
     alertDiv.style.cssText = 'font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:300px;overflow-y:auto;';
-    alertDiv.innerHTML = msg || '';
+    alertDiv.textContent = msg || '';
     body.insertBefore(alertDiv, document.getElementById('devDialogInput'));
     document.getElementById('devDialogOk').textContent = '知道了';
     document.getElementById('devDialogOverlay').classList.add('show');
@@ -2054,12 +2081,18 @@ function checkRemoteDB() {
   var statusEl = document.getElementById('pushRemoteStatus');
   statusEl.textContent = '检测中...';
   var xhr = new XMLHttpRequest();
-  xhr.open('HEAD', 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', true);
+  xhr.open('GET', 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', true);
   xhr.setRequestHeader('Authorization', 'token ' + GH_TOKEN);
+  xhr.timeout = 30000;
+  xhr.ontimeout = function() { statusEl.textContent = '检测超时'; };
   xhr.onload = function() {
     if (xhr.status === 200) {
-      var info = JSON.parse(xhr.responseText);
-      statusEl.textContent = info.size + ' 字节，SHA=' + info.sha.substring(0,8);
+      try {
+        var info = JSON.parse(xhr.responseText);
+        statusEl.textContent = (info.size || '?') + ' 字节，SHA=' + (info.sha || '?').substring(0,8);
+      } catch(e) {
+        statusEl.textContent = '解析失败';
+      }
     } else {
       statusEl.textContent = '未找到';
     }
@@ -2105,7 +2138,12 @@ function startApiFetch() {
   var done = 0, updated = 0, failed = 0;
   var BATCH = 20; // concurrent requests
 
-  function apiLog(msg) { log.innerHTML += msg + '<br>'; log.scrollTop = log.scrollHeight; }
+  function apiLog(msg) {
+    var div = document.createElement('div');
+    div.textContent = msg;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
 
   // --- Extracted: Build 4 API URLs for a given stock code ---
   function buildApiUrls(code) {
@@ -2226,24 +2264,25 @@ function startApiFetch() {
       var hasData = val.peVal !== null || val.pbVal !== null || fin.roeVal !== null;
       if (hasData) {
         if (!DB_DATA[code]) DB_DATA[code] = [code, STOCK_MAP[code] || '', '', null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
-        if (val.abbr !== null) DB_DATA[code][2] = val.abbr;
-        if (val.mktCap !== null) DB_DATA[code][3] = val.mktCap;
-        if (main.totalRev !== null) DB_DATA[code][4] = main.totalRev;
-        if (val.peVal !== null) DB_DATA[code][5] = val.peVal;
-        if (val.pbVal !== null) DB_DATA[code][6] = val.pbVal;
-        if (val.pegVal !== null) DB_DATA[code][7] = val.pegVal;
-        if (val.psVal !== null) DB_DATA[code][8] = val.psVal;
-        if (fin.grossMargin !== null) DB_DATA[code][9] = fin.grossMargin;
-        if (main.netMargin !== null) DB_DATA[code][10] = main.netMargin;
-        if (fin.roeVal !== null) DB_DATA[code][11] = +(fin.roeVal / 100).toFixed(6);
-        if (main.debtRatio !== null) DB_DATA[code][12] = main.debtRatio;
-        if (holderRatio !== null) DB_DATA[code][18] = holderRatio;
+        if (val.abbr !== null) DB_DATA[code][DB_FIELD_IDX.ABBR] = val.abbr;
+        if (val.mktCap !== null) DB_DATA[code][DB_FIELD_IDX.MKT_CAP] = val.mktCap;
+        if (main.totalRev !== null) DB_DATA[code][DB_FIELD_IDX.TOTAL_REV] = main.totalRev;
+        if (val.peVal !== null) DB_DATA[code][DB_FIELD_IDX.PE] = val.peVal;
+        if (val.pbVal !== null) DB_DATA[code][DB_FIELD_IDX.PB] = val.pbVal;
+        if (val.pegVal !== null) DB_DATA[code][DB_FIELD_IDX.PEG] = val.pegVal;
+        if (val.psVal !== null) DB_DATA[code][DB_FIELD_IDX.PS] = val.psVal;
+        if (fin.grossMargin !== null) DB_DATA[code][DB_FIELD_IDX.GROSS_MARGIN] = fin.grossMargin;
+        if (main.netMargin !== null) DB_DATA[code][DB_FIELD_IDX.NET_MARGIN] = main.netMargin;
+        if (fin.roeVal !== null) DB_DATA[code][DB_FIELD_IDX.ROE] = +(fin.roeVal / 100).toFixed(6);
+        if (main.debtRatio !== null) DB_DATA[code][DB_FIELD_IDX.DEBT_RATIO] = main.debtRatio;
+        if (holderRatio !== null) DB_DATA[code][DB_FIELD_IDX.HOLDER_RATIO] = holderRatio;
         updated++;
       } else {
         failed++;
       }
 
-      // Async: fetch emweb APIs for bonus & company info
+      // Async: fetch emweb APIs for bonus & company info (guard against missing row)
+      if (!hasData || !DB_DATA[code]) return Promise.resolve(hasData);
       return fetchEmwebData(code, urls.mkt, DB_DATA[code], val.closePrice, main.netProfit).then(function() {
         return hasData;
       });
@@ -2261,7 +2300,7 @@ function startApiFetch() {
         // 分红(亿): lnfhrz latest year TOTAL_DIVIDEND
         if (data.lnfhrz && data.lnfhrz.length > 0) {
           var latest = data.lnfhrz[0];
-          if (latest.TOTAL_DIVIDEND != null) row[13] = +(latest.TOTAL_DIVIDEND / 1e8).toFixed(2); // 分红(亿)
+          if (latest.TOTAL_DIVIDEND != null) row[DB_FIELD_IDX.DIVIDEND] = +(latest.TOTAL_DIVIDEND / 1e8).toFixed(2); // 分红(亿)
         }
         // 募资(亿): zfmx NET_RAISE_FUNDS sum + fxxg IPO NET_RAISE_FUNDS
         var raiseTotal = 0;
@@ -2272,7 +2311,7 @@ function startApiFetch() {
         }
         // IPO募资
         if (data.fxxg && data.fxxg.NET_RAISE_FUNDS) raiseTotal += data.fxxg.NET_RAISE_FUNDS;
-        if (raiseTotal > 0) row[14] = +(raiseTotal / 1e8).toFixed(2); // 募资(亿)
+        if (raiseTotal > 0) row[DB_FIELD_IDX.FUNDRAISE] = +(raiseTotal / 1e8).toFixed(2); // 募资(亿)
 
         // 派现(亿) & 股利支付率 & 股息率: from fhyx
         if (data.fhyx && data.fhyx.length > 0) {
@@ -2293,14 +2332,14 @@ function startApiFetch() {
                 // 派现(亿): per10Cash/10 * totalShares, but we use the lnfhrz TOTAL_DIVIDEND instead
                 // 股息率 = (per10Cash/10) / closePrice
                 if (closePrice && closePrice > 0) {
-                  row[17] = +((per10Cash / 10) / closePrice).toFixed(6); // 股息率
+                  row[DB_FIELD_IDX.DIV_YIELD] = +((per10Cash / 10) / closePrice).toFixed(6); // 股息率
                 }
               }
             }
           }
         }
         // 派现(亿) = 分红(亿) for simplicity (most cash dividends = total dividend)
-        if (row[13] != null) row[15] = row[13]; // 派现(亿) ≈ 分红(亿)
+        if (row[DB_FIELD_IDX.DIVIDEND] != null) row[DB_FIELD_IDX.CASH_DIV] = row[DB_FIELD_IDX.DIVIDEND]; // 派现(亿) ≈ 分红(亿)
 
         // 股利支付率 = 分红/净利润 (if both available)
         if (row[13] != null && netProfit && netProfit > 0) {
@@ -2309,12 +2348,12 @@ function startApiFetch() {
           if (_dpr > 0 && _dpr <= 1.5) row[16] = +Math.min(_dpr, 1).toFixed(6); // 股利支付率 cap at 100%
         }
         // 股息率近似 = 分红(亿)/市值(亿) (if closePrice not available)
-        if (row[13] != null && row[3] != null && row[3] > 0 && (row[17] == null || row[17] === undefined)) {
-          var _dy = row[13] / row[3];
-          if (_dy > 0 && _dy < 0.2) row[17] = +_dy.toFixed(6); // 股息率
+        if (row[DB_FIELD_IDX.DIVIDEND] != null && row[DB_FIELD_IDX.MKT_CAP] != null && row[DB_FIELD_IDX.MKT_CAP] > 0 && (row[DB_FIELD_IDX.DIV_YIELD] == null || row[DB_FIELD_IDX.DIV_YIELD] === undefined)) {
+          var _dy = row[DB_FIELD_IDX.DIVIDEND] / row[DB_FIELD_IDX.MKT_CAP];
+          if (_dy > 0 && _dy < 0.2) row[DB_FIELD_IDX.DIV_YIELD] = +_dy.toFixed(6); // 股息率
         }
       } catch(e) { console.warn('err:', e.message); }
-    }).catch(function(){});
+    }).catch(function(err){ console.warn('emweb bonus fetch error:', err); });
 
     // p2: CompanySurvey — 主营业务内容 + ORG_PROFILE正则兜底
     var p2 = fetch(companyUrl, {mode: 'cors'}).then(function(r) { return r.json(); }).then(function(data) {
@@ -2322,16 +2361,16 @@ function startApiFetch() {
         if (data.jbzl && data.jbzl.length > 0) {
           var jb = data.jbzl[0];
           // 主营业务内容: ORG_PROFILE (truncated to 500 chars for full display)
-          if (jb.ORG_PROFILE) row[20] = jb.ORG_PROFILE.substring(0, 500).trim();
+          if (jb.ORG_PROFILE) row[DB_FIELD_IDX.MAIN_BUS] = jb.ORG_PROFILE.substring(0, 500).trim();
           // 控股股东名称: ORG_PROFILE正则提取（仅作为兜底，p3优先级更高）
-          if (jb.ORG_PROFILE && !row[19]) {
+          if (jb.ORG_PROFILE && !row[DB_FIELD_IDX.CTRL_HOLDER]) {
             var _p = jb.ORG_PROFILE;
             var _cm = _p.match(/控股股东为(.+?)[，。,；\n]/) || _p.match(/控股股东是(.+?)[，。,；\n]/) || _p.match(/控股股东[：:]\s*(.+?)[，。,；\n]/) || _p.match(/实际控制人为(.+?)[，。,；\n]/) || _p.match(/实际控制人[：:]\s*(.+?)[，。,；\n]/);
-            if (_cm && _cm[1]) row[19] = _cm[1].trim();
+            if (_cm && _cm[1]) row[DB_FIELD_IDX.CTRL_HOLDER] = _cm[1].trim();
           }
         }
       } catch(e) { console.warn('err:', e.message); }
-    }).catch(function(){});
+    }).catch(function(err){ console.warn('emweb company fetch error:', err); });
 
     // p3: ShareholderResearch — 三级优先填充控股股东名称
     //   优先级1: sjkzr[0].HOLDER_NAME (实际控制人)
@@ -2341,19 +2380,17 @@ function startApiFetch() {
       try {
         // 优先级1: 实际控制人
         if (data.sjkzr && data.sjkzr.length > 0 && data.sjkzr[0].HOLDER_NAME) {
-          row[19] = data.sjkzr[0].HOLDER_NAME.trim();
+          row[DB_FIELD_IDX.CTRL_HOLDER] = data.sjkzr[0].HOLDER_NAME.trim();
         }
         // 优先级2: 十大股东第1名（仅当sjkzr为空且row[19]仍为空时）
-        if ((!row[19] || row[19] === null) && data.sdgd && data.sdgd.length > 0 && data.sdgd[0].HOLDER_NAME) {
-          row[19] = data.sdgd[0].HOLDER_NAME.trim();
+        if ((!row[DB_FIELD_IDX.CTRL_HOLDER] || row[DB_FIELD_IDX.CTRL_HOLDER] === null) && data.sdgd && data.sdgd.length > 0 && data.sdgd[0].HOLDER_NAME) {
+          row[DB_FIELD_IDX.CTRL_HOLDER] = data.sdgd[0].HOLDER_NAME.trim();
         }
       } catch(e) { console.warn('err:', e.message); }
-    }).catch(function(){});
+    }).catch(function(err){ console.warn('emweb holder fetch error:', err); });
 
     return Promise.all([p1, p2, p3]);
   }
-
-  // Process in batches
   var idx = 0;
   function processBatch() {
     if (_apiAbort || idx >= total) {
@@ -2363,7 +2400,7 @@ function startApiFetch() {
       var fetchStatus = failed === 0 ? 'success' : 'partial';
       apiLog('抓取完毕！更新 ' + updated + ' 只，失败 ' + failed + ' 只');
       // Save to IndexedDB
-      try { var _v = _bumpDBVersion(); _dbSave('db_data_v' + _v, DB_DATA).then(function() { apiLog('已保存到本地缓存(v' + _v + ')'); }); } catch(e) { apiLog('本地缓存保存失败'); }
+      try { var _v = _bumpDBVersion(); _dbSave('db_data_v' + _v, DB_DATA).then(function() { apiLog('已保存到本地缓存(v' + _v + ')'); }).catch(function(e) { apiLog('本地缓存保存失败: ' + e.message); }); } catch(e) { apiLog('本地缓存保存失败'); }
       document.getElementById('pushStockCount').textContent = dbCount();
       // Save update status
       _saveUpdateStatus(fetchStatus, updated, failed);
@@ -2380,6 +2417,10 @@ function startApiFetch() {
       bar.style.width = pct + '%';
       barText.textContent = done + '/' + total + ' (' + pct + '%)';
       processBatch();
+    }).catch(function(err) {
+      console.error('Batch error:', err);
+      done += batch.length;
+      processBatch(); // continue next batch even if one fails
     });
   }
   processBatch();
@@ -2405,7 +2446,7 @@ function uploadDBFile() {
         DB_DATA = data;
         _updateDBCount();
       }
-      try { var _uv = localStorage.getItem('db_data_ver_num') || '1'; _dbSave('db_data_v' + _uv, DB_DATA); } catch(ex) {}
+      try { var _uv = localStorage.getItem('db_data_ver_num') || '1'; _dbSave('db_data_v' + _uv, DB_DATA).catch(function(e) { console.warn('IDB save after upload failed:', e); }); } catch(ex) {}
       var count = dbCount();
       status.innerHTML = '<span style="color:var(--green);">导入成功！已加载 ' + count + ' 只股票数据</span>';
       document.getElementById('pushStockCount').textContent = count;
@@ -2470,6 +2511,10 @@ function pushWithRetry(contentB64, log, btn, pushVer, retryCount) {
   var xhr = new XMLHttpRequest();
   xhr.open('GET', 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', true);
   xhr.setRequestHeader('Authorization', 'token ' + GH_TOKEN);
+  xhr.timeout = 30000;
+  xhr.ontimeout = function() {
+    uploadToGitHub(null, contentB64, log, btn, pushVer, retryCount);
+  };
   xhr.onload = function() {
     var sha = null;
     if (xhr.status === 200) {
@@ -2494,27 +2539,33 @@ function uploadToGitHub(sha, contentB64, log, btn, pushVer, retryCount) {
   xhr.open('PUT', 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', true);
   xhr.setRequestHeader('Authorization', 'token ' + GH_TOKEN);
   xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.timeout = 60000; // 60s timeout for large upload
+  xhr.ontimeout = function() {
+    log.insertAdjacentHTML('beforeend', '<span style="color:var(--red);">推送超时</span>');
+    btn.textContent = '一键推送到线上';
+    btn.disabled = false;
+  };
   xhr.onload = function() {
     if (xhr.status === 200 || xhr.status === 201) {
       // Bump version so other devices/users will reload fresh data
       localStorage.setItem('db_data_ver_num', pushVer);
       try { _dbSave('db_data_v' + pushVer, DB_DATA); } catch(e) { console.warn('err:', e.message); }
-      log.innerHTML += '<span style="color:var(--green);">推送成功！线上数据库已更新（v' + pushVer + '）</span>';
+      log.insertAdjacentHTML('beforeend', '<span style="color:var(--green);">推送成功！线上数据库已更新（v' + pushVer + '）</span>');
       btn.textContent = '一键推送到线上';
       btn.disabled = false;
       checkRemoteDB();
     } else if (xhr.status === 409 && retryCount < 3) {
       // SHA conflict: another device just pushed, retry with fresh SHA
-      log.innerHTML += '<span style="color:var(--orange);">检测到冲突，自动重试(' + (retryCount + 1) + '/3)...</span><br>';
+      log.insertAdjacentHTML('beforeend', '<span style="color:var(--orange);">检测到冲突，自动重试(' + (retryCount + 1) + '/3)...</span><br>');
       setTimeout(function() { pushWithRetry(contentB64, log, btn, pushVer, retryCount + 1); }, 1000);
     } else {
-      log.innerHTML += '<span style="color:var(--red);">推送失败: HTTP ' + xhr.status + (retryCount >= 3 ? '（重试3次仍冲突，请稍后再推）' : '') + '</span>';
+      log.insertAdjacentHTML('beforeend', '<span style="color:var(--red);">推送失败: HTTP ' + xhr.status + (retryCount >= 3 ? '（重试3次仍冲突，请稍后再推）' : '') + '</span>');
       btn.textContent = '一键推送到线上';
       btn.disabled = false;
     }
   };
   xhr.onerror = function() {
-    log.innerHTML += '<span style="color:var(--red);">网络错误</span>';
+    log.insertAdjacentHTML('beforeend', '<span style="color:var(--red);">网络错误</span>');
     btn.textContent = '一键推送到线上';
     btn.disabled = false;
   };
@@ -2529,9 +2580,11 @@ function toggleInfoMenu() {
 
 
 const DB_HEADERS = ["股票代码", "股票名称", "股票简称", "市值(亿)", "总收入(亿)", "PE", "PB", "PEG", "PS", "毛利率", "净利率", "ROE", "负债率", "分红(亿)", "募资(亿)", "派现(亿)", "股利支付率", "股息率", "十大股东持股比例", "控股股东名称", "主营业务内容"];
+const DB_FIELD_IDX = { CODE:0, NAME:1, ABBR:2, MKT_CAP:3, TOTAL_REV:4, PE:5, PB:6, PEG:7, PS:8, GROSS_MARGIN:9, NET_MARGIN:10, ROE:11, DEBT_RATIO:12, DIVIDEND:13, FUNDRAISE:14, CASH_DIV:15, PAYOUT_RATIO:16, DIV_YIELD:17, HOLDER_RATIO:18, CTRL_HOLDER:19, MAIN_BUS:20 };
 const DEVIATION_THRESHOLD = 0.10; // PB偏离阈值：超过±10%视为高估/低估
 const MAX_SEARCH_RESULTS = 20;    // 搜索自动补全最大条数
 const MAX_HISTORY = 50;           // 计算历史记录上限
+const DEFAULT_GROUP = DEFAULT_GROUP;     // 默认分组名
 const DB_GROUPS = ["基础信息", null, null, null, null, "估值指标", null, null, null, "盈利能力", null, null, "财务健康", "股东回报", null, null, null, null, "股权结构", null, "业务概览"];
 let DB_DATA = {};
 let _dbDataLoading = false; // flag: remote fetch in progress
@@ -2577,6 +2630,7 @@ function _migrateOldStockDB() {
     var req = indexedDB.open('StockDB', 2);
     req.onsuccess = function(e) {
       var oldDB = e.target.result;
+      var migratePromises = [];
       // Migrate data store
       if (oldDB.objectStoreNames.contains('data')) {
         var tx1 = oldDB.transaction('data', 'readonly');
@@ -2584,7 +2638,7 @@ function _migrateOldStockDB() {
         store1.getAllKeys().onsuccess = function(e2) {
           var keys = e2.target.result || [];
           keys.forEach(function(key) {
-            store1.get(key).onsuccess = function(e3) { if (e3.target.result) _dbSave(key, e3.target.result); };
+            store1.get(key).onsuccess = function(e3) { if (e3.target.result) migratePromises.push(_dbSave(key, e3.target.result)); };
           });
         };
       }
@@ -2594,65 +2648,51 @@ function _migrateOldStockDB() {
         var store2 = tx2.objectStore('fav');
         store2.getAll().onsuccess = function(e2) {
           var items = e2.target.result || [];
-          items.forEach(function(item) { _favSave(item); });
+          items.forEach(function(item) { migratePromises.push(_favSave(item)); });
         };
       }
-      // Delete old database after migration
+      // Delete old database after all migrations complete
       oldDB.close();
-      setTimeout(function() {
+      Promise.all(migratePromises).then(function() {
         indexedDB.deleteDatabase('StockDB');
         console.log('[db] Old StockDB migrated and deleted');
-      }, 2000);
+      }).catch(function(err) {
+        console.warn('[db] Migration had errors:', err);
+        indexedDB.deleteDatabase('StockDB');
+      });
       localStorage.setItem('_db_migrated', '1');
     };
     req.onerror = function() { localStorage.setItem('_db_migrated', '1'); };
   } catch(e) { localStorage.setItem('_db_migrated', '1'); }
 }
 _migrateOldStockDB();
-function _dbSave(key, value) {
+// Generic IDB operation helper
+function _idbOp(mode, storeOp) {
   return _openDataDB().then(function(db) {
     return new Promise(function(resolve, reject) {
-      var tx = db.transaction('data', 'readwrite');
-      tx.objectStore('data').put(value, key);
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function(e) { reject(e.target.error); };
+      var tx = db.transaction('data', mode);
+      var store = tx.objectStore('data');
+      var result = storeOp(store);
+      if (result && result.onsuccess !== undefined) {
+        // Request-style (e.g. get): resolve on req.onsuccess
+        result.onsuccess = function(e) { resolve(e.target.result || null); };
+        result.onerror = function(e) { reject(e.target.error); };
+      } else {
+        // Transaction-style (e.g. put/delete/clear): resolve on tx.oncomplete
+        tx.oncomplete = function() { resolve(); };
+        tx.onerror = function(e) { reject(e.target.error); };
+      }
     });
   });
 }
-function _dbLoad(key) {
-  return _openDataDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('data', 'readonly');
-      var req = tx.objectStore('data').get(key);
-      req.onsuccess = function() { resolve(req.result || null); };
-      req.onerror = function(e) { reject(e.target.error); };
-    });
-  });
-}
-function _dbDelete(key) {
-  return _openDataDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('data', 'readwrite');
-      tx.objectStore('data').delete(key);
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function(e) { reject(e.target.error); };
-    });
-  });
-}
-function _dbClearAll() {
-  return _openDataDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('data', 'readwrite');
-      tx.objectStore('data').clear();
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function(e) { reject(e.target.error); };
-    });
-  });
-}
+function _dbSave(key, value) { return _idbOp('readwrite', function(s) { return s.put(value, key); }); }
+function _dbLoad(key) { return _idbOp('readonly', function(s) { return s.get(key); }); }
+function _dbDelete(key) { return _idbOp('readwrite', function(s) { return s.delete(key); }); }
+function _dbClearAll() { return _idbOp('readwrite', function(s) { return s.clear(); }); }
 
 // ===== Favorites API =====
 var _favCache = null; // in-memory cache: { code: {code, name, group, time} }
-var _favGroups = ['默认']; // group names
+var _favGroups = [DEFAULT_GROUP]; // group names
 var _favActiveTab = '全部'; // current active tab: '全部' or group name
 var MAX_FAV_GROUPS = 5; // max custom groups (excluding default)
 
@@ -2716,15 +2756,15 @@ function loadFavCache() {
     // Then add any groups from fav items that weren't saved
     Object.keys(groups).forEach(function(g) { if (!seen[g]) { mergedGroups.push(g); seen[g] = true; } });
     // Ensure default group exists and is first
-    if (mergedGroups.indexOf('默认') < 0) mergedGroups.unshift('默认');
-    else if (mergedGroups.indexOf('默认') !== 0) {
-      mergedGroups.splice(mergedGroups.indexOf('默认'), 1);
-      mergedGroups.unshift('默认');
+    if (mergedGroups.indexOf(DEFAULT_GROUP) < 0) mergedGroups.unshift(DEFAULT_GROUP);
+    else if (mergedGroups.indexOf(DEFAULT_GROUP) !== 0) {
+      mergedGroups.splice(mergedGroups.indexOf(DEFAULT_GROUP), 1);
+      mergedGroups.unshift(DEFAULT_GROUP);
     }
     _favGroups = mergedGroups;
     _saveFavGroups();
     return _favCache;
-  }).catch(function() { _favCache = {}; _favGroups = ['默认']; return _favCache; });
+  }).catch(function() { _favCache = {}; _favGroups = [DEFAULT_GROUP]; return _favCache; });
 }
 // Check if a stock is favorited
 function isFav(code) {
@@ -2748,7 +2788,7 @@ function toggleFav(code) {
       _favCache[code] = obj;
       _favSave(obj);
       updateFavStar(code, true);
-      showToast('已收藏 ' + name + (group !== '默认' ? ' → ' + group : ''));
+      showToast('已收藏 ' + name + (group !== DEFAULT_GROUP ? ' → ' + group : ''));
       updateFavCount();
       favCloudPush();
     });
@@ -2795,10 +2835,10 @@ function renderFavList() {
   // Each group tab
   _favGroups.forEach(function(group) {
     var count = grouped[group] ? grouped[group].length : 0;
-    tabHtml += '<div class="fav-tab' + (_favActiveTab === group ? ' active' : '') + '" onclick="switchFavTab(\''+_esc(group)+'\')" oncontextmenu="showGroupMenu(event,\''+_esc(group)+'\')">' + _esc(group) + '</div>';
+    tabHtml += '<div class="fav-tab' + (_favActiveTab === group ? ' active' : '') + '" onclick="switchFavTab(\''+_jsEsc(group)+'\')" oncontextmenu="showGroupMenu(event,\''+_jsEsc(group)+'\')">' + _esc(group) + '</div>';
   });
   // "+" add group button (max 5 custom groups)
-  var customGroupCount = _favGroups.filter(function(g) { return g !== '默认'; }).length;
+  var customGroupCount = _favGroups.filter(function(g) { return g !== DEFAULT_GROUP; }).length;
   if (customGroupCount < MAX_FAV_GROUPS) {
     tabHtml += '<div class="fav-tab fav-tab-add" onclick="addFavGroup()">+</div>';
   }
@@ -2833,14 +2873,14 @@ function renderFavList() {
     var roe = row ? getFieldVal('ROE', row) : '-';
     var groupLabel = item.group || '未分组';
     html += '<div class="fav-item">';
-    html += '<span class="fav-star" onclick="toggleFav(\''+_esc(item.code)+'\');renderFavList();">★</span>';
-    html += '<div class="fav-info" onclick="goToFavDetail(\''+_esc(item.code)+'\')">';
+    html += '<span class="fav-star" onclick="toggleFav(\''+_jsEsc(item.code)+'\');renderFavList();">★</span>';
+    html += '<div class="fav-info" onclick="goToFavDetail(\''+_jsEsc(item.code)+'\')">';
     html += '<div class="fav-info-top"><span class="fav-code">'+_esc(item.code)+'</span><span class="fav-name">'+_esc(item.name)+'</span></div>';
-    html += '<div class="fav-metrics"><span>PE <span class="fav-metric-val">'+pe+'</span></span><span>PB <span class="fav-metric-val">'+pb+'</span></span><span>ROE <span class="fav-metric-val">'+roe+'</span></span></div>';
+    html += '<div class="fav-metrics"><span>PE <span class="fav-metric-val">'+_esc(pe)+'</span></span><span>PB <span class="fav-metric-val">'+_esc(pb)+'</span></span><span>ROE <span class="fav-metric-val">'+_esc(roe)+'</span></span></div>';
     html += '</div>';
-    html += '<span class="fav-group-tag" onclick="moveToGroup(\''+_esc(item.code)+'\')">'+_esc(groupLabel)+'</span>';
-    html += '<span class="fav-note-btn' + (item.notes && item.notes.length > 0 ? ' has-notes' : '') + '" onclick="showNoteDialog(\''+_esc(item.code)+'\')">&#x270E;</span>';
-    html += '<span class="fav-go" onclick="showRadarChart(\''+_esc(item.code)+'\')">@</span>';
+    html += '<span class="fav-group-tag" onclick="moveToGroup(\''+_jsEsc(item.code)+'\')">'+_esc(groupLabel)+'</span>';
+    html += '<span class="fav-note-btn' + (item.notes && item.notes.length > 0 ? ' has-notes' : '') + '" onclick="showNoteDialog(\''+_jsEsc(item.code)+'\')">&#x270E;</span>';
+    html += '<span class="fav-go" onclick="showRadarChart(\''+_jsEsc(item.code)+'\')">@</span>';
     html += '</div>';
   });
   container.innerHTML = html;
@@ -2870,7 +2910,7 @@ function moveToGroup(code) {
 // Show group management menu (long press / contextmenu)
 function showGroupMenu(e, group) {
   e.preventDefault();
-  if (group === '默认') { showToast('默认分组不可管理'); return; }
+  if (group === DEFAULT_GROUP) { showToast('默认分组不可管理'); return; }
   _showGroupActionMenu(group);
 }
 
@@ -2891,7 +2931,7 @@ function _showGroupPicker(title, currentGroup, callback) {
   newInput.value = '';
   
   // Show "new group" row only if under limit
-  var customCount = _favGroups.filter(function(g) { return g !== '默认'; }).length;
+  var customCount = _favGroups.filter(function(g) { return g !== DEFAULT_GROUP; }).length;
   newRow.style.display = customCount < MAX_FAV_GROUPS ? 'flex' : 'none';
   
   // Render group list
@@ -3034,7 +3074,7 @@ function _gpDoDelete(groupName) {
   document.getElementById('gpOverlay').classList.remove('show');
   for (var code in _favCache) {
     if (_favCache[code].group === groupName) {
-      _favCache[code].group = '默认';
+      _favCache[code].group = DEFAULT_GROUP;
       _favSave(_favCache[code]);
     }
   }
@@ -3251,13 +3291,14 @@ function _saveFavNotes(code, notes) {
     return new Promise(function(resolve, reject) {
       var tx = db.transaction('fav', 'readwrite');
       var store = tx.objectStore('fav');
+      // Register tx handlers BEFORE put() to avoid race
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function(e) { reject(e.target.error); };
       var getReq = store.get(code);
       getReq.onsuccess = function() {
-        var item = getReq.result || {code: code, name: '', group: '默认', time: Date.now()};
+        var item = getReq.result || {code: code, name: '', group: DEFAULT_GROUP, time: Date.now()};
         item.notes = notes;
         store.put(item);
-        tx.oncomplete = function() { resolve(); };
-        tx.onerror = function(e) { reject(e.target.error); };
       };
       getReq.onerror = function(e) { reject(e.target.error); };
     });
@@ -3492,7 +3533,7 @@ function _noteApplyLeftState() {
 
 function noteNew() {
   var note = {
-    id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+    id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     title: '',
     content: '',
     createdAt: Date.now(),
@@ -3500,7 +3541,8 @@ function noteNew() {
   };
   _noteSave(note).then(function() {
     _noteActiveId = note.id;
-    notePadRender();
+    return notePadRender();
+  }).then(function() {
     noteOpenEditor(note.id);
   });
 }
@@ -3523,18 +3565,31 @@ function notePadRender() {
     for (var i = 0; i < notes.length; i++) {
       var n = notes[i];
       var isActive = (n.id === _noteActiveId);
-      html += '<div class="note-item' + (isActive ? ' active' : '') + '" onclick="noteOpenEditor(\'' + n.id + '\')">';
+      html += '<div class="note-item' + (isActive ? ' active' : '') + '" data-id="' + _esc(n.id) + '">';
       html += '<span class="note-item-icon"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></span>';
       html += '<div class="note-item-info">';
       html += '<div class="note-item-title">' + _esc(_notePreview(n.content, 40)) + '</div>';
       html += '<div class="note-item-meta">' + _noteTimeStr(n.updatedAt || n.createdAt) + '</div>';
       html += '</div>';
-      html += '<span class="note-item-del" onclick="event.stopPropagation();noteDel(\'' + n.id + '\')">&#x2716;</span>';
+      html += '<span class="note-item-del" data-del-id="' + _esc(n.id) + '">&#x2716;</span>';
       html += '</div>';
     }
     listEl.innerHTML = html;
   });
 }
+
+// Event delegation for note list (replaces inline onclick to prevent XSS)
+(function() {
+  var _noteListEl = document.getElementById('noteList');
+  if (_noteListEl) {
+    _noteListEl.addEventListener('click', function(e) {
+      var delBtn = e.target.closest('.note-item-del');
+      if (delBtn) { noteDel(delBtn.getAttribute('data-del-id')); return; }
+      var item = e.target.closest('.note-item');
+      if (item) noteOpenEditor(item.getAttribute('data-id'));
+    });
+  }
+})();
 
 function noteDel(id) {
   _noteDelete(id).then(function() {
@@ -3556,11 +3611,14 @@ function noteOpenEditor(id) {
     document.getElementById('noteEmpty').style.display = 'none';
     var contentEl = document.getElementById('noteEditorContent');
     _noteApplySettings();
-    contentEl.innerHTML = note.content || '';
-    // Re-render list to highlight active
+    var _noteContent = note.content || '';
+    // Sanitize: remove <script> tags and on* event handlers to prevent XSS from tampered IDB
+    _noteContent = _noteContent.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+    contentEl.innerHTML = _noteContent;
+    // Re-render list to highlight active (use data-id for safe matching)
     var listItems = document.querySelectorAll('.note-item');
     for (var i = 0; i < listItems.length; i++) {
-      listItems[i].classList.toggle('active', listItems[i].getAttribute('onclick').indexOf(id) >= 0);
+      listItems[i].classList.toggle('active', listItems[i].getAttribute('data-id') === id);
     }
     setTimeout(function() { contentEl.focus(); }, 100);
   });
@@ -3585,14 +3643,14 @@ function _noteSaveCurrent() {
     var listItems = document.querySelectorAll('.note-item-title');
     for (var i = 0; i < listItems.length; i++) {
       var parentItem = listItems[i].closest('.note-item');
-      if (parentItem && parentItem.getAttribute('onclick').indexOf(_noteActiveId) >= 0) {
-        listItems[i].textContent = _notePreview(preview, 40);
-      }
+    if (parentItem && parentItem.getAttribute('data-id') === _noteActiveId) {
+      listItems[i].textContent = _notePreview(preview, 40);
+    }
     }
     var metas = document.querySelectorAll('.note-item-meta');
     for (var j = 0; j < metas.length; j++) {
       var pItem = metas[j].closest('.note-item');
-      if (pItem && pItem.getAttribute('onclick').indexOf(_noteActiveId) >= 0) {
+      if (pItem && pItem.getAttribute('data-id') === _noteActiveId) {
         metas[j].textContent = _noteTimeStr(Date.now());
       }
     }
@@ -3715,12 +3773,14 @@ function _calcCompute(a, b, op) {
     case '+': return _calcRound(a + b);
     case '-': return _calcRound(a - b);
     case '*': return _calcRound(a * b);
-    case '/': return b === 0 ? 0 : _calcRound(a / b);
+    case '/': return b === 0 ? NaN : _calcRound(a / b);
   }
   return b;
 }
 
 function _calcRound(n) {
+  if (isNaN(n)) return '错误';
+  if (!isFinite(n)) return '溢出';
   // round to 10 decimal places, strip trailing zeros
   var s = (Math.round(n * 1e10) / 1e10).toString();
   if (s.indexOf('.') >= 0) s = s.replace(/0+$/, '').replace(/\.$/, '');
@@ -3788,31 +3848,53 @@ function _noteApplySettings() {
 // Paste image support
 document.addEventListener('paste', function(e) {
   var contentEl = document.getElementById('noteEditorContent');
-  if (!contentEl || !contentEl.contains(e.target) && e.target !== contentEl) return;
+  if (!contentEl || (!contentEl.contains(e.target) && e.target !== contentEl)) return;
   var items = (e.clipboardData || e.originalEvent.clipboardData).items;
   for (var i = 0; i < items.length; i++) {
     if (items[i].type.indexOf('image') !== -1) {
       e.preventDefault();
       var blob = items[i].getAsFile();
+      // Limit: reject images larger than 2MB to prevent IDB bloat
+      if (blob.size > 2 * 1024 * 1024) {
+        showToast('图片过大（超过2MB），请压缩后粘贴');
+        return;
+      }
       var reader = new FileReader();
       reader.onload = function(ev) {
-        var img = document.createElement('img');
+        // Compress: use canvas to resize large images (max width 1200px, JPEG 80%)
+        var img = new Image();
+        img.onload = function() {
+          var maxW = 1200, maxH = 1200;
+          var w = img.width, h = img.height;
+          if (w > maxW || h > maxH) {
+            var scale = Math.min(maxW / w, maxH / h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          var compressed = canvas.toDataURL('image/jpeg', 0.8);
+          var imgEl = document.createElement('img');
+          imgEl.src = compressed;
+          imgEl.style.maxWidth = '100%';
+          var sel = window.getSelection();
+          if (sel.rangeCount) {
+            var range = sel.getRangeAt(0);
+            range.collapse(false);
+            range.insertNode(imgEl);
+            range.setStartAfter(imgEl);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          } else {
+            contentEl.appendChild(imgEl);
+          }
+          var br = document.createElement('br');
+          imgEl.parentNode.insertBefore(br, imgEl.nextSibling);
+          noteOnInput();
+        };
         img.src = ev.target.result;
-        img.style.maxWidth = '100%';
-        var sel = window.getSelection();
-        if (sel.rangeCount) {
-          var range = sel.getRangeAt(0);
-          range.collapse(false);
-          range.insertNode(img);
-          range.setStartAfter(img);
-          sel.removeAllRanges();
-          sel.addRange(range);
-        } else {
-          contentEl.appendChild(img);
-        }
-        var br = document.createElement('br');
-        img.parentNode.insertBefore(br, img.nextSibling);
-        noteOnInput();
       };
       reader.readAsDataURL(blob);
     }
@@ -3920,7 +4002,7 @@ document.addEventListener('click', function(e) {
 
 // Add new group (from tab + button)
 function addFavGroup() {
-  var customCount = _favGroups.filter(function(g) { return g !== '默认'; }).length;
+  var customCount = _favGroups.filter(function(g) { return g !== DEFAULT_GROUP; }).length;
   if (customCount >= MAX_FAV_GROUPS) { showToast('最多创建' + MAX_FAV_GROUPS + '个自定义分组'); return; }
   // Show picker with create option
   _showGroupPicker('新建分组', null, function(group) {
@@ -4071,9 +4153,16 @@ function loadDBData() {
       return r.json();
     }).then(function(data) {
       if (!data.content) throw new Error('No content in API response');
-      // Decode base64 content (GitHub API returns base64)
-      var rawStr = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
-      return JSON.parse(rawStr);
+      // Decode base64 content with error handling
+      try {
+        var raw = atob(data.content.replace(/\n/g, ''));
+        var buf = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+        var rawStr = new TextDecoder('utf-8').decode(buf);
+        return JSON.parse(rawStr);
+      } catch(e) {
+        throw new Error('db_data.json base64 decode/parse failed: ' + e.message);
+      }
     });
   }
 
@@ -4097,11 +4186,12 @@ const LONG_TEXT_FIELDS = ['主营业务内容','控股股东名称'];
 function switchTab(tab) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-  var tabs = document.querySelectorAll('.tab-item');
-  if (tab === 'db') { document.getElementById('pageDB').classList.add('active'); tabs[0].classList.add('active'); }
-  else if (tab === 'calc') { document.getElementById('pageCalc').classList.add('active'); tabs[1].classList.add('active'); }
-  else if (tab === 'fav') { document.getElementById('pageFav').classList.add('active'); tabs[2].classList.add('active'); renderFavList(); }
-  else if (tab === 'note') { document.getElementById('pageNote').classList.add('active'); tabs[3].classList.add('active'); _noteResizeLayout(); notePadRender(); }
+  var pageId = {db:'pageDB', calc:'pageCalc', fav:'pageFav', note:'pageNote'}[tab];
+  if (pageId) document.getElementById(pageId).classList.add('active');
+  var tabEl = document.querySelector('.tab-item[data-tab="' + tab + '"]');
+  if (tabEl) tabEl.classList.add('active');
+  if (tab === 'fav') renderFavList();
+  if (tab === 'note') { _noteResizeLayout(); notePadRender(); }
 }
 
 // ===== Build search indexes (with pinyin) =====
@@ -4173,16 +4263,18 @@ function showToast(msg, dur) {
 }
 
 function _copyPhone() {
-  var phone = '15029164832';
+  var phone = document.querySelector('.info-menu-row .row-value[onclick="_copyPhone()"]');
+  var num = phone ? phone.textContent.trim() : '';
+  if (!num) return;
   // Try clipboard API first, fallback to execCommand
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(phone).then(function() {
-      showToast('已复制：' + phone);
+    navigator.clipboard.writeText(num).then(function() {
+      showToast('已复制：' + num);
     }).catch(function() {
-      _fallbackCopy(phone);
+      _fallbackCopy(num);
     });
   } else {
-    _fallbackCopy(phone);
+    _fallbackCopy(num);
   }
 }
 function _fallbackCopy(text) {
@@ -4286,7 +4378,7 @@ function showDBDetail(code) {
       html += `</div>`;
     }
   } else {
-    html += `<div class="db-section" style="padding:32px 20px;text-align:center;color:var(--text4);font-size:14px;">
+    html += `<div class="db-section" style="padding:32px 20px;text-align:center;color:var(--text3);font-size:14px;">
       &#x1F4ED; 该股票暂无数据库详细记录<br><span style="font-size:12px;color:var(--text3)">可在计算器页面手动输入数据计算估值</span></div>`;
   }
 
@@ -4353,7 +4445,7 @@ function fetchRealTimeData(code) {
     if (d.pb) document.getElementById('pb').value = d.pb;
     if (d.roe) document.getElementById('roe').value = d.roe;
     rtStatus.style.display = 'block';
-    rtStatus.innerHTML = '<span style="color:var(--green);">&#10003; 实时数据已填充</span> <span style="color:var(--text3);">| PE=' + (d.pe||'-') + ' PB=' + (d.pb||'-') + ' ROE=' + (d.roe||'-') + '%</span>';
+    rtStatus.innerHTML = '<span style="color:var(--green);">&#10003; 实时数据已填充</span> <span style="color:var(--text3);">| PE=' + _esc(d.pe||'-') + ' PB=' + _esc(d.pb||'-') + ' ROE=' + _esc(d.roe||'-') + '%</span>';
     setTimeout(function() { rtStatus.style.display = 'none'; }, 4000);
     return;
   }
@@ -4726,7 +4818,10 @@ function calculate() {
   // History record
   var record;
   if (_calcFormula === 'graham') {
-    record = { code, name:name||'-', pe:0, roe:0, marketPB:0, calcPB:+calcVal.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'Graham', time:new Date().toLocaleString('zh-CN') };
+    var _grahamEPS = getCalcVal('grahamEPS');
+    var _grahamGEl = document.getElementById('grahamG');
+    var _grahamG = _grahamGEl ? _grahamGEl.value.trim() : '';
+    record = { code, name:name||'-', pe:0, roe:0, marketPB:0, calcPB:+calcVal.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'Graham', time:new Date().toLocaleString('zh-CN'), eps:_grahamEPS||0, g:_grahamG||'0' };
   } else {
     record = { code, name:name||'-', pe:_peVal, roe:_roeVal, marketPB:_pbVal, calcPB:+_calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'PE×ROE', time:new Date().toLocaleString('zh-CN') };
   }
@@ -4800,49 +4895,54 @@ function renderHistory() {
     }
     return '<div class="history-item" data-idx="'+i+'"><div class="history-swipe-del">删除</div><div class="history-item-content" style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;background:var(--card);width:100%;padding:12px 16px;box-sizing:border-box;"><div class="history-left" onclick="loadHistory('+i+')"><span class="history-code">'+_esc(r.code)+'</span><span class="history-name">'+_esc(r.name)+'</span><div class="history-params">'+params+'</div>'+(r.time?'<div class="history-time">'+_esc(r.time)+'</div>':'')+'</div><div class="history-right" onclick="loadHistory('+i+')"><div class="history-pb">'+(r.deviation>=0?'+':'')+( r.deviation*100).toFixed(1)+'%</div><div class="history-judge '+r.judgeClass+'">'+r.judge+'</div></div><button class="history-del" onclick="event.stopPropagation();delHistory('+i+')">&times;</button></div></div>';
   }).join('');
-  // Bind swipe events
   _bindHistorySwipe();
 }
 
 var _histSwipeItem = null, _histSwipeX0 = 0, _histSwipeDx = 0;
+var _histSwipeBound = false;
 function _bindHistorySwipe() {
-  var items = document.querySelectorAll('.history-item[data-idx]');
-  items.forEach(function(item) {
-    var content = item.querySelector('.history-item-content');
+  if (_histSwipeBound) return;
+  _histSwipeBound = true;
+  var list = document.getElementById('historyList');
+  if (!list) return;
+  list.addEventListener('touchstart', function(e) {
+    var content = e.target.closest('.history-item-content');
     if (!content) return;
-    content.addEventListener('touchstart', function(e) {
-      _histSwipeItem = item;
-      _histSwipeX0 = e.touches[0].clientX;
-      _histSwipeDx = 0;
-      item.classList.add('swiping');
-      item.classList.remove('swipe-back');
-    }, {passive: true});
-    content.addEventListener('touchmove', function(e) {
-      if (!_histSwipeItem || _histSwipeItem !== item) return;
-      var dx = e.touches[0].clientX - _histSwipeX0;
-      // Allow both left and right swipe
-      if (dx > 120) dx = 120;
-      if (dx < -120) dx = -120;
-      _histSwipeDx = dx;
-      content.style.transform = 'translateX(' + dx + 'px)';
-    }, {passive: true});
-    content.addEventListener('touchend', function(e) {
-      if (!_histSwipeItem || _histSwipeItem !== item) return;
-      item.classList.remove('swiping');
-      item.classList.add('swipe-back');
-      if (_histSwipeDx < -60 || _histSwipeDx > 60) {
-        // Delete (both directions)
-        var dir = _histSwipeDx < 0 ? '-100%' : '100%';
-        content.style.transform = 'translateX(' + dir + ')';
-        content.style.transition = 'transform 0.25s ease';
-        setTimeout(function() { delHistory(parseInt(item.dataset.idx)); }, 250);
-      } else {
-        // Snap back
-        content.style.transform = 'translateX(0)';
-      }
-      _histSwipeItem = null;
-    }, {passive: true});
-  });
+    var item = content.closest('.history-item[data-idx]');
+    if (!item) return;
+    _histSwipeItem = item;
+    _histSwipeX0 = e.touches[0].clientX;
+    _histSwipeDx = 0;
+    item.classList.add('swiping');
+    item.classList.remove('swipe-back');
+  }, {passive: true});
+  list.addEventListener('touchmove', function(e) {
+    if (!_histSwipeItem) return;
+    var content = _histSwipeItem.querySelector('.history-item-content');
+    if (!content) return;
+    var dx = e.touches[0].clientX - _histSwipeX0;
+    if (dx > 120) dx = 120;
+    if (dx < -120) dx = -120;
+    _histSwipeDx = dx;
+    content.style.transform = 'translateX(' + dx + 'px)';
+  }, {passive: true});
+  list.addEventListener('touchend', function(e) {
+    if (!_histSwipeItem) return;
+    var item = _histSwipeItem;
+    var content = item.querySelector('.history-item-content');
+    if (!content) { _histSwipeItem = null; return; }
+    item.classList.remove('swiping');
+    item.classList.add('swipe-back');
+    if (_histSwipeDx < -60 || _histSwipeDx > 60) {
+      var dir = _histSwipeDx < 0 ? '-100%' : '100%';
+      content.style.transform = 'translateX(' + dir + ')';
+      content.style.transition = 'transform 0.25s ease';
+      setTimeout(function() { delHistory(parseInt(item.dataset.idx)); }, 250);
+    } else {
+      content.style.transform = 'translateX(0)';
+    }
+    _histSwipeItem = null;
+  }, {passive: true});
 }
 
 function loadHistory(idx) {
@@ -4856,9 +4956,9 @@ function loadHistory(idx) {
   if (r.formula === 'Graham') {
     switchFormula('graham');
     // Graham records: calcPB stores valuation, marketPB stores price
-    document.getElementById('grahamEPS').value = '';
+    document.getElementById('grahamEPS').value = r.eps != null ? r.eps : '';
     document.getElementById('grahamPrice').value = r.marketPB ? r.marketPB.toFixed(2) : '';
-    document.getElementById('grahamG').value = '';
+    document.getElementById('grahamG').value = r.g != null ? r.g : '0';
   } else {
     switchFormula('peroe');
     document.getElementById('pe').value = r.pe;
@@ -4973,14 +5073,14 @@ if ('serviceWorker' in navigator) {
       reg.installing.addEventListener('statechange', function() {
         if (this.state === 'activated') {
           console.log('New SW activated, reloading...');
-          location.reload();
+          if (!sessionStorage.getItem('_swReloaded')) { sessionStorage.setItem('_swReloaded', '1'); location.reload(); }
         }
       });
     }
     // Listen for controller change (new SW takes over after SKIP_WAITING)
     navigator.serviceWorker.addEventListener('controllerchange', function() {
       console.log('SW controller changed, reloading...');
-      location.reload();
+      if (!sessionStorage.getItem('_swReloaded')) { sessionStorage.setItem('_swReloaded', '1'); location.reload(); }
     });
     reg.update();
     console.log('SW ok');
@@ -5024,9 +5124,9 @@ function _applyUpdate(remoteVer) {
         }
       })
       .catch(function(e) {
-        console.log('Version check failed, retry in 5s:', e.message);
-        // Retry once after delay (network may be temporarily unavailable)
-        setTimeout(doCheck, 5000);
+        console.log('Version check failed:', e.message);
+        // Max 1 retry after 5s (not infinite)
+        if (!window._updateRetried) { window._updateRetried = true; setTimeout(doCheck, 5000); }
       });
   }
   // Delay 2s to avoid competing with critical resources on page load
