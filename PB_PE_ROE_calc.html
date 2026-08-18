@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.1';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.2';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1722,6 +1722,7 @@ async function doLogin() {
         _authHide();
         showToast('登录成功！（离线模式）');
         btn.textContent = '登录'; btn.disabled = false;
+        loadFavCache().then(function() { favCloudPull(); });
         return;
       }
       err.textContent = '网络不可用，且本地无此用户记录'; btn.textContent = '登录'; btn.disabled = false; return;
