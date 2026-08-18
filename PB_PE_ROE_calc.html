@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.8.7';</script>
+<script>var APP_VER='5.8.8';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -2434,10 +2434,10 @@ function startApiFetch() {
 // 统一入口：点"选择文件"按钮
 function pickFileBtn() {
   var status = document.getElementById('uploadStatus');
-  // Android JS Bridge：直接调 Java 打开文件选择器
-  if (window.AndroidBridge && typeof window.AndroidBridge.pickFile === 'function') {
+  // Android JS Bridge（onJsPrompt 方式）：调 prompt 触发 Java 端文件选择器
+  if (window._isAndroidApp) {
     if (status) status.innerHTML = '<span style="color:var(--text2);">请选择 db_data.json 文件...</span>';
-    window.AndroidBridge.pickFile();
+    prompt('__bridge__pickFile');
     return;
   }
   // 浏览器：触发隐藏的 input[type=file]
@@ -2461,10 +2461,10 @@ if (document.getElementById('dbFileInput')) {
 function uploadDBFile() {
   var status = document.getElementById('uploadStatus');
 
-  // ── Android JS Bridge 路径 ──
-  if (window.AndroidBridge && typeof window.AndroidBridge.pickFile === 'function') {
+  // ── Android JS Bridge 路径（onJsPrompt 方式）──
+  if (window._isAndroidApp) {
     status.innerHTML = '<span style="color:var(--text2);">请选择 db_data.json 文件...</span>';
-    window.AndroidBridge.pickFile();
+    prompt('__bridge__pickFile');
     return;
   }
 
