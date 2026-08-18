@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.3';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.4';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -2302,12 +2302,18 @@ function startApiFetch() {
     });
   }
 
-  // Fetch emweb PageAjax APIs via Service Worker proxy (bypass CORS)
-  // Fallback: if SW not available, direct fetch emweb URL (may work in some WebViews)
+  // Fetch emweb PageAjax APIs
+  // - Android App: always use proxy URL (Java shouldInterceptRequest intercepts & fetches emweb)
+  // - Browser: try SW proxy first, fallback to direct emweb URL
   var _emwebBase = 'https://emweb.securities.eastmoney.com/PC_HSF10/';
   var _swProxyOk = null; // null=unknown, true/false after check
   function _checkSwProxy() {
     if (_swProxyOk !== null) return Promise.resolve(_swProxyOk);
+    // Android App: Java shouldInterceptRequest handles proxy, always "ok"
+    if (typeof _isAndroidApp !== 'undefined' && _isAndroidApp) {
+      _swProxyOk = true;
+      return Promise.resolve(true);
+    }
     if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
       _swProxyOk = false;
       return Promise.resolve(false);
@@ -2315,15 +2321,20 @@ function startApiFetch() {
     _swProxyOk = true;
     return Promise.resolve(true);
   }
-  // Smart fetch: try proxy first, on failure switch to direct and retry
+  // Smart fetch: Android App always proxy; browser tries proxy→direct fallback
   function _emwebFetch(path, mkt, code) {
     var directUrl = _emwebBase + path + '?code=' + mkt + code;
     var proxyUrl = './emweb-proxy/' + path + '?code=' + mkt + code;
+    // Android App: proxy URL is intercepted by Java, always use it
+    if (typeof _isAndroidApp !== 'undefined' && _isAndroidApp) {
+      return fetch(proxyUrl).then(function(r) { return r.json(); });
+    }
+    // Browser: proxy if SW available, else direct
     var url = (_swProxyOk === false) ? directUrl : proxyUrl;
     return fetch(url, {mode: 'cors'}).then(function(r) {
       return r.json();
     }).catch(function(err) {
-      // If proxy failed and we haven't tried direct yet, switch to direct mode
+      // Browser fallback: if proxy failed, switch to direct and retry
       if (_swProxyOk !== false) {
         _swProxyOk = false;
         return fetch(directUrl, {mode: 'cors'}).then(function(r) { return r.json(); });
