@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.8.5';</script>
+<script>var APP_VER='5.8.6';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1042,6 +1042,57 @@ body {
       <button class="btn btn-primary" onclick="uploadDBFile()" style="width:100%;">导入文件</button>
       <div id="uploadStatus" style="margin-top:8px;font-size:12px;color:var(--text2);"></div>
     </div>
+    <script>
+    // JS Bridge: Android 端文件选择回调（分段接收 base64 → 解码 → JSON.parse）
+    window._fileBase64Chunks = [];
+    window._pickFileFail = function(reason) {
+      var status = document.getElementById('uploadStatus');
+      if (status) status.innerHTML = '<span style="color:var(--red);">文件选择失败: ' + reason + '</span>';
+    };
+    window._receiveFileStart = function(totalChunks) {
+      window._fileBase64Chunks = new Array(totalChunks);
+      var status = document.getElementById('uploadStatus');
+      if (status) status.innerHTML = '<span style="color:var(--text2);">正在接收文件数据...</span>';
+    };
+    window._receiveFileChunk = function(index, total, chunk) {
+      window._fileBase64Chunks[index] = chunk;
+      var status = document.getElementById('uploadStatus');
+      if (status && (index % 5 === 0 || index === total - 1)) {
+        status.innerHTML = '<span style="color:var(--text2);">接收中... (' + (index + 1) + '/' + total + ')</span>';
+      }
+    };
+    window._receiveFileDone = function() {
+      var status = document.getElementById('uploadStatus');
+      try {
+        var base64 = window._fileBase64Chunks.join('');
+        window._fileBase64Chunks = [];
+        // base64 → bytes → UTF-8 text
+        var binaryStr = atob(base64);
+        var bytes = new Uint8Array(binaryStr.length);
+        for (var i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+        var decoder = new TextDecoder('utf-8');
+        var text = decoder.decode(bytes);
+        var data = JSON.parse(text);
+        if (!data || typeof data !== 'object') {
+          if (status) status.innerHTML = '<span style="color:var(--red);">文件内容为空</span>';
+          return;
+        }
+        if (data && data.d && Array.isArray(data.d)) {
+          DB_DATA = _buildDBMap(data);
+        } else {
+          DB_DATA = data;
+        }
+        _updateDBCount();
+        try { var _uv = localStorage.getItem('db_data_ver_num') || '1'; _dbSave('db_data_v' + _uv, DB_DATA).catch(function(e) {}); } catch(ex) {}
+        var count = dbCount();
+        if (status) status.innerHTML = '<span style="color:var(--green);">导入成功！已加载 ' + count + ' 只股票数据</span>';
+        var psc = document.getElementById('pushStockCount');
+        if (psc) psc.textContent = count;
+      } catch(ex) {
+        if (status) status.innerHTML = '<span style="color:var(--red);">JSON解析失败: ' + ex.message + '</span>';
+      }
+    };
+    </script>
 
     <!-- Push Tab -->
     <div class="db-updater-body" id="updaterTabPush" style="display:none;">
@@ -2372,8 +2423,17 @@ function startApiFetch() {
 
 // --- Upload File ---
 function uploadDBFile() {
-  var input = document.getElementById('dbFileInput');
   var status = document.getElementById('uploadStatus');
+
+  // ── Android JS Bridge 路径：绕过 WebView <input type=file> ──
+  if (window.AndroidBridge && typeof window.AndroidBridge.pickFile === 'function') {
+    status.innerHTML = '<span style="color:var(--text2);">请选择 db_data.json 文件...</span>';
+    window.AndroidBridge.pickFile();
+    return;
+  }
+
+  // ── 浏览器路径：FileReader + ArrayBuffer + TextDecoder ──
+  var input = document.getElementById('dbFileInput');
   if (!input.files || !input.files.length) { status.innerHTML = '<span style="color:var(--red);">请选择文件</span>'; return; }
   var file = input.files[0];
   status.innerHTML = '<span style="color:var(--text2);">正在读取文件（' + (file.size / 1024 / 1024).toFixed(1) + ' MB）...</span>';
