@@ -4633,6 +4633,29 @@ function calculate() {
     formulaLabel = 'Graham';
     formulaHtml = '<span>' + _esc(name||code) + '</span> | 盈利收益率=<span>' + grahamEY.toFixed(2) + '%</span>，内在价值V=<span>' + grahamV.toFixed(2) + '元</span><br>' +
       '当前股价=' + priceVal.toFixed(2) + '元 &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span>';
+  } else if (_calcFormula === 'div') {
+    // DIV 股息率估值：合理股价 = 每股股息 / 目标股息率
+    var dpsVal = getCalcVal('divDPS');
+    var divPriceVal = getCalcVal('divPrice');
+    var divTargetVal = getCalcVal('divTarget');
+    if (isNaN(dpsVal) || dpsVal <= 0) { showToast('请输入有效的每股股息（支持四则运算）'); return; }
+    if (isNaN(divPriceVal) || divPriceVal <= 0) { showToast('请输入有效的当前股价'); return; }
+    if (isNaN(divTargetVal) || divTargetVal <= 0) { showToast('请输入有效的目标股息率'); return; }
+    var targetYield = divTargetVal / 100;
+    var fairPrice = dpsVal / targetYield;
+    var currentYield = dpsVal / divPriceVal;
+    deviation = (divPriceVal - fairPrice) / fairPrice;
+    calcVal = fairPrice.toFixed(2) + '元';
+    marketVal = divPriceVal.toFixed(2) + '元';
+    extraVal = (currentYield * 100).toFixed(2) + '%';
+    extraLabel = '当前股息率';
+    lblCalc = '合理股价';
+    lblMarket = '当前股价';
+    formulaLabel = 'DIV';
+    formulaHtml = '<span>' + _esc(name||code) + '</span> | 合理股价=<span>' + fairPrice.toFixed(2) + '元</span><br>' +
+      '当前股价=' + divPriceVal.toFixed(2) + '元 &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>' +
+      '当前股息率=' + (currentYield*100).toFixed(2) + '% / 目标股息率=' + divTargetVal.toFixed(2) + '%';
+    var _dpsVal = dpsVal, _divPriceVal = divPriceVal, _divTargetVal = divTargetVal, _fairPrice = fairPrice;
   } else {
     // PE × ROE
     const peVal = getCalcVal('pe');
@@ -4659,29 +4682,6 @@ function calculate() {
       '隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
     // store for history & invest rate
     var _peVal = peVal, _roeVal = roeVal, _pbVal = pbVal, _roeDecimal = roeDecimal, _calcPB = calcPB;
-  } else if (_calcFormula === 'div') {
-    // DIV 股息率估值：合理股价 = 每股股息 / 目标股息率
-    var dpsVal = getCalcVal('divDPS');
-    var divPriceVal = getCalcVal('divPrice');
-    var divTargetVal = getCalcVal('divTarget');
-    if (isNaN(dpsVal) || dpsVal <= 0) { showToast('请输入有效的每股股息（支持四则运算）'); return; }
-    if (isNaN(divPriceVal) || divPriceVal <= 0) { showToast('请输入有效的当前股价'); return; }
-    if (isNaN(divTargetVal) || divTargetVal <= 0) { showToast('请输入有效的目标股息率'); return; }
-    var targetYield = divTargetVal / 100;
-    var fairPrice = dpsVal / targetYield;
-    var currentYield = dpsVal / divPriceVal;
-    deviation = (divPriceVal - fairPrice) / fairPrice;
-    calcVal = fairPrice.toFixed(2) + '元';
-    marketVal = divPriceVal.toFixed(2) + '元';
-    extraVal = (currentYield * 100).toFixed(2) + '%';
-    extraLabel = '当前股息率';
-    lblCalc = '合理股价';
-    lblMarket = '当前股价';
-    formulaLabel = 'DIV';
-    formulaHtml = '<span>' + _esc(name||code) + '</span> | 合理股价=<span>' + fairPrice.toFixed(2) + '元</span><br>' +
-      '当前股价=' + divPriceVal.toFixed(2) + '元 &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>' +
-      '当前股息率=' + (currentYield*100).toFixed(2) + '% / 目标股息率=' + divTargetVal.toFixed(2) + '%';
-    var _dpsVal = dpsVal, _divPriceVal = divPriceVal, _divTargetVal = divTargetVal, _fairPrice = fairPrice;
   }
 
   if (deviation < -DEVIATION_THRESHOLD) { judge = '低估'; judgeClass = 'under'; }
