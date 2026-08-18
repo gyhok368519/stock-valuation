@@ -763,6 +763,7 @@ body {
           <div class="form-group"><label>目标股息率(%)</label><input type="text" id="divTarget" placeholder="如 4.5" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
         </div>
       </div>
+      <div style="text-align:right;margin-top:0;margin-bottom:10px;">
         <span id="rtBtn" style="font-size:12px;color:var(--primary);cursor:pointer;" onclick="fetchRealTimeData(codeInput.value.trim())">&#x1F504; 刷新实时数据</span>
       </div>
       <div class="btn-row">
