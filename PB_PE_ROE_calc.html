@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.8.3';</script>
+<script>var APP_VER='5.8.4';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -2377,6 +2377,7 @@ function uploadDBFile() {
   if (!input.files || !input.files.length) { status.innerHTML = '<span style="color:var(--red);">请选择文件</span>'; return; }
   var file = input.files[0];
   status.innerHTML = '<span style="color:var(--text2);">正在读取文件（' + (file.size / 1024 / 1024).toFixed(1) + ' MB）...</span>';
+
   function processJSON(text) {
     try {
       var data = JSON.parse(text);
@@ -2398,32 +2399,45 @@ function uploadDBFile() {
       status.innerHTML = '<span style="color:var(--red);">JSON解析失败: ' + ex.message + '</span>';
     }
   }
-  // readAsText can return empty string on some Android PWA/WebView
+
+  // ── 主方案：readAsArrayBuffer + TextDecoder ──
+  // readAsText 对大文件（3MB+含中文）可能截断或返回不完整字符串
+  // ArrayBuffer 方式获取原始字节后由 TextDecoder 精确解码，避免截断
   var reader = new FileReader();
   reader.onload = function(e) {
-    var text = e.target.result;
-    if (text && text.length > 0) {
-      processJSON(text);
-    } else {
-      // readAsText returned empty — fallback to readAsArrayBuffer
-      console.log('uploadDBFile: readAsText returned empty, retrying with readAsArrayBuffer');
+    try {
+      var buf = e.target.result;
+      var bytes = new Uint8Array(buf);
+      // 跳过 BOM (EF BB BF)
+      var start = 0;
+      if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+        start = 3;
+      }
+      var decoder = new TextDecoder('utf-8', { fatal: false });
+      var decoded = decoder.decode(bytes.slice(start));
+      if (decoded && decoded.length > 0) {
+        processJSON(decoded);
+      } else {
+        status.innerHTML = '<span style="color:var(--red);">文件内容为空（0字节）</span>';
+      }
+    } catch(ex) {
+      // 最终 fallback：用 readAsText 重试
+      console.error('uploadDBFile: ArrayBuffer+TextDecoder failed:', ex);
       var reader2 = new FileReader();
       reader2.onload = function(ev) {
-        try {
-          var buf = ev.target.result;
-          var decoder = new TextDecoder('utf-8');
-          var decoded = decoder.decode(new Uint8Array(buf));
-          processJSON(decoded);
-        } catch(ex2) {
-          status.innerHTML = '<span style="color:var(--red);">文件读取失败: ' + ex2.message + '</span>';
+        var text = ev.target.result;
+        if (text && text.length > 0) {
+          processJSON(text);
+        } else {
+          status.innerHTML = '<span style="color:var(--red);">文件读取失败: ' + ex.message + '</span>';
         }
       };
-      reader2.onerror = function() { status.innerHTML = '<span style="color:var(--red);">文件读取失败（ArrayBuffer方式）</span>'; };
-      reader2.readAsArrayBuffer(file);
+      reader2.onerror = function() { status.innerHTML = '<span style="color:var(--red);">文件读取失败</span>'; };
+      reader2.readAsText(file);
     }
   };
   reader.onerror = function() { status.innerHTML = '<span style="color:var(--red);">文件读取失败</span>'; };
-  reader.readAsText(file);
+  reader.readAsArrayBuffer(file);
 }
 
 // --- Push to GitHub ---
