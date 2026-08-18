@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.8.6';</script>
+<script>var APP_VER='5.8.7';</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1038,7 +1038,12 @@ body {
     <!-- Upload Tab -->
     <div class="db-updater-body" id="updaterTabUpload" style="display:none;">
       <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">上传 db_data.json 文件，替换当前数据库</p>
-      <input type="file" id="dbFileInput" style="width:100%;margin-bottom:12px;font-size:13px;">
+      <!-- 不使用 <input type="file">，统一用按钮触发（Android走JS Bridge，浏览器走隐藏input） -->
+      <input type="file" id="dbFileInput" accept="application/json,.json" style="display:none;">
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+        <button class="btn btn-outline" onclick="pickFileBtn()" style="flex:0 0 auto;padding:6px 16px;font-size:13px;">选择文件</button>
+        <span id="fileNameLabel" style="font-size:12px;color:var(--text2);">未选择任何文件</span>
+      </div>
       <button class="btn btn-primary" onclick="uploadDBFile()" style="width:100%;">导入文件</button>
       <div id="uploadStatus" style="margin-top:8px;font-size:12px;color:var(--text2);"></div>
     </div>
@@ -1048,6 +1053,8 @@ body {
     window._pickFileFail = function(reason) {
       var status = document.getElementById('uploadStatus');
       if (status) status.innerHTML = '<span style="color:var(--red);">文件选择失败: ' + reason + '</span>';
+      var label = document.getElementById('fileNameLabel');
+      if (label) label.textContent = '未选择任何文件';
     };
     window._receiveFileStart = function(totalChunks) {
       window._fileBase64Chunks = new Array(totalChunks);
@@ -1063,6 +1070,7 @@ body {
     };
     window._receiveFileDone = function() {
       var status = document.getElementById('uploadStatus');
+      var label = document.getElementById('fileNameLabel');
       try {
         var base64 = window._fileBase64Chunks.join('');
         window._fileBase64Chunks = [];
@@ -1072,6 +1080,7 @@ body {
         for (var i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
         var decoder = new TextDecoder('utf-8');
         var text = decoder.decode(bytes);
+        if (label) label.textContent = 'db_data.json (' + (bytes.length / 1024 / 1024).toFixed(1) + ' MB)';
         var data = JSON.parse(text);
         if (!data || typeof data !== 'object') {
           if (status) status.innerHTML = '<span style="color:var(--red);">文件内容为空</span>';
@@ -2422,19 +2431,46 @@ function startApiFetch() {
 }
 
 // --- Upload File ---
+// 统一入口：点"选择文件"按钮
+function pickFileBtn() {
+  var status = document.getElementById('uploadStatus');
+  // Android JS Bridge：直接调 Java 打开文件选择器
+  if (window.AndroidBridge && typeof window.AndroidBridge.pickFile === 'function') {
+    if (status) status.innerHTML = '<span style="color:var(--text2);">请选择 db_data.json 文件...</span>';
+    window.AndroidBridge.pickFile();
+    return;
+  }
+  // 浏览器：触发隐藏的 input[type=file]
+  var input = document.getElementById('dbFileInput');
+  if (input) input.click();
+}
+
+// input[type=file] onchange（仅浏览器路径）
+if (document.getElementById('dbFileInput')) {
+  document.getElementById('dbFileInput').addEventListener('change', function() {
+    var label = document.getElementById('fileNameLabel');
+    if (this.files && this.files.length) {
+      var f = this.files[0];
+      if (label) label.textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(1) + ' MB)';
+    } else {
+      if (label) label.textContent = '未选择任何文件';
+    }
+  });
+}
+
 function uploadDBFile() {
   var status = document.getElementById('uploadStatus');
 
-  // ── Android JS Bridge 路径：绕过 WebView <input type=file> ──
+  // ── Android JS Bridge 路径 ──
   if (window.AndroidBridge && typeof window.AndroidBridge.pickFile === 'function') {
     status.innerHTML = '<span style="color:var(--text2);">请选择 db_data.json 文件...</span>';
     window.AndroidBridge.pickFile();
     return;
   }
 
-  // ── 浏览器路径：FileReader + ArrayBuffer + TextDecoder ──
+  // ── 浏览器路径 ──
   var input = document.getElementById('dbFileInput');
-  if (!input.files || !input.files.length) { status.innerHTML = '<span style="color:var(--red);">请选择文件</span>'; return; }
+  if (!input.files || !input.files.length) { status.innerHTML = '<span style="color:var(--red);">请先选择文件</span>'; return; }
   var file = input.files[0];
   status.innerHTML = '<span style="color:var(--text2);">正在读取文件（' + (file.size / 1024 / 1024).toFixed(1) + ' MB）...</span>';
 
@@ -2442,16 +2478,14 @@ function uploadDBFile() {
     try {
       var data = JSON.parse(text);
       if (!data || (typeof data !== 'object')) { status.innerHTML = '<span style="color:var(--red);">文件内容为空</span>'; return; }
-      // Support both old-format (map) and new-format (array) JSON
       if (data && data.d && Array.isArray(data.d)) {
-        // New array format: convert to map for internal use
         DB_DATA = _buildDBMap(data);
         _updateDBCount();
       } else {
         DB_DATA = data;
         _updateDBCount();
       }
-      try { var _uv = localStorage.getItem('db_data_ver_num') || '1'; _dbSave('db_data_v' + _uv, DB_DATA).catch(function(e) { console.warn('IDB save after upload failed:', e); }); } catch(ex) {}
+      try { var _uv = localStorage.getItem('db_data_ver_num') || '1'; _dbSave('db_data_v' + _uv, DB_DATA).catch(function(e) {}); } catch(ex) {}
       var count = dbCount();
       status.innerHTML = '<span style="color:var(--green);">导入成功！已加载 ' + count + ' 只股票数据</span>';
       document.getElementById('pushStockCount').textContent = count;
@@ -2460,40 +2494,20 @@ function uploadDBFile() {
     }
   }
 
-  // ── 主方案：readAsArrayBuffer + TextDecoder ──
-  // readAsText 对大文件（3MB+含中文）可能截断或返回不完整字符串
-  // ArrayBuffer 方式获取原始字节后由 TextDecoder 精确解码，避免截断
+  // 主方案：readAsArrayBuffer + TextDecoder
   var reader = new FileReader();
   reader.onload = function(e) {
     try {
       var buf = e.target.result;
       var bytes = new Uint8Array(buf);
-      // 跳过 BOM (EF BB BF)
       var start = 0;
-      if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
-        start = 3;
-      }
+      if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) start = 3;
       var decoder = new TextDecoder('utf-8', { fatal: false });
       var decoded = decoder.decode(bytes.slice(start));
-      if (decoded && decoded.length > 0) {
-        processJSON(decoded);
-      } else {
-        status.innerHTML = '<span style="color:var(--red);">文件内容为空（0字节）</span>';
-      }
+      if (decoded && decoded.length > 0) { processJSON(decoded); }
+      else { status.innerHTML = '<span style="color:var(--red);">文件内容为空（0字节）</span>'; }
     } catch(ex) {
-      // 最终 fallback：用 readAsText 重试
-      console.error('uploadDBFile: ArrayBuffer+TextDecoder failed:', ex);
-      var reader2 = new FileReader();
-      reader2.onload = function(ev) {
-        var text = ev.target.result;
-        if (text && text.length > 0) {
-          processJSON(text);
-        } else {
-          status.innerHTML = '<span style="color:var(--red);">文件读取失败: ' + ex.message + '</span>';
-        }
-      };
-      reader2.onerror = function() { status.innerHTML = '<span style="color:var(--red);">文件读取失败</span>'; };
-      reader2.readAsText(file);
+      status.innerHTML = '<span style="color:var(--red);">文件读取失败: ' + ex.message + '</span>';
     }
   };
   reader.onerror = function() { status.innerHTML = '<span style="color:var(--red);">文件读取失败</span>'; };
