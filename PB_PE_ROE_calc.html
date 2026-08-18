@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.8.8';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.0';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -268,10 +268,12 @@ body {
 .formula-tab { padding:8px 16px; font-size:13px; font-weight:500; color:var(--text2); cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent; transition:all 0.2s; -webkit-user-select:none; user-select:none; flex:1; text-align:center; margin-bottom:-2px; }
 .formula-tab.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
 .formula-tab:active { background:var(--primary-light); }
-.graham-params { display:none; }
-.graham-params.show { display:block; }
-.peroe-params { display:grid; }
-.peroe-params.hide { display:none; }
+  .graham-params { display:none; }
+  .graham-params.show { display:block; }
+  .peroe-params { display:grid; }
+  .peroe-params.hide { display:none; }
+  .div-params { display:none; }
+  .div-params.show { display:block; }
 
 .history-card { background:var(--card); border-radius:var(--radius); margin-bottom:12px; box-shadow:var(--shadow); overflow:hidden; }
 .history-item { border-bottom:1px solid var(--gray-light); display:flex; align-items:center; justify-content:space-between; position:relative; overflow:hidden; }
@@ -727,6 +729,7 @@ body {
       <div class="formula-tabs">
         <div class="formula-tab active" id="formulaTabPEROE" onclick="switchFormula('peroe')">PE×ROE</div>
         <div class="formula-tab" id="formulaTabGraham" onclick="switchFormula('graham')">Graham</div>
+        <div class="formula-tab" id="formulaTabDIV" onclick="switchFormula('div')">DIV股息率</div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -753,7 +756,13 @@ body {
           <div class="form-group"><label>预期g(%)</label><input type="text" id="grahamG" placeholder="默认0 或 5+2" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
         </div>
       </div>
-      <div style="text-align:right;margin-top:0;margin-bottom:10px;">
+      <div class="div-params" id="divParams">
+        <div class="form-row three">
+          <div class="form-group"><label>每股股息(元)</label><input type="text" id="divDPS" placeholder="如 0.50 或 2/4" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
+          <div class="form-group"><label>当前股价</label><input type="text" id="divPrice" placeholder="如 12.00" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
+          <div class="form-group"><label>目标股息率(%)</label><input type="text" id="divTarget" placeholder="如 4.5" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
+        </div>
+      </div>
         <span id="rtBtn" style="font-size:12px;color:var(--primary);cursor:pointer;" onclick="fetchRealTimeData(codeInput.value.trim())">&#x1F504; 刷新实时数据</span>
       </div>
       <div class="btn-row">
@@ -4551,16 +4560,21 @@ function switchFormula(f) {
   _calcFormula = f;
   var t1 = document.getElementById('formulaTabPEROE');
   var t2 = document.getElementById('formulaTabGraham');
+  var t3 = document.getElementById('formulaTabDIV');
   var gp = document.getElementById('grahamParams');
   var pr = document.getElementById('peroeRow');
+  var dp = document.getElementById('divParams');
+  // Reset all
+  t1.classList.remove('active'); t2.classList.remove('active'); t3.classList.remove('active');
+  gp.classList.remove('show'); pr.classList.remove('hide'); dp.classList.remove('show');
   if (f === 'graham') {
-    t1.classList.remove('active'); t2.classList.add('active');
-    gp.classList.add('show');
-    pr.classList.add('hide');
+    t2.classList.add('active');
+    gp.classList.add('show'); pr.classList.add('hide');
+  } else if (f === 'div') {
+    t3.classList.add('active');
+    dp.classList.add('show'); pr.classList.add('hide');
   } else {
-    t1.classList.add('active'); t2.classList.remove('active');
-    gp.classList.remove('show');
-    pr.classList.remove('hide');
+    t1.classList.add('active');
   }
   // Hide previous results when switching formula
   document.getElementById('resultCard').classList.remove('show');
@@ -4645,6 +4659,29 @@ function calculate() {
       '隐含ROE(市场PB/PE) = <span>' + ((pbVal/peVal)*100).toFixed(2) + '%</span>';
     // store for history & invest rate
     var _peVal = peVal, _roeVal = roeVal, _pbVal = pbVal, _roeDecimal = roeDecimal, _calcPB = calcPB;
+  } else if (_calcFormula === 'div') {
+    // DIV 股息率估值：合理股价 = 每股股息 / 目标股息率
+    var dpsVal = getCalcVal('divDPS');
+    var divPriceVal = getCalcVal('divPrice');
+    var divTargetVal = getCalcVal('divTarget');
+    if (isNaN(dpsVal) || dpsVal <= 0) { showToast('请输入有效的每股股息（支持四则运算）'); return; }
+    if (isNaN(divPriceVal) || divPriceVal <= 0) { showToast('请输入有效的当前股价'); return; }
+    if (isNaN(divTargetVal) || divTargetVal <= 0) { showToast('请输入有效的目标股息率'); return; }
+    var targetYield = divTargetVal / 100;
+    var fairPrice = dpsVal / targetYield;
+    var currentYield = dpsVal / divPriceVal;
+    deviation = (divPriceVal - fairPrice) / fairPrice;
+    calcVal = fairPrice.toFixed(2) + '元';
+    marketVal = divPriceVal.toFixed(2) + '元';
+    extraVal = (currentYield * 100).toFixed(2) + '%';
+    extraLabel = '当前股息率';
+    lblCalc = '合理股价';
+    lblMarket = '当前股价';
+    formulaLabel = 'DIV';
+    formulaHtml = '<span>' + _esc(name||code) + '</span> | 合理股价=<span>' + fairPrice.toFixed(2) + '元</span><br>' +
+      '当前股价=' + divPriceVal.toFixed(2) + '元 &rarr; 偏差=<span>' + (deviation*100).toFixed(2) + '%</span><br>' +
+      '当前股息率=' + (currentYield*100).toFixed(2) + '% / 目标股息率=' + divTargetVal.toFixed(2) + '%';
+    var _dpsVal = dpsVal, _divPriceVal = divPriceVal, _divTargetVal = divTargetVal, _fairPrice = fairPrice;
   }
 
   if (deviation < -DEVIATION_THRESHOLD) { judge = '低估'; judgeClass = 'under'; }
@@ -4705,6 +4742,8 @@ function calculate() {
     var _grahamGEl = document.getElementById('grahamG');
     var _grahamG = _grahamGEl ? _grahamGEl.value.trim() : '';
     record = { code, name:name||'-', pe:0, roe:0, marketPB:0, calcPB:+calcVal.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'Graham', time:new Date().toLocaleString('zh-CN'), eps:_grahamEPS||0, g:_grahamG||'0' };
+  } else if (_calcFormula === 'div') {
+    record = { code, name:name||'-', pe:0, roe:0, marketPB:0, calcPB:+_fairPrice.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'DIV', time:new Date().toLocaleString('zh-CN'), dps:_dpsVal, divPrice:_divPriceVal, divTarget:_divTargetVal };
   } else {
     record = { code, name:name||'-', pe:_peVal, roe:_roeVal, marketPB:_pbVal, calcPB:+_calcPB.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'PE×ROE', time:new Date().toLocaleString('zh-CN') };
   }
@@ -4745,7 +4784,7 @@ function _renderQuickView(code) {
 }
 
 function clearForm() {
-  ['code','name','pe','roe','pb','grahamEPS','grahamPrice','grahamG'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
+  ['code','name','pe','roe','pb','grahamEPS','grahamPrice','grahamG','divDPS','divPrice','divTarget'].forEach(id => { var el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('resultCard').classList.remove('show');
   var jb = document.getElementById('judgeBox'); if (jb) jb.style.display = 'none';
   var fb = document.getElementById('formulaBox'); if (fb) fb.style.display = 'none';
@@ -4773,6 +4812,8 @@ function renderHistory() {
     var params;
     if (r.formula === 'Graham') {
       params = '[Graham] 估值=' + r.calcPB.toFixed(2) + '元 | 偏差=' + (r.deviation>=0?'+':'') + (r.deviation*100).toFixed(1) + '%';
+    } else if (r.formula === 'DIV') {
+      params = '[DIV] 合理=' + r.calcPB.toFixed(2) + '元 | 股息=' + (r.dps||0).toFixed(2) + '元 | 偏差=' + (r.deviation>=0?'+':'') + (r.deviation*100).toFixed(1) + '%';
     } else {
       params = 'PE=' + r.pe.toFixed(2) + ' | ROE=' + r.roe.toFixed(2) + '% | PB=' + r.marketPB.toFixed(2);
     }
@@ -4842,6 +4883,11 @@ function loadHistory(idx) {
     document.getElementById('grahamEPS').value = r.eps != null ? r.eps : '';
     document.getElementById('grahamPrice').value = r.marketPB ? r.marketPB.toFixed(2) : '';
     document.getElementById('grahamG').value = r.g != null ? r.g : '0';
+  } else if (r.formula === 'DIV') {
+    switchFormula('div');
+    document.getElementById('divDPS').value = r.dps != null ? r.dps : '';
+    document.getElementById('divPrice').value = r.divPrice != null ? r.divPrice : '';
+    document.getElementById('divTarget').value = r.divTarget != null ? r.divTarget : '';
   } else {
     switchFormula('peroe');
     document.getElementById('pe').value = r.pe;
@@ -4872,7 +4918,7 @@ function clearHistory() {
   }
 }
 renderHistory();
-document.querySelectorAll('#pe,#roe,#pb').forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') calculate(); }));
+document.querySelectorAll('#pe,#roe,#pb,#grahamEPS,#grahamPrice,#grahamG,#divDPS,#divPrice,#divTarget').forEach(el => el.addEventListener('keydown', e => { if(e.key==='Enter') calculate(); }));
 
 // Load DB_DATA (async, with localStorage cache)
 (function initDB() {
