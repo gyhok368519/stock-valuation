@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.8';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.9';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -696,6 +696,7 @@ body {
     <button class="info-btn" style="right:50px;" id="themeBtnDB" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconDB"></span></button>
   </div>
   <div class="container">
+    <div id="dbVerNotice" style="display:none;margin-bottom:10px;padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.5;display:flex;align-items:center;gap:6px;"></div>
     <div class="search-bar ac-wrap">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="dbSearch" placeholder="输入代码/名称/拼音搜索" autocomplete="off">
@@ -2577,7 +2578,7 @@ async function pushToGitHub() {
   var pushVer = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10) + 1;
   var pushArr = [];
   for (var k in DB_DATA) { if (k !== '_meta') pushArr.push(DB_DATA[k]); }
-  var pushData = { d: pushArr, _meta: { v: pushVer, t: Date.now(), c: pushArr.length } };
+  var pushData = { d: pushArr, _meta: { v: pushVer, d: bjTime().substring(0,10), t: Date.now(), c: pushArr.length } };
 
   var apiUrl = 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json';
   var result = await _ghFilePut(apiUrl,
@@ -4051,10 +4052,13 @@ function loadDBData() {
       if (hasCache && remoteVer <= localVer) {
         console.log('DB remote version ' + remoteVer + ' <= local ' + localVer + ', skip update');
         _dbDataLoading = false;
+        _showDBVerNotice('fresh', '数据库已是最新版本');
         return Promise.resolve();
       }
       // Update DB_DATA with latest
       DB_DATA = newMap;
+      // Preserve _meta for date display
+      if (raw._meta) DB_DATA._meta = raw._meta;
       _updateDBCount();
       var newVer = remoteVer > localVer ? remoteVer : localVer + 1;
       localStorage.setItem('db_data_ver_num', newVer);
@@ -4069,10 +4073,16 @@ function loadDBData() {
         console.log('IDB save error:', e.message);
       });
       _dbDataLoading = false;
+      var remoteDate = (raw._meta && raw._meta.d) ? raw._meta.d : '';
+      _showDBVerNotice('updated', hasCache ? ('数据库已更新至最新版本' + (remoteDate ? (' (' + remoteDate + ')') : '')) : '数据库加载完成');
+      _updateDBSubTitle();
       return Promise.resolve();
     }).catch(function(e) {
       console.log('Remote DB fetch failed (all methods):', e.message);
       _dbDataLoading = false;
+      if (hasCache) {
+        _showDBVerNotice('stale', '网络异常，当前为本地缓存数据，可能非最新');
+      }
       return Promise.resolve();
     });
   }
@@ -5029,7 +5039,31 @@ function _updateDBSubTitle() {
   var el = document.getElementById('dbSubTitle');
   if (el) {
     var c = dbCount();
-    el.textContent = (c > 0 ? c + '只A股' : '加载中...') + ' | 全量财务数据';
+    var meta = DB_DATA._meta || {};
+    var dateStr = meta.d ? (' | 数据日期: ' + meta.d) : '';
+    el.textContent = (c > 0 ? c + '只A股' : '加载中...') + ' | 全量财务数据' + dateStr;
+  }
+}
+
+// DB version notice: show update/fresh/stale status
+function _showDBVerNotice(type, msg) {
+  var el = document.getElementById('dbVerNotice');
+  if (!el) return;
+  el.style.display = 'flex';
+  if (type === 'updated') {
+    el.style.background = 'var(--green-bg)';
+    el.style.color = 'var(--green)';
+    el.innerHTML = '\u2705 ' + msg;
+    setTimeout(function() { el.style.display = 'none'; }, 5000);
+  } else if (type === 'stale') {
+    el.style.background = 'var(--notice-bg)';
+    el.style.color = 'var(--notice-color)';
+    el.innerHTML = '\u26A0\uFE0F ' + msg;
+  } else if (type === 'fresh') {
+    el.style.background = 'var(--notice-bg-ok)';
+    el.style.color = 'var(--notice-color-ok)';
+    el.innerHTML = '\u2705 ' + msg;
+    setTimeout(function() { el.style.display = 'none'; }, 3000);
   }
 }
 
