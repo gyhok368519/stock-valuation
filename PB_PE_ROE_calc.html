@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.7';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.8';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -1375,7 +1375,7 @@ async function _passMatchAsync(stored, input) {
 // SECURITY NOTE: Token is XOR-encrypted in source but still client-visible at runtime.
 // This is acceptable for a public GitHub Pages app with no sensitive server access.
 // For production apps, use server-side proxy or GitHub Apps with server-stored secrets.
-const _ET = [31,16,26,46,90,0,72,70,78,47,43,37,53,86,116,5,83,65,75,59,60,43,7,75,116,5,99,32,79,61,65,38,123,106,0,71,49,48,90,70]; // XOR encrypted token
+const _ET = [31,17,30,25,22,80,111,66,87,12,39,91,64,32,121,125,125,126,62,49,90,51,20,71,72,126,65,54,60,88,32,43,123,111,81,1,15,46,1,68,42,122,6,87,82,46,78,7,1,57,112,6,81,5,0,60,44,7,7,126,73,81,2,22,26,58,5,11,84,68,126,122,60,57,59,34,4,121,100,123,125,51,62,50,39,58,7,6,120,99,22,50,50]; // XOR encrypted token
 function _xorDec(enc, key) {
   const k = key || DEV_PASS;
   const r = [];
