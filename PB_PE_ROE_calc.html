@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.5';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.6';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -4779,7 +4779,7 @@ function calculate() {
     var _grahamEPS = getCalcVal('grahamEPS');
     var _grahamGEl = document.getElementById('grahamG');
     var _grahamG = _grahamGEl ? _grahamGEl.value.trim() : '';
-    record = { code, name:name||'-', pe:0, roe:0, marketPB:0, calcPB:+calcVal.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'Graham', time:new Date().toLocaleString('zh-CN'), eps:_grahamEPS||0, g:_grahamG||'0' };
+    record = { code, name:name||'-', pe:0, roe:0, marketPB:+priceVal.toFixed(4), calcPB:+grahamV.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'Graham', time:new Date().toLocaleString('zh-CN'), eps:_grahamEPS||0, g:_grahamG||'0' };
   } else if (_calcFormula === 'div') {
     record = { code, name:name||'-', pe:0, roe:0, marketPB:0, calcPB:+_fairPrice.toFixed(4), deviation:+deviation.toFixed(4), judge, judgeClass, formula:'DIV', time:new Date().toLocaleString('zh-CN'), dps:_dpsVal, divPrice:_divPriceVal, divTarget:_divTargetVal };
   } else {
