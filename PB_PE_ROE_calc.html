@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.6';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.7';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -727,7 +727,7 @@ body {
       <div class="formula-tabs">
         <div class="formula-tab active" id="formulaTabPEROE" onclick="switchFormula('peroe')">PE×ROE</div>
         <div class="formula-tab" id="formulaTabGraham" onclick="switchFormula('graham')">Graham</div>
-        <div class="formula-tab" id="formulaTabDIV" onclick="switchFormula('div')">DIV股息率</div>
+        <div class="formula-tab" id="formulaTabDIV" onclick="switchFormula('div')">DIV</div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -757,7 +757,7 @@ body {
       <div class="div-params" id="divParams">
         <div class="form-row three">
           <div class="form-group"><label>每股股息(元)</label><input type="text" id="divDPS" placeholder="如 0.50 或 2/4" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
-          <div class="form-group"><label>当前股价</label><input type="text" id="divPrice" placeholder="如 12.00" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
+          <div class="form-group"><label>股价</label><input type="text" id="divPrice" placeholder="如 12.00" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
           <div class="form-group"><label>目标股息率(%)</label><input type="text" id="divTarget" placeholder="如 4.5" inputmode="decimal" autocomplete="off" onblur="onCalcBlur(this)" onkeydown="if(event.key==='Enter')this.blur()"></div>
         </div>
       </div>
@@ -4675,7 +4675,8 @@ function calculate() {
     // DIV 股息率估值：合理股价 = 每股股息 / 目标股息率
     var dpsVal = getCalcVal('divDPS');
     var divPriceVal = getCalcVal('divPrice');
-    var divTargetVal = getCalcVal('divTarget');
+    var _divTargetRaw = document.getElementById('divTarget').value.trim();
+    var divTargetVal = (_divTargetRaw === '') ? 4.5 : getCalcVal('divTarget');
     if (isNaN(dpsVal) || dpsVal <= 0) { showToast('请输入有效的每股股息（支持四则运算）'); return; }
     if (isNaN(divPriceVal) || divPriceVal <= 0) { showToast('请输入有效的当前股价'); return; }
     if (isNaN(divTargetVal) || divTargetVal <= 0) { showToast('请输入有效的目标股息率'); return; }
