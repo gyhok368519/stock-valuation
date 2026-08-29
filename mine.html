@@ -190,7 +190,7 @@ body {
 <div class="footer-note">以上仅为指标筛选参考，不构成投资建议。<br>数据请以最新财报为准，金融产品有风险，投资需谨慎。</div>
 
 <script>
-var APP_VER = '1.2.1';
+var APP_VER = '1.3.0';
 var STORE_KEY = 'mine_history_v1';
 
 /* ===== 主题 ===== */
@@ -328,13 +328,16 @@ function fetchStockData() {
   var btn = document.getElementById('fetchBtn');
   btn.disabled = true; btn.textContent = '抓取中…';
   setFetchStatus('正在抓取 ' + code + ' 数据…', '');
-  Promise.all([
+  Promise.allSettled([
     _fetchFinance(code),
     _fetchCashflow(code),
     _fetchPrice(code),
     _latestDividend(code)
   ]).then(function (rs) {
-    var fin = rs[0], cash = rs[1], price = rs[2], div = rs[3];
+    var fin = rs[0].status === 'fulfilled' ? rs[0].value : null;
+    var cash = rs[1].status === 'fulfilled' ? rs[1].value : null;
+    var price = rs[2].status === 'fulfilled' ? rs[2].value : null;
+    var div = rs[3].status === 'fulfilled' ? rs[3].value : null;
     var auto = {};
     var missingFields = [];
     // 股息率 = 每股股息 / 现价
@@ -370,6 +373,23 @@ function fetchStockData() {
       var el = document.getElementById(k);
       if (el) el.value = auto[k];
     });
+    // 股票名称自动带出（已有名称则不覆盖，名称也来自腾讯行情）
+    var nameEl = document.getElementById('stockName');
+    if (fin && fin.name && !nameEl.value) {
+      nameEl.value = fin.name;
+    }
+    var fetched = Object.keys(auto).length;
+    var failInfo = rs.filter(function(r) { return r.status === 'rejected'; }).map(function(r) { return r.reason && r.reason.message ? r.reason.message : '未知错误'; });
+    var msg = '已自动填入 ' + fetched + ' 项';
+    if (missingFields.length) msg += '，以下未能获取：' + missingFields.join('、');
+    if (fin && fin.reportDate) msg += '（财务数据：' + fin.reportDate + '）';
+    if (price && price.firstDate) msg += '（跌幅区间：' + price.firstDate + ' ~ ' + price.lastDate + '）';
+    if (failInfo.length) msg += ' [失败原因: ' + failInfo.join('; ') + ']';
+    setFetchStatus(msg, fetched === 7 ? 'ok' : 'warn');
+  }).then(function () {
+    btn.textContent = '自动抓取数据';
+    btn.disabled = false;
+  });
     // 股票名称自动带出
     if (fin && fin.name && !document.getElementById('stockName').value) {
       document.getElementById('stockName').value = fin.name;
