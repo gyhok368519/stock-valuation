@@ -107,6 +107,7 @@ body {
 /* ===== History with swipe-to-delete (both directions) ===== */
 .history-list { overflow: hidden; }
 .history-item-wrap { position: relative; margin-bottom: 8px; overflow: hidden; border-radius: 8px; }
+.h-swipe-del { position: absolute; top: 0; left: 50%; bottom: 0; width: 72px; margin-left: -36px; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; z-index: 0; border-radius: 8px; cursor: pointer; }
 .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); font-size: 13px; cursor: pointer; position: relative; z-index: 1; transition: transform 0.25s ease; touch-action: pan-y; }
 .history-item .h-name { font-weight: 600; }
 .history-item .h-code { color: var(--text2); font-size: 11px; margin-left: 6px; }
@@ -115,8 +116,6 @@ body {
 .history-item .h-verdict.warn { background: var(--yellow-bg); color: var(--yellow); }
 .history-item .h-verdict.danger { background: var(--red-bg); color: var(--red); }
 .history-item .h-del { color: var(--text3); font-size: 16px; padding: 0 4px; flex-shrink: 0; }
-.history-item .h-del:active { color: var(--red); }
-.h-swipe-del { position: absolute; top: 0; left: 50%; bottom: 0; width: 72px; transform: translateX(-50%); background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; z-index: 0; border-radius: 8px; }
 .empty-hint { text-align: center; color: var(--text3); font-size: 13px; padding: 16px; }
 
 /* ===== Theme toggle & footer ===== */
@@ -203,7 +202,7 @@ body {
 <div class="footer-note">以上仅为指标筛选参考，不构成投资建议。<br>数据请以最新财报为准，金融产品有风险，投资需谨慎。</div>
 
 <script>
-var APP_VER = '1.5.2';
+var APP_VER = '1.5.3';
 var STORE_KEY = 'mine_history_v1';
 
 /* ===== 主题 ===== */
@@ -503,27 +502,32 @@ function renderHistory(list) {
 
 function bindSwipeDelete() {
   var wraps = document.querySelectorAll('.history-item-wrap');
-  var openEl = null;
+  var openItem = null;
   var SWIPE_THRESHOLD = 40;
   var SWIPE_FULL = 72;
-  function closeOpen() { if (openEl) { var item = openEl.querySelector('.history-item'); item.style.transform = ''; openEl = null; } }
+  function closeOpen() { if (openItem) { openItem.style.transform = ''; openItem = null; } }
   wraps.forEach(function (wrap) {
     var item = wrap.querySelector('.history-item');
-    var startX = 0, currentX = 0, dragging = false, opened = false, dir = 0;
-    function onStart(e) { var t = e.touches ? e.touches[0] : e; startX = t.clientX; dragging = true; if (opened) { currentX = dir > 0 ? SWIPE_FULL : -SWIPE_FULL; } else { closeOpen(); currentX = 0; } }
+    var del = wrap.querySelector('.h-swipe-del');
+    var startX = 0, currentX = 0, dragging = false;
+    function onStart(e) { var t = e.touches ? e.touches[0] : e; startX = t.clientX; dragging = true; currentX = item._offset || 0; }
     function onMove(e) { if (!dragging) return; var t = e.touches ? e.touches[0] : e; var dx = t.clientX - startX; var nx = currentX + dx; if (nx > 0) { if (nx > SWIPE_FULL + 20) nx = SWIPE_FULL + 20; } if (nx < 0) { if (nx < -SWIPE_FULL - 20) nx = -SWIPE_FULL - 20; } item.style.transform = 'translateX(' + nx + 'px)'; if (e.touches) e.preventDefault(); }
-    function onEnd(e) { if (!dragging) return; dragging = false; var t = e.changedTouches ? e.changedTouches[0] : e; var dx = t.clientX - startX; var total = currentX + dx; if (total > SWIPE_THRESHOLD) { item.style.transform = 'translateX(' + SWIPE_FULL + 'px)'; opened = true; dir = 1; openEl = wrap; } else if (total < -SWIPE_THRESHOLD) { item.style.transform = 'translateX(-' + SWIPE_FULL + 'px)'; opened = true; dir = -1; openEl = wrap; } else { item.style.transform = ''; opened = false; dir = 0; if (openEl === wrap) openEl = null; } }
+    function onEnd(e) { if (!dragging) return; dragging = false; var t = e.changedTouches ? e.changedTouches[0] : e; var dx = t.clientX - startX; var total = currentX + dx; if (total > SWIPE_THRESHOLD) { item.style.transform = 'translateX(' + SWIPE_FULL + 'px)'; item._offset = SWIPE_FULL; openItem = item; } else if (total < -SWIPE_THRESHOLD) { item.style.transform = 'translateX(-' + SWIPE_FULL + 'px)'; item._offset = -SWIPE_FULL; openItem = item; } else { item.style.transform = ''; item._offset = 0; if (openItem === item) openItem = null; } }
     item.addEventListener('touchstart', onStart, { passive: true });
     item.addEventListener('touchmove', onMove, { passive: false });
     item.addEventListener('touchend', onEnd, { passive: true });
-    item.addEventListener('mousedown', onStart);
+    // 鼠标支持（电脑端）
+    item.addEventListener('mousedown', function(e) { onStart(e); });
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
-    var del = wrap.querySelector('.h-swipe-del');
-    del.addEventListener('click', function () { var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
-    item.addEventListener('click', function () { if (opened) { item.style.transform = ''; opened = false; dir = 0; if (openEl === wrap) openEl = null; } });
+    // 删除按钮点击：直接删除
+    del.addEventListener('click', function (e) { e.stopPropagation(); var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
+    del.addEventListener('touchend', function (e) { e.stopPropagation(); e.preventDefault(); var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
+    // 点击条目：如果已展开则收起，不触发其他
+    item.addEventListener('click', function (e) { if (item._offset) { item.style.transform = ''; item._offset = 0; if (openItem === item) openItem = null; e.stopPropagation(); } });
   });
-  document.addEventListener('click', function (e) { if (openEl && !e.target.closest('.history-item-wrap')) closeOpen(); }, { passive: true });
+  // 点击页面其他地方关闭已展开项
+  document.addEventListener('click', function (e) { if (openItem && !e.target.closest('.history-item-wrap')) closeOpen(); }, { passive: true });
 }
 function delHistory(i) {
   var list = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
