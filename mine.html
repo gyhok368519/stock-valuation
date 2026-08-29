@@ -55,13 +55,14 @@ body {
 .stock-row input:focus { border-color: var(--primary); }
 
 .form-pair { display: flex; gap: 8px; margin-bottom: 10px; }
-.form-row { flex: 1; display: flex; align-items: center; gap: 6px; }
-.form-row label { width: auto; font-size: 14px; color: var(--text2); flex-shrink: 0; white-space: nowrap; }
+.form-row { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.form-row label { width: 72px; font-size: 14px; color: var(--text2); flex-shrink: 0; white-space: nowrap; text-align: right; }
 .form-row .input-wrap { flex: 1; display: flex; align-items: center; border: 1.5px solid var(--gray-light); border-radius: 10px; background: var(--card); transition: border-color 0.2s; min-width: 0; }
 .form-row .input-wrap:focus-within { border-color: var(--primary); }
 .form-row .input-wrap input { padding: 10px 8px !important; font-size: 15px !important; border: none !important; outline: none !important; background: transparent !important; color: var(--text) !important; min-width: 0; width: 100%; }
 .form-row .input-wrap input::placeholder { color: var(--text3); opacity: 0.85; }
 .form-row .input-wrap .unit { padding-right: 8px; font-size: 13px; color: var(--text3); flex-shrink: 0; }
+.form-spacer { flex: 1; }
 
 .btn { width: 100%; border: none; border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
 .btn:active { opacity: 0.8; }
@@ -155,7 +156,8 @@ body {
       <div class="form-row"><label>连续分红</label><div class="input-wrap"><input id="divYears" type="number" step="1" placeholder="如 8" inputmode="numeric"><span class="unit">年</span></div></div>
     </div>
     <div class="form-pair">
-      <div class="form-row" style="flex:1"><label>近半年跌幅</label><div class="input-wrap"><input id="priceDrop" type="number" step="0.01" placeholder="如 12%（跌幅）" inputmode="decimal"><span class="unit">%</span></div></div>
+      <div class="form-row"><label>近半年跌幅</label><div class="input-wrap"><input id="priceDrop" type="number" step="0.01" placeholder="如 12%" inputmode="decimal"><span class="unit">%</span></div></div>
+      <div class="form-spacer"></div>
     </div>
 
     <div style="display:flex;gap:8px">
@@ -198,7 +200,7 @@ body {
 <div class="footer-note">以上仅为指标筛选参考，不构成投资建议。<br>数据请以最新财报为准，金融产品有风险，投资需谨慎。</div>
 
 <script>
-var APP_VER = '1.4.1';
+var APP_VER = '1.4.2';
 var STORE_KEY = 'mine_history_v1';
 
 /* ===== 主题 ===== */
