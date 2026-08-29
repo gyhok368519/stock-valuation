@@ -358,7 +358,7 @@ function fetchStockData() {
       auto.debtRatio = +fin.zcfzl.toFixed(1);
     } else missingFields.push('资产负债率');
     // 连续分红年限
-    if (div && div.divYears) auto.divYears = div.divYears;
+    if (div && div.years) auto.divYears = div.years;
     else missingFields.push('连续分红年限');
     // 近半年跌幅（负值表示上涨，按 0 处理）
     if (price && price.dropPct !== undefined && price.dropPct !== null) {
