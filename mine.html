@@ -137,8 +137,8 @@ body {
   <!-- 输入卡片 -->
   <div class="input-card">
     <div class="stock-row">
-      <input id="stockName" type="text" placeholder="股票名称（选填）" maxlength="10" style="flex:2">
-      <input id="stockCode" type="text" placeholder="代码自动抓取" maxlength="6" inputmode="numeric" style="flex:1">
+      <input id="stockCode" type="text" placeholder="股票代码（如000333）" maxlength="6" inputmode="numeric" style="flex:2">
+      <input id="stockName" type="text" placeholder="名称（选填）" maxlength="10" style="flex:1">
     </div>
     <div id="fetchStatus" style="display:none;font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5"></div>
 
@@ -190,7 +190,7 @@ body {
 <div class="footer-note">以上仅为指标筛选参考，不构成投资建议。<br>数据请以最新财报为准，金融产品有风险，投资需谨慎。</div>
 
 <script>
-var APP_VER = '1.2.0';
+var APP_VER = '1.2.1';
 var STORE_KEY = 'mine_history_v1';
 
 /* ===== 主题 ===== */
