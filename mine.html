@@ -116,9 +116,7 @@ body {
 .history-item .h-verdict.danger { background: var(--red-bg); color: var(--red); }
 .history-item .h-del { color: var(--text3); font-size: 16px; padding: 0 4px; flex-shrink: 0; }
 .history-item .h-del:active { color: var(--red); }
-.h-swipe-del { position: absolute; top: 0; bottom: 0; width: 72px; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; z-index: 0; }
-.h-swipe-del.left { left: 0; border-radius: 8px 0 0 8px; }
-.h-swipe-del.right { right: 0; border-radius: 0 8px 8px 0; }
+.h-swipe-del { position: absolute; top: 0; left: 50%; bottom: 0; width: 72px; transform: translateX(-50%); background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; z-index: 0; border-radius: 8px; }
 .empty-hint { text-align: center; color: var(--text3); font-size: 13px; padding: 16px; }
 
 /* ===== Theme toggle & footer ===== */
@@ -205,7 +203,7 @@ body {
 <div class="footer-note">以上仅为指标筛选参考，不构成投资建议。<br>数据请以最新财报为准，金融产品有风险，投资需谨慎。</div>
 
 <script>
-var APP_VER = '1.5.1';
+var APP_VER = '1.5.2';
 var STORE_KEY = 'mine_history_v1';
 
 /* ===== 主题 ===== */
@@ -495,8 +493,7 @@ function renderHistory(list) {
     var label = (h.name || '') + '<span class="h-code">' + (h.code || '') + '</span>';
     var vLabel = h.verdict === 'safe' ? '安全' : (h.verdict === 'warn' ? '关注' : '危险');
     html += '<div class="history-item-wrap" data-idx="' + i + '">';
-    html += '<div class="h-swipe-del left">删除</div>';
-    html += '<div class="h-swipe-del right">删除</div>';
+    html += '<div class="h-swipe-del">删除</div>';
     html += '<div class="history-item"><span class="h-name">' + label + '</span><span class="h-verdict ' + h.verdict + '">' + vLabel + '</span><span class="h-del" onclick="event.stopPropagation();delHistory(' + i + ')" title="删除">×</span></div>';
     html += '</div>';
   });
@@ -522,10 +519,8 @@ function bindSwipeDelete() {
     item.addEventListener('mousedown', onStart);
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
-    var delL = wrap.querySelector('.h-swipe-del.left');
-    var delR = wrap.querySelector('.h-swipe-del.right');
-    delL.addEventListener('click', function () { var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
-    delR.addEventListener('click', function () { var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
+    var del = wrap.querySelector('.h-swipe-del');
+    del.addEventListener('click', function () { var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
     item.addEventListener('click', function () { if (opened) { item.style.transform = ''; opened = false; dir = 0; if (openEl === wrap) openEl = null; } });
   });
   document.addEventListener('click', function (e) { if (openEl && !e.target.closest('.history-item-wrap')) closeOpen(); }, { passive: true });
