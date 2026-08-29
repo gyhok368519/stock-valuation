@@ -107,7 +107,9 @@ body {
 /* ===== History with swipe-to-delete (both directions) ===== */
 .history-list { overflow: hidden; }
 .history-item-wrap { position: relative; margin-bottom: 8px; overflow: hidden; border-radius: 8px; }
-.h-swipe-del { position: absolute; top: 0; left: 50%; bottom: 0; width: 72px; margin-left: -36px; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; z-index: 0; border-radius: 8px; cursor: pointer; }
+.h-swipe-del { position: absolute; top: 0; bottom: 0; width: 72px; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; z-index: 0; border-radius: 8px; cursor: pointer; }
+  .h-swipe-del-left { left: 0; }
+  .h-swipe-del-right { right: 0; }
 .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); font-size: 13px; cursor: pointer; position: relative; z-index: 1; transition: transform 0.25s ease; touch-action: pan-y; }
 .history-item .h-name { font-weight: 600; }
 .history-item .h-code { color: var(--text2); font-size: 11px; margin-left: 6px; }
@@ -202,7 +204,7 @@ body {
 <div class="footer-note">以上仅为指标筛选参考，不构成投资建议。<br>数据请以最新财报为准，金融产品有风险，投资需谨慎。</div>
 
 <script>
-var APP_VER = '1.5.3';
+var APP_VER = '1.5.4';
 var STORE_KEY = 'mine_history_v1';
 
 /* ===== 主题 ===== */
@@ -492,7 +494,8 @@ function renderHistory(list) {
     var label = (h.name || '') + '<span class="h-code">' + (h.code || '') + '</span>';
     var vLabel = h.verdict === 'safe' ? '安全' : (h.verdict === 'warn' ? '关注' : '危险');
     html += '<div class="history-item-wrap" data-idx="' + i + '">';
-    html += '<div class="h-swipe-del">删除</div>';
+    html += '<div class="h-swipe-del h-swipe-del-left">删除</div>';
+    html += '<div class="h-swipe-del h-swipe-del-right">删除</div>';
     html += '<div class="history-item"><span class="h-name">' + label + '</span><span class="h-verdict ' + h.verdict + '">' + vLabel + '</span><span class="h-del" onclick="event.stopPropagation();delHistory(' + i + ')" title="删除">×</span></div>';
     html += '</div>';
   });
@@ -508,7 +511,6 @@ function bindSwipeDelete() {
   function closeOpen() { if (openItem) { openItem.style.transform = ''; openItem = null; } }
   wraps.forEach(function (wrap) {
     var item = wrap.querySelector('.history-item');
-    var del = wrap.querySelector('.h-swipe-del');
     var startX = 0, currentX = 0, dragging = false;
     function onStart(e) { var t = e.touches ? e.touches[0] : e; startX = t.clientX; dragging = true; currentX = item._offset || 0; }
     function onMove(e) { if (!dragging) return; var t = e.touches ? e.touches[0] : e; var dx = t.clientX - startX; var nx = currentX + dx; if (nx > 0) { if (nx > SWIPE_FULL + 20) nx = SWIPE_FULL + 20; } if (nx < 0) { if (nx < -SWIPE_FULL - 20) nx = -SWIPE_FULL - 20; } item.style.transform = 'translateX(' + nx + 'px)'; if (e.touches) e.preventDefault(); }
@@ -520,9 +522,12 @@ function bindSwipeDelete() {
     item.addEventListener('mousedown', function(e) { onStart(e); });
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
-    // 删除按钮点击：直接删除
-    del.addEventListener('click', function (e) { e.stopPropagation(); var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
-    del.addEventListener('touchend', function (e) { e.stopPropagation(); e.preventDefault(); var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
+    // 删除按钮点击：直接删除（左右各一个）
+    var dels = wrap.querySelectorAll('.h-swipe-del');
+    dels.forEach(function (del) {
+      del.addEventListener('click', function (e) { e.stopPropagation(); var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
+      del.addEventListener('touchend', function (e) { e.stopPropagation(); e.preventDefault(); var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
+    });
     // 点击条目：如果已展开则收起，不触发其他
     item.addEventListener('click', function (e) { if (item._offset) { item.style.transform = ''; item._offset = 0; if (openItem === item) openItem = null; e.stopPropagation(); } });
   });
