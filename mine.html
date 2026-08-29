@@ -104,7 +104,7 @@ body {
 .item-result.danger .icon { background: var(--red); color: #fff; }
 .result-tip { font-size: 12px; color: var(--text2); line-height: 1.6; margin-top: 8px; padding: 10px; background: var(--primary-light); border-radius: 8px; }
 
-/* ===== History with swipe-to-delete ===== */
+/* ===== History with swipe-to-delete (both directions) ===== */
 .history-list { overflow: hidden; }
 .history-item-wrap { position: relative; margin-bottom: 8px; overflow: hidden; border-radius: 8px; }
 .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); font-size: 13px; cursor: pointer; position: relative; z-index: 1; transition: transform 0.25s ease; touch-action: pan-y; }
@@ -116,7 +116,9 @@ body {
 .history-item .h-verdict.danger { background: var(--red-bg); color: var(--red); }
 .history-item .h-del { color: var(--text3); font-size: 16px; padding: 0 4px; flex-shrink: 0; }
 .history-item .h-del:active { color: var(--red); }
-.h-swipe-del { position: absolute; top: 0; right: 0; bottom: 0; width: 72px; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; z-index: 0; border-radius: 0 8px 8px 0; }
+.h-swipe-del { position: absolute; top: 0; bottom: 0; width: 72px; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; z-index: 0; }
+.h-swipe-del.left { left: 0; border-radius: 8px 0 0 8px; }
+.h-swipe-del.right { right: 0; border-radius: 0 8px 8px 0; }
 .empty-hint { text-align: center; color: var(--text3); font-size: 13px; padding: 16px; }
 
 /* ===== Theme toggle & footer ===== */
@@ -203,7 +205,7 @@ body {
 <div class="footer-note">以上仅为指标筛选参考，不构成投资建议。<br>数据请以最新财报为准，金融产品有风险，投资需谨慎。</div>
 
 <script>
-var APP_VER = '1.5.0';
+var APP_VER = '1.5.1';
 var STORE_KEY = 'mine_history_v1';
 
 /* ===== 主题 ===== */
@@ -493,7 +495,8 @@ function renderHistory(list) {
     var label = (h.name || '') + '<span class="h-code">' + (h.code || '') + '</span>';
     var vLabel = h.verdict === 'safe' ? '安全' : (h.verdict === 'warn' ? '关注' : '危险');
     html += '<div class="history-item-wrap" data-idx="' + i + '">';
-    html += '<div class="h-swipe-del">删除</div>';
+    html += '<div class="h-swipe-del left">删除</div>';
+    html += '<div class="h-swipe-del right">删除</div>';
     html += '<div class="history-item"><span class="h-name">' + label + '</span><span class="h-verdict ' + h.verdict + '">' + vLabel + '</span><span class="h-del" onclick="event.stopPropagation();delHistory(' + i + ')" title="删除">×</span></div>';
     html += '</div>';
   });
@@ -509,21 +512,21 @@ function bindSwipeDelete() {
   function closeOpen() { if (openEl) { var item = openEl.querySelector('.history-item'); item.style.transform = ''; openEl = null; } }
   wraps.forEach(function (wrap) {
     var item = wrap.querySelector('.history-item');
-    var startX = 0, currentX = 0, dragging = false, opened = false;
-    function onStart(e) { var t = e.touches ? e.touches[0] : e; startX = t.clientX; dragging = true; if (opened) { currentX = -SWIPE_FULL; } else { closeOpen(); currentX = 0; } }
-    function onMove(e) { if (!dragging) return; var t = e.touches ? e.touches[0] : e; var dx = t.clientX - startX; var nx = currentX + dx; if (nx > 0) nx = 0; if (nx < -SWIPE_FULL - 20) nx = -SWIPE_FULL - 20; item.style.transform = 'translateX(' + nx + 'px)'; if (e.touches) e.preventDefault(); }
-    function onEnd(e) { if (!dragging) return; dragging = false; var t = e.changedTouches ? e.changedTouches[0] : e; var dx = t.clientX - startX; var total = currentX + dx; if (total < -SWIPE_THRESHOLD || (opened && dx < 5)) { item.style.transform = 'translateX(-' + SWIPE_FULL + 'px)'; opened = true; openEl = wrap; } else { item.style.transform = ''; opened = false; if (openEl === wrap) openEl = null; } }
+    var startX = 0, currentX = 0, dragging = false, opened = false, dir = 0;
+    function onStart(e) { var t = e.touches ? e.touches[0] : e; startX = t.clientX; dragging = true; if (opened) { currentX = dir > 0 ? SWIPE_FULL : -SWIPE_FULL; } else { closeOpen(); currentX = 0; } }
+    function onMove(e) { if (!dragging) return; var t = e.touches ? e.touches[0] : e; var dx = t.clientX - startX; var nx = currentX + dx; if (nx > 0) { if (nx > SWIPE_FULL + 20) nx = SWIPE_FULL + 20; } if (nx < 0) { if (nx < -SWIPE_FULL - 20) nx = -SWIPE_FULL - 20; } item.style.transform = 'translateX(' + nx + 'px)'; if (e.touches) e.preventDefault(); }
+    function onEnd(e) { if (!dragging) return; dragging = false; var t = e.changedTouches ? e.changedTouches[0] : e; var dx = t.clientX - startX; var total = currentX + dx; if (total > SWIPE_THRESHOLD) { item.style.transform = 'translateX(' + SWIPE_FULL + 'px)'; opened = true; dir = 1; openEl = wrap; } else if (total < -SWIPE_THRESHOLD) { item.style.transform = 'translateX(-' + SWIPE_FULL + 'px)'; opened = true; dir = -1; openEl = wrap; } else { item.style.transform = ''; opened = false; dir = 0; if (openEl === wrap) openEl = null; } }
     item.addEventListener('touchstart', onStart, { passive: true });
     item.addEventListener('touchmove', onMove, { passive: false });
     item.addEventListener('touchend', onEnd, { passive: true });
     item.addEventListener('mousedown', onStart);
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
-    // 点击红色删除区
-    var del = wrap.querySelector('.h-swipe-del');
-    del.addEventListener('click', function () { var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
-    // 点击项关闭已开项
-    item.addEventListener('click', function () { if (opened) { item.style.transform = ''; opened = false; if (openEl === wrap) openEl = null; } });
+    var delL = wrap.querySelector('.h-swipe-del.left');
+    var delR = wrap.querySelector('.h-swipe-del.right');
+    delL.addEventListener('click', function () { var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
+    delR.addEventListener('click', function () { var idx = parseInt(wrap.getAttribute('data-idx')); delHistory(idx); });
+    item.addEventListener('click', function () { if (opened) { item.style.transform = ''; opened = false; dir = 0; if (openEl === wrap) openEl = null; } });
   });
   document.addEventListener('click', function (e) { if (openEl && !e.target.closest('.history-item-wrap')) closeOpen(); }, { passive: true });
 }
