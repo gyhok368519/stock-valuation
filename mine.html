@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>高分红排雷工具</title>
+<meta name="theme-color" content="#1a73e8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f0f1a" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="排雷工具">
+<link rel="apple-touch-icon" href="icon-512.jpg">
+<script>var APP_VER='1.0.0';</script>
+<style>
+:root {
+  --bg: #f0f2f5; --card: #ffffff; --primary: #1a73e8; --primary-light: #e8f0fe;
+  --green: #0d904f; --green-bg: #e6f4ea; --red: #d93025; --red-bg: #fce8e6;
+  --yellow: #b26a00; --yellow-bg: #fef7e0;
+  --blue: #1a73e8; --blue-bg: #e8f0fe; --gray: #5f6368; --gray-light: #dadce0;
+  --text: #202124; --text2: #5f6368; --text3: #bbb; --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+[data-theme="dark"] {
+  --bg: #0f0f1a; --card: #1a1a2e; --primary: #5b9cf5; --primary-light: #1e2a4a;
+  --green: #34d399; --green-bg: #0d2818; --red: #f87171; --red-bg: #2d0f0f;
+  --yellow: #fbbf24; --yellow-bg: #2d2a14;
+  --blue: #5b9cf5; --blue-bg: #1e2a4a; --gray: #9ca3af; --gray-light: #2d2d44;
+  --text: #e5e7eb; --text2: #9ca3af; --text3: #7a7a9a; --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.header {
+  background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+  color: #fff; padding: 20px 16px 16px; text-align: center;
+}
+[data-theme="dark"] .header { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d5e 100%); }
+.header h1 { font-size: 20px; font-weight: 600; }
+.header p { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+.container { max-width: 480px; margin: 0 auto; padding: 12px 12px 24px; }
+
+/* ===== Input card ===== */
+.input-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; margin-bottom: 12px; }
+.stock-row { display: flex; gap: 0; margin-bottom: 12px; }
+.stock-row input { border: 1.5px solid var(--gray-light); padding: 10px 12px; font-size: 15px; outline: none; background: var(--card); color: var(--text); transition: border-color 0.2s; min-width: 0; }
+.stock-row input:first-child { border-radius: 10px 0 0 10px; }
+.stock-row input:last-child { border-radius: 0 10px 10px 0; border-left: none; }
+.stock-row input:first-child { border-radius: 10px 0 0 10px; }
+.stock-row input:last-child { border-radius: 0 10px 10px 0; }
+.stock-row input:focus { border-color: var(--primary); }
+
+.form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.form-row label { width: 110px; font-size: 13px; color: var(--text2); flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+.form-row .auto-tag { font-size: 10px; color: var(--primary); font-weight: 700; background: var(--primary-light); border-radius: 4px; padding: 1px 4px; }
+.form-row .input-wrap { flex: 1; display: flex; align-items: center; border: 1.5px solid var(--gray-light); border-radius: 10px; background: var(--card); transition: border-color 0.2s; }
+.form-row .input-wrap:focus-within { border-color: var(--primary); }
+.form-row .input-wrap input::placeholder { color: var(--text3); opacity: 0.85; }
+.form-row .input-wrap .unit { padding-right: 10px; font-size: 12px; color: var(--text3); }
+.form-row .input-wrap .auto-tag { padding-right: 10px; font-size: 11px; color: var(--primary); font-weight: 600; flex-shrink: 0; }
+
+.btn { width: 100%; border: none; border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+.btn:active { opacity: 0.8; }
+.btn-primary { background: var(--primary); color: #fff; }
+[data-theme="dark"] .btn-primary { color: #0b1220; }
+.btn-secondary { background: var(--primary-light); color: var(--primary); }
+
+/* ===== Rule table ===== */
+.rule-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; margin-bottom: 12px; }
+.section-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.rule-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+.rule-table th { padding: 8px 6px; text-align: left; color: var(--text2); font-weight: 600; border-bottom: 2px solid var(--gray-light); }
+.rule-table td { padding: 8px 4px; border-bottom: 1px solid var(--gray-light); vertical-align: middle; overflow-wrap: break-word; word-break: break-all; line-height: 1.4; }
+.rule-table td:first-child { font-weight: 600; }
+.rule-table td:nth-child(2), .rule-table td:last-child { text-align: right; }
+.rule-table td:first-child { font-weight: 600; white-space: nowrap; }
+.rule-table .safe { color: var(--green); }
+.rule-table .danger { color: var(--red); }
+
+/* ===== Result ===== */
+.result-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px; display: none; }
+.result-card.show { display: block; }
+.verdict { border-radius: var(--radius); padding: 14px; text-align: center; margin-bottom: 12px; }
+.verdict.safe { background: var(--green-bg); color: var(--green); }
+.verdict.warn { background: var(--yellow-bg); color: var(--yellow); }
+.verdict.danger { background: var(--red-bg); color: var(--red); }
+.verdict .big { font-size: 20px; font-weight: 700; }
+.verdict .sub { font-size: 12px; margin-top: 4px; opacity: 0.9; }
+.verdict-count { font-size: 12px; color: var(--text2); text-align: center; margin-bottom: 10px; }
+.item-result { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 8px; margin-bottom: 6px; font-size: 13px; background: var(--primary-light); }
+.item-result .icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.item-result .name { width: 92px; font-weight: 600; flex-shrink: 0; }
+.item-result .val { flex: 1; text-align: right; color: var(--text2); font-size: 12px; }
+.item-result.ok { background: var(--green-bg); }
+.item-result.ok .icon { background: var(--green); color: #fff; }
+.item-result.warn { background: var(--yellow-bg); }
+.item-result.warn .icon { background: var(--yellow); color: #fff; }
+.item-result.danger { background: var(--red-bg); }
+.item-result.danger .icon { background: var(--red); color: #fff; }
+.result-tip { font-size: 12px; color: var(--text2); line-height: 1.6; margin-top: 8px; padding: 10px; background: var(--primary-light); border-radius: 8px; }
+
+/* ===== History ===== */
+.history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); margin-bottom: 8px; font-size: 13px; cursor: pointer; }
+.history-item .h-name { font-weight: 600; }
+.history-item .h-code { color: var(--text2); font-size: 11px; margin-left: 6px; }
+.history-item .h-verdict { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.history-item .h-verdict.safe { background: var(--green-bg); color: var(--green); }
+.history-item .h-verdict.warn { background: var(--yellow-bg); color: var(--yellow); }
+.history-item .h-verdict.danger { background: var(--red-bg); color: var(--red); }
+.history-item .h-del { color: var(--text3); font-size: 16px; padding: 0 4px; }
+.history-item .h-del:active { color: var(--red); }
+.empty-hint { text-align: center; color: var(--text3); font-size: 13px; padding: 16px; }
+
+/* ===== Theme toggle & footer ===== */
+.theme-btn { position: fixed; top: 12px; right: 12px; z-index: 100; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.footer-note { text-align: center; color: var(--text3); font-size: 12px; padding: 8px 0 40px; line-height: 1.6; }
+[data-theme="dark"] .form-row .input-wrap { background: #12121f; }
+[data-theme="dark"] .history-item { background: #1a1a2e; }
+[data-theme="dark"] .rule-table td { border-bottom-color: #2d2d44; }
+[data-theme="dark"] .rule-table th { border-bottom-color: #2d2d44; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>高分红排雷工具</h1>
+  <p>7 项指标排查被动高息陷阱 · 数据仅供研究参考</p>
+</div>
+<button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题">🌓</button>
+
+<div class="container">
+
+  <!-- 输入卡片 -->
+  <div class="input-card">
+    <div class="stock-row">
+      <input id="stockName" type="text" placeholder="股票名称（选填）" maxlength="10" style="flex:2">
+      <input id="stockCode" type="text" placeholder="代码自动抓取" maxlength="6" inputmode="numeric" style="flex:1">
+    </div>
+    <div id="fetchStatus" style="display:none;font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5"></div>
+
+    <div class="form-row"><label>股息率<span class="auto-tag" data-auto="divYield">自动</span></label><div class="input-wrap"><input id="divYield" type="number" step="0.01" placeholder="如 5.2%" inputmode="decimal"><span class="unit">%</span></div></div>
+    <div class="form-row"><label>派息率<span class="auto-tag" data-auto="payout">自动</span></label><div class="input-wrap"><input id="payout" type="number" step="0.01" placeholder="如 45%" inputmode="decimal"><span class="unit">%</span></div></div>
+    <div class="form-row"><label>现金流/分红<span class="auto-tag" data-auto="cfRatio">自动</span></label><div class="input-wrap"><input id="cfRatio" type="number" step="0.1" placeholder="如 1.8 倍"><span class="unit">倍</span></div></div>
+    <div class="form-row"><label>扣非净利占比<span class="auto-tag" data-auto="nonrecur">自动</span></label><div class="input-wrap"><input id="nonrecur" type="number" step="0.01" placeholder="如 85%" inputmode="decimal"><span class="unit">%</span></div></div>
+    <div class="form-row"><label>资产负债率<span class="auto-tag" data-auto="debtRatio">自动</span></label><div class="input-wrap"><input id="debtRatio" type="number" step="0.01" placeholder="如 55%" inputmode="decimal"><span class="unit">%</span></div></div>
+    <div class="form-row"><label>连续分红年限<span class="auto-tag" data-auto="divYears">自动</span></label><div class="input-wrap"><input id="divYears" type="number" step="1" placeholder="如 8 年" inputmode="numeric"><span class="unit">年</span></div></div>
+    <div class="form-row"><label>近半年跌幅<span class="auto-tag" data-auto="priceDrop">自动</span></label><div class="input-wrap"><input id="priceDrop" type="number" step="0.01" placeholder="如 12%（跌幅）" inputmode="decimal"><span class="unit">%</span></div></div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" id="fetchBtn" style="flex:1" onclick="fetchStockData()">自动抓取数据</button>
+      <button class="btn btn-secondary" id="runBtn" style="flex:1" onclick="runMine()">开始排雷</button>
+    </div>
+  </div>
+
+  <!-- 规则表 -->
+  <div class="rule-card">
+    <div class="section-title">排雷规则速查</div>
+    <table class="rule-table">
+      <tr><th style="width:26%">排雷维度</th><th class="safe" style="width:24%">安全线</th><th class="danger" style="width:50%">危险线</th></tr>
+      <tr><td>股息率</td><td class="safe">3%–6%</td><td class="danger">&gt;8% 极度警惕</td></tr>
+      <tr><td>派息率</td><td class="safe">30%–70%</td><td class="danger">90%–100% 警惕；&gt;100% 危险</td></tr>
+      <tr><td>经营现金流/分红</td><td class="safe">≥1.5 倍</td><td class="danger">&lt;1 倍</td></tr>
+      <tr><td>扣非净利润占比</td><td class="safe">≥80%</td><td class="danger">&lt;60%</td></tr>
+      <tr><td>资产负债率</td><td class="safe">&lt;60%</td><td class="danger">&gt;70%</td></tr>
+      <tr><td>连续分红年限</td><td class="safe">≥5 年</td><td class="danger">&lt;3 年或断档</td></tr>
+      <tr><td>股价近半年跌幅</td><td class="safe">&lt;15%</td><td class="danger">&gt;30%（被动高息）</td></tr>
+    </table>
+  </div>
+
+  <!-- 结果卡片 -->
+  <div class="result-card" id="resultCard">
+    <div class="verdict" id="verdictBox"></div>
+    <div class="verdict-count" id="verdictCount"></div>
+    <div class="item-list" id="itemResults"></div>
+    <div class="result-tip" id="resultTip"></div>
+  </div>
+
+  <!-- 历史记录 -->
+  <div class="rule-card" style="display:none" id="historyCard">
+    <div class="section-title">历史排雷记录</div>
+    <div id="historyList"></div>
+  </div>
+
+</div>
+
+<div class="footer-note">以上仅为指标筛选参考，不构成投资建议。<br>数据请以最新财报为准，金融产品有风险，投资需谨慎。</div>
+
+<script>
+var APP_VER = '1.1.0';
+var STORE_KEY = 'mine_history_v1';
+
+/* ===== 主题 ===== */
+var _isDark = false;
+(function initTheme() {
+  var saved = localStorage.getItem('mine_theme');
+  _isDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  if (_isDark) document.documentElement.setAttribute('data-theme', 'dark');
+})();
+function toggleTheme() {
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (dark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('mine_theme', 'light'); }
+  else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('mine_theme', 'dark'); }
+}
+
+/* ===== 规则引擎 ===== */
+var RULES = [
+  { key:'divYield',  name:'股息率',       unit:'%', safeMin:3,    safeMax:6,    warnMax:8,      dangerBelow:null, dangerAbove:8,   desc:'>8% 需极度警惕（可能被动高息）' },
+  { key:'payout',    name:'派息率',       unit:'%', safeMin:30,   safeMax:70,   warnMax:90,     dangerBelow:null, dangerAbove:90,  desc:'>90% 或 >100% 分红不可持续' },
+  { key:'cfRatio',   name:'现金流/分红',  unit:'倍', safeMin:1.5,  safeMax:null, warnMax:null,  dangerBelow:1,   dangerAbove:null, desc:'<1 倍，分红靠借债或融资维持' },
+  { key:'nonrecur',  name:'扣非净利占比', unit:'%', safeMin:80,   safeMax:null, warnMax:null,  dangerBelow:60,  dangerAbove:null, desc:'<60% 利润含大量非经常性损益' },
+  { key:'debtRatio', name:'资产负债率',   unit:'%', safeMin:0,    safeMax:60,   warnMax:70,     dangerBelow:null, dangerAbove:70,  desc:'>70% 财务杠杆偏高' },
+  { key:'divYears',  name:'连续分红年限', unit:'年', safeMin:5,    safeMax:null, warnMax:null,  dangerBelow:3,   dangerAbove:null, desc:'<3 年或中途断档，稳定性存疑' },
+  { key:'priceDrop', name:'近半年跌幅',   unit:'%', safeMin:0,    safeMax:15,   warnMax:null,   dangerBelow:null, dangerAbove:30,  desc:'>30% 可能为被动高息陷阱' }
+];
+
+function num(v) { if (v === '' || v === null || v === undefined) return NaN; var n = parseFloat(v); return isNaN(n) ? NaN : n; }
+
+function checkRule(rule, val) {
+  if (isNaN(val)) return { status:'na', msg:'未填写' };
+  var status = 'safe', msg = '';
+  if (rule.safeMax !== null && val > rule.safeMax) status = 'warn';
+  if (rule.safeMin !== null && val < rule.safeMin) status = 'warn';
+  if (rule.dangerAbove !== null && val > rule.dangerAbove) status = 'danger';
+  if (rule.dangerBelow !== null && val < rule.dangerBelow) status = 'danger';
+  // 股息率特例：>6% 且 <=8% 判 warn；>8% 判 danger
+  if (rule.key === 'divYield') {
+    if (val > 8) status = 'danger';
+    else if (val > 6) status = 'warn';
+    else if (val >= 3) status = 'safe';
+    else status = 'warn';
+  }
+  // 派息率特例：90-100 为 warn，>100 为 danger（表头写 >90% 或 >100%）
+  if (rule.key === 'payout') {
+    if (val > 100) status = 'danger';
+    else if (val > 90) status = 'warn';
+    else if (val >= 30 && val <= 70) status = 'safe';
+    else status = 'warn';
+  }
+  return { status: status, msg: msg };
+}
+
+/* ===== 自动抓取引擎 ===== */
+function _apiGet(url) {
+  return fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://quote.eastmoney.com/' } }).then(function (r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  }).then(function (t) {
+    var c = t.trim();
+    if (c.indexOf('{') === 0) return JSON.parse(c);
+    if (c.indexOf('v_') === 0 || c.indexOf('var _data') === 0 || c.indexOf('/*') === 0) return t;
+    return t;
+  });
+}
+
+/* 获取最近一次除权除息分红（用于股息率/派息率） */
+function _latestDividend(code) {
+  var u = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_SHAREBONUS_DET&columns=SECURITY_CODE,REPORT_DATE,EX_DIVIDEND_DATE,IMPL_PLAN_PROFILE,PRETAX_BONUS_RMB,BASIC_EPS,ASSIGN_PROGRESS&filter=(SECURITY_CODE="' + code + '")&pageNumber=1&pageSize=10&sortColumns=EX_DIVIDEND_DATE&sortTypes=-1&source=WEB&client=WEB';
+  return _apiGet(u).then(function (j) {
+    var list = j && j.result && j.result.data;
+    if (!list || !list.length) return null;
+    // 连续分红年限：数已实施(实施分配)的年报记录（按 REPORT_DATE 年份去重）
+    var years = {};
+    list.forEach(function (x) {
+      if (x.ASSIGN_PROGRESS === '实施分配' && x.REPORT_DATE) years[x.REPORT_DATE.slice(0, 4)] = true;
+    });
+    var last = list[0];
+    return {
+      bonus: last.PRETAX_BONUS_RMB / 10,     // 每股税前股息（元），接口返回为每10股派息
+      eps: last.BASIC_EPS,                   // 每股收益
+      years: Object.keys(years).length,      // 连续分红年数
+      profile: last.IMPL_PLAN_PROFILE
+    };
+  });
+}
+
+/* 获取财务数据（最新一期）：扣非净利/净利润、资产负债率、经营现金流净额、净利润、分红金额 */
+function _fetchFinance(code) {
+  var u = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=SECURITY_CODE,SECURITY_NAME_ABBR,REPORT_DATE_NAME,KCFJCXSYJLR,PARENTNETPROFIT,ZCFZL,TOTAL_SHARE&filter=(SECURITY_CODE="' + code + '")&pageNumber=1&pageSize=1&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB';
+  return _apiGet(u).then(function (j) {
+    var row = j && j.result && j.result.data && j.result.data[0];
+    if (!row) return null;
+    return { kcfj: row.KCFJCXSYJLR, netprofit: row.PARENTNETPROFIT, zcfzl: row.ZCFZL, totalShares: row.TOTAL_SHARE, name: row.SECURITY_NAME_ABBR, reportDate: row.REPORT_DATE_NAME };
+  });
+}
+
+/* 获取经营现金流净额（现金流量表，最新一期） */
+function _fetchCashflow(code) {
+  var u = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_GCASHFLOW&columns=SECURITY_CODE,NETCASH_OPERATE&filter=(SECURITY_CODE="' + code + '")&pageNumber=1&pageSize=1&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB';
+  return _apiGet(u).then(function (j) {
+    var row = j && j.result && j.result.data && j.result.data[0];
+    return row ? row.NETCASH_OPERATE : null;
+  });
+}
+
+/* 获取现价（腾讯行情）与近半年跌幅（腾讯日K） */
+function _fetchPrice(code) {
+  var secid = code.indexOf('6') === 0 ? 'sh' : 'sz';
+  var p = _apiGet('https://qt.gtimg.cn/q=' + secid + code).then(function (t) {
+    var m = String(t).match(/"([^"]+)"/);
+    if (!m) throw new Error('行情无数据');
+    var arr = m[1].split('~');
+    return parseFloat(arr[3]); // 现价
+  });
+  var k = _apiGet('https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=' + secid + code + ',day,,,130,qfq').then(function (j) {
+    var arr = j && j.data && j.data[secid + code] && j.data[secid + code].qfqday;
+    if (!arr || !arr.length) throw new Error('K线无数据');
+    var first = arr[0][2];   // [日期, 开, 收, 高, 低, 量]
+    var last = arr[arr.length - 1][2];
+    return { dropPct: (1 - last / first) * 100, firstDate: arr[0][0], lastDate: arr[arr.length - 1][0] };
+  });
+  return Promise.all([p, k]).then(function (rs) {
+    return { price: rs[0], dropPct: rs[1].dropPct, firstDate: rs[1].firstDate, lastDate: rs[1].lastDate };
+  });
+}
+
+/* 主抓取流程：拉全部数据并填入表单 */
+function fetchStockData() {
+  var code = document.getElementById('stockCode').value.trim();
+  if (!/^\d{6}$/.test(code)) {
+    setFetchStatus('请输入 6 位股票代码', 'err');
+    return;
+  }
+  var statusEl = document.getElementById('fetchStatus');
+  var btn = document.getElementById('fetchBtn');
+  btn.disabled = true; btn.textContent = '抓取中…';
+  setFetchStatus('正在抓取 ' + code + ' 数据…', '');
+  Promise.all([
+    _fetchFinance(code),
+    _fetchCashflow(code),
+    _fetchPrice(code),
+    _latestDividend(code)
+  ]).then(function (rs) {
+    var fin = rs[0], cash = rs[1], price = rs[2], div = rs[3];
+    var auto = {};
+    var missingFields = [];
+    // 股息率 = 每股股息 / 现价
+    if (div && div.bonus && price && price.price) {
+      auto.divYield = +(div.bonus / price.price * 100).toFixed(2);
+    } else missingFields.push('股息率');
+    // 派息率 = 每股股息 / 每股收益
+    if (div && div.bonus && div.eps) {
+      auto.payout = +(div.bonus / div.eps * 100).toFixed(1);
+    } else missingFields.push('派息率');
+    // 经营现金流/分红 = 经营现金流净额 / (每股股息*总股本)
+    if (fin && fin.totalShares && cash && div && div.bonus) {
+      auto.cfRatio = +(cash / (div.bonus * fin.totalShares)).toFixed(2);
+    } else missingFields.push('现金流/分红');
+    // 扣非净利润占比
+    if (fin && fin.kcfj && fin.netprofit && fin.netprofit > 0) {
+      auto.nonrecur = +(fin.kcfj / fin.netprofit * 100).toFixed(1);
+    } else missingFields.push('扣非净利占比');
+    // 资产负债率
+    if (fin && fin.zcfzl !== null && fin.zcfzl !== undefined) {
+      auto.debtRatio = +fin.zcfzl.toFixed(1);
+    } else missingFields.push('资产负债率');
+    // 连续分红年限
+    if (div && div.divYears) auto.divYears = div.divYears;
+    else missingFields.push('连续分红年限');
+    // 近半年跌幅（负值表示上涨，按 0 处理）
+    if (price && price.dropPct !== undefined && price.dropPct !== null) {
+      auto.priceDrop = +(Math.max(price.dropPct, 0)).toFixed(1);
+    } else missingFields.push('近半年跌幅');
+
+    // 填表
+    Object.keys(auto).forEach(function (k) {
+      var el = document.getElementById(k);
+      if (el) el.value = auto[k];
+    });
+    // 股票名称自动带出
+    if (fin && fin.name && !document.getElementById('stockName').value) {
+      document.getElementById('stockName').value = fin.name;
+    }
+    var fetched = Object.keys(auto).length;
+    var msg = '已自动填入 ' + fetched + ' 项';
+    if (missingFields.length) msg += '，以下未能获取：' + missingFields.join('、');
+    if (fin && fin.reportDate) msg += '（财务数据：' + fin.reportDate + '）';
+    if (price && price.firstDate) msg += '（跌幅区间：' + price.firstDate + ' ~ ' + price.lastDate + '）';
+    setFetchStatus(msg, fetched === 7 ? 'ok' : 'warn');
+  }).catch(function (e) {
+    setFetchStatus('抓取失败：' + e.message + '。可手动填写后点“开始排雷”', 'err');
+  }).then(function () {
+    btn.textContent = '自动抓取数据';
+    btn.disabled = false;
+  });
+}
+
+function setFetchStatus(msg, type) {
+  var el = document.getElementById('fetchStatus');
+  el.style.display = 'block';
+  el.textContent = msg;
+  el.style.color = type === 'ok' ? 'var(--green)' : (type === 'warn' ? 'var(--yellow)' : (type === 'err' ? 'var(--red)' : 'var(--text2)'));
+}
+
+/* 代码输入后自动触发抓取 */
+function bindAutoFetch() {
+  var input = document.getElementById('stockCode');
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') fetchStockData();
+  });
+  input.addEventListener('blur', function () {
+    var v = input.value.trim();
+    if (/^\d{6}$/.test(v)) fetchStockData();
+  });
+}
+
+function runMine() {
+  var name = document.getElementById('stockName').value.trim();
+  var code = document.getElementById('stockCode').value.trim();
+  var results = [];
+  var okCount = 0, warnCount = 0, dangerCount = 0;
+  var missing = 0;
+
+  RULES.forEach(function (r) {
+    var val = num(document.getElementById(r.key).value);
+    var res = checkRule(r, val);
+    if (res.status === 'na') missing++;
+    if (res.status === 'safe') okCount++;
+    if (res.status === 'warn') warnCount++;
+    if (res.status === 'danger') dangerCount++;
+    results.push({ rule:r, val:val, status:res.status });
+  });
+
+  // 综合判定
+  var verdict = 'safe', verdictText = '', verdictSub = '';
+  if (dangerCount > 0) { verdict = 'danger'; verdictText = '存在雷区，建议规避'; verdictSub = '有 ' + dangerCount + ' 项触及危险线'; }
+  else if (warnCount > 0) { verdict = 'warn'; verdictText = '存在隐患，需进一步核实'; verdictSub = '有 ' + warnCount + ' 项位于警戒区'; }
+  else { verdict = 'safe'; verdictText = '整体安全，可继续跟踪'; verdictSub = '7 项指标均处于安全区间'; }
+
+  renderVerdict(verdict, verdictText, verdictSub, okCount, warnCount, dangerCount, results, missing);
+  saveHistory(name, code, verdict, okCount, warnCount, dangerCount);
+}
+
+function renderVerdict(verdict, text, sub, ok, warn, danger, results, missing) {
+  var box = document.getElementById('verdictBox');
+  box.className = 'verdict ' + verdict;
+  box.innerHTML = '<div class="big">' + text + '</div><div class="sub">' + sub + '</div>';
+  document.getElementById('verdictCount').textContent = (ok + ' 项安全 · ' + warn + ' 项关注 · ' + danger + ' 项危险') + (missing ? ' · ' + missing + ' 项未填' : '');
+  var html = '';
+  results.forEach(function (r) {
+    var st = r.status;
+    var icon = st === 'safe' ? '✓' : (st === 'warn' ? '!' : '×');
+    var valText = isNaN(r.val) ? '未填' : (r.val + (r.rule.unit === '%' ? '%' : r.rule.unit));
+    html += '<div class="item-result ' + st + '"><span class="icon">' + icon + '</span><span class="name">' + r.rule.name + '</span><span class="val">' + valText + '</span></div>';
+  });
+  document.getElementById('itemResults').innerHTML = html;
+  var tip = '';
+  var dCnt = results.filter(function(r){ return r.status === 'danger'; }).length;
+  var wCnt = results.filter(function(r){ return r.status === 'warn'; }).length;
+  if (dCnt > 0) tip += '危险项：' + results.filter(function(r){ return r.status === 'danger'; }).map(function(r){ return r.rule.name; }).join('、') + '。';
+  if (wCnt > 0) tip += '关注项：' + results.filter(function(r){ return r.status === 'warn'; }).map(function(r){ return r.rule.name; }).join('、') + '。';
+  tip += ' 排雷结果仅作筛选参考，请结合最新财报人工复核。';
+  document.getElementById('resultTip').textContent = tip;
+  document.getElementById('resultCard').classList.add('show');
+  document.getElementById('resultCard').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function saveHistory(name, code, verdict, ok, warn, danger) {
+  var list = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+  list.unshift({ name:name, code:code, verdict:verdict, ok:ok, warn:warn, danger:danger, time:Date.now() });
+  list = list.slice(0, 20);
+  localStorage.setItem(STORE_KEY, JSON.stringify(list));
+  renderHistory(list);
+}
+
+function renderHistory(list) {
+  var card = document.getElementById('historyCard');
+  var box = document.getElementById('historyList');
+  if (!list || list.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  var html = '';
+  list.forEach(function (h, i) {
+    var label = (h.name || '') + '<span class="h-code">' + (h.code || '') + '</span>';
+    var vLabel = h.verdict === 'safe' ? '安全' : (h.verdict === 'warn' ? '关注' : '危险');
+    html += '<div class="history-item"><span class="h-name">' + label + '</span><span class="h-verdict ' + h.verdict + '">' + vLabel + '</span><span class="h-del" onclick="delHistory(' + i + ')" title="删除">×</span></div>';
+  });
+  box.innerHTML = html;
+}
+function delHistory(i) {
+  var list = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+  list.splice(i, 1);
+  localStorage.setItem(STORE_KEY, JSON.stringify(list));
+  renderHistory(list);
+}
+
+/* 主题图标 */
+(function () {
+  var btn = document.getElementById('themeBtn');
+  btn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀' : '🌙';
+})();
+
+/* init */
+renderHistory(JSON.parse(localStorage.getItem(STORE_KEY) || '[]'));
+bindAutoFetch();
+</script>
+</body>
+</html>
