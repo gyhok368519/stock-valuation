@@ -190,7 +190,7 @@ body {
 <div class="footer-note">以上仅为指标筛选参考，不构成投资建议。<br>数据请以最新财报为准，金融产品有风险，投资需谨慎。</div>
 
 <script>
-var APP_VER = '1.1.0';
+var APP_VER = '1.2.0';
 var STORE_KEY = 'mine_history_v1';
 
 /* ===== 主题 ===== */
@@ -245,7 +245,7 @@ function checkRule(rule, val) {
 
 /* ===== 自动抓取引擎 ===== */
 function _apiGet(url) {
-  return fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://quote.eastmoney.com/' } }).then(function (r) {
+  return fetch(url).then(function (r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.text();
   }).then(function (t) {
@@ -258,7 +258,7 @@ function _apiGet(url) {
 
 /* 获取最近一次除权除息分红（用于股息率/派息率） */
 function _latestDividend(code) {
-  var u = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_SHAREBONUS_DET&columns=SECURITY_CODE,REPORT_DATE,EX_DIVIDEND_DATE,IMPL_PLAN_PROFILE,PRETAX_BONUS_RMB,BASIC_EPS,ASSIGN_PROGRESS&filter=(SECURITY_CODE="' + code + '")&pageNumber=1&pageSize=10&sortColumns=EX_DIVIDEND_DATE&sortTypes=-1&source=WEB&client=WEB';
+  var u = 'https://datacenter.eastmoney.com/api/data/v1/get?reportName=RPT_SHAREBONUS_DET&columns=SECURITY_CODE,REPORT_DATE,EX_DIVIDEND_DATE,IMPL_PLAN_PROFILE,PRETAX_BONUS_RMB,BASIC_EPS,ASSIGN_PROGRESS&filter=(SECURITY_CODE="' + code + '")&pageNumber=1&pageSize=10&sortColumns=EX_DIVIDEND_DATE&sortTypes=-1&source=WEB&client=WEB';
   return _apiGet(u).then(function (j) {
     var list = j && j.result && j.result.data;
     if (!list || !list.length) return null;
@@ -279,7 +279,7 @@ function _latestDividend(code) {
 
 /* 获取财务数据（最新一期）：扣非净利/净利润、资产负债率、经营现金流净额、净利润、分红金额 */
 function _fetchFinance(code) {
-  var u = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=SECURITY_CODE,SECURITY_NAME_ABBR,REPORT_DATE_NAME,KCFJCXSYJLR,PARENTNETPROFIT,ZCFZL,TOTAL_SHARE&filter=(SECURITY_CODE="' + code + '")&pageNumber=1&pageSize=1&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB';
+  var u = 'https://datacenter.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=SECURITY_CODE,SECURITY_NAME_ABBR,REPORT_DATE_NAME,KCFJCXSYJLR,PARENTNETPROFIT,ZCFZL,TOTAL_SHARE&filter=(SECURITY_CODE="' + code + '")&pageNumber=1&pageSize=1&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB';
   return _apiGet(u).then(function (j) {
     var row = j && j.result && j.result.data && j.result.data[0];
     if (!row) return null;
@@ -289,7 +289,7 @@ function _fetchFinance(code) {
 
 /* 获取经营现金流净额（现金流量表，最新一期） */
 function _fetchCashflow(code) {
-  var u = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_GCASHFLOW&columns=SECURITY_CODE,NETCASH_OPERATE&filter=(SECURITY_CODE="' + code + '")&pageNumber=1&pageSize=1&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB';
+  var u = 'https://datacenter.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_GCASHFLOW&columns=SECURITY_CODE,NETCASH_OPERATE&filter=(SECURITY_CODE="' + code + '")&pageNumber=1&pageSize=1&sortColumns=UPDATE_DATE&sortTypes=-1&source=WEB&client=WEB';
   return _apiGet(u).then(function (j) {
     var row = j && j.result && j.result.data && j.result.data[0];
     return row ? row.NETCASH_OPERATE : null;
