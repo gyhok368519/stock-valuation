@@ -194,27 +194,20 @@ function _fmtBig(n){
 function setStatus(msg,type){ var el=document.getElementById('status'); el.className=type||''; el.innerHTML=msg; }
 function clearResult(){ document.getElementById('result').innerHTML=''; }
 
-/* ========== stock_map (简称搜索) ========== */
+/* ========== stock_index.json (简称搜索) ========== */
 var STOCK_MAP={}; var PINYIN_IDX={};
 function loadStockMap(cb){
   if(STOCK_MAP._loaded){ cb&&cb(); return; }
-  var s=document.createElement('script');
-  s.src='https://gyhok368519.github.io/stock-valuation/stock_map.js?v='+Date.now();
-  var done=false;
-  var timer=setTimeout(function(){
-    if(!done){ done=true; STOCK_MAP._loaded=true; cb&&cb(new Error('timeout')); }
-  },8000);
-  s.onload=function(){
-    if(done) return; done=true; clearTimeout(timer);
-    if(typeof window.STOCK_MAP!=='undefined'){STOCK_MAP=window.STOCK_MAP;}
-    if(typeof window.PINYIN_IDX!=='undefined'){PINYIN_IDX=window.PINYIN_IDX;}
-    STOCK_MAP._loaded=true; cb&&cb();
-  };
-  s.onerror=function(){
-    if(done) return; done=true; clearTimeout(timer);
-    STOCK_MAP._loaded=true; cb&&cb(new Error('load error'));
-  };
-  document.head.appendChild(s);
+  fetch('stock_index.json?_t='+Date.now(),{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){
+      STOCK_MAP=data.stocks||{};
+      PINYIN_IDX=data.pinyin||{};
+      STOCK_MAP._loaded=true; cb&&cb();
+    })
+    .catch(function(e){
+      STOCK_MAP._loaded=true; cb&&cb(new Error(e.message));
+    });
 }
 
 /* 搜索股票 */
