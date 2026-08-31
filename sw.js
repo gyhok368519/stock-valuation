@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pb-calc-v194';
+const CACHE_NAME = 'pb-calc-v195';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './roe.html',
