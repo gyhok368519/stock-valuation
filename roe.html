@@ -123,13 +123,13 @@ body {
 .history-item .h-meta { font-size:12px; color:var(--text3); margin-top:3px; }
 .history-item .h-judge { font-size:12px; margin-top:4px; }
 .history-delete {
-  position:absolute; top:50%; right:-60px; transform:translateY(-50%);
-  width:50px; height:100%; background:var(--red); color:#fff; border:none; border-radius:4px;
-  font-size:13px; cursor:pointer; transition:right .3s; display:flex; align-items:center; justify-content:center;
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
+  width:50px; height:28px; background:var(--red); color:#fff; border:none; border-radius:14px;
+  font-size:13px; cursor:pointer; transition:transform .25s, opacity .25s; display:flex; align-items:center; justify-content:center; opacity:0; z-index:5; pointer-events:none;
 }
-.history-item.swipe-left .history-delete { right:6px; }
-.history-item .h-content { transition:transform .3s; }
-.history-item.swipe-left .h-content { transform:translateX(-60px); }
+.history-item.swiping .history-delete { transform:translate(-50%,-50%) scale(1); opacity:.45; }
+.history-item .h-content { transition:transform .15s; position:relative; z-index:2; }
+.history-item.released .h-content { transition:transform .3s; }
 @media(max-width:600px) {
   .container { padding:10px 12px; }
   .topbar h1 { font-size:19px; }
@@ -145,7 +145,6 @@ body {
   <div class="topbar">
     <div>
       <h1>ROE 分析器</h1>
-      <div class="sub">杜邦三因子拆解 · 五年ROE趋势</div>
     </div>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换亮/暗模式">🌙</button>
   </div>
@@ -276,7 +275,7 @@ function extractAnnualReports(finData){
       annuals.push(it);
     }
   }
-  return annuals.slice(0,5).reverse();
+  return annuals.slice(0,5); // 最新在前
 }
 
 function getLatestReport(finData){
@@ -379,7 +378,7 @@ function genConclusion(annuals, latest, dupont){
 
   if(annuals.length>=2){
     var roeVals=annuals.map(function(a){return a.WEIGHTAVG_ROE;});
-    var diff=roeVals[roeVals.length-1]-roeVals[0];
+    var diff=roeVals[0]-roeVals[roeVals.length-1];
     var trend,trendTag;
     if(diff>2){trend='上升趋势';trendTag='tag-good';}
     else if(diff<-2){trend='下降趋势';trendTag='tag-bad';}
@@ -414,7 +413,7 @@ function genConclusion(annuals, latest, dupont){
     }
   }
 
-  var trendStable = annuals.length>=2 ? (roeVals[roeVals.length-1]-roeVals[0]>=-2) : true;
+  var trendStable = annuals.length>=2 ? (roeVals[0]-roeVals[roeVals.length-1]>=-2) : true;
   var summary='';
   if(latestROE>=15 && trendStable){
     summary='该公司ROE处于优秀区间且趋势稳定或上升，盈利能力强，是优质盈利型公司的特征。';
@@ -482,8 +481,8 @@ function render(data){
     var maxRoe=0;
     annuals.forEach(function(a){if(a.WEIGHTAVG_ROE>maxRoe)maxRoe=a.WEIGHTAVG_ROE;});
     annuals.forEach(function(a){
-      var isLast=a===annuals[annuals.length-1];
-      html+='<td class="'+(isLast?'latest':'')+'">'+_fmt(a.WEIGHTAVG_ROE,2)+'%</td>';
+      var isFirst=a===annuals[0];
+      html+='<td class="'+(isFirst?'latest':'')+'">'+_fmt(a.WEIGHTAVG_ROE,2)+'%</td>';
     });
     html+='</tr></tbody></table>';
     if(maxRoe>0){
@@ -636,7 +635,7 @@ function renderHistory(){
       +'<div class="h-roe" style="color:'+color+'">'+_fmt(h.roe,2)+'%</div></div>'
       +'<div class="h-meta">'+_esc(h.period)+' | '+_esc(h.time)+'</div>'
       +'<div class="h-judge"><span class="tag '+(h.roe>=10?'tag-good':(h.roe>=5?'tag-warn':'tag-bad'))+'">'+_esc(h.level)+'</span></div>'
-      +'</div><button class="history-delete" onclick="event.stopPropagation();deleteHistory('+i+')">删除</button></div>';
+      +'</div><button class="history-delete">删除</button></div>';
   });
   html+='</div>';
   el.innerHTML=html;
@@ -649,20 +648,82 @@ function loadHistory(idx){
 }
 function bindSwipe(){
   var items=document.querySelectorAll('.history-item');
+  var THRESHOLD=80; // 滑动超过80px直接删除
   items.forEach(function(item){
-    var startX=0,swiping=false;
+    var startX=0, startX2=0, swiping=false, moved=false;
     var hc=item.querySelector('.h-content'); if(!hc) return;
-    hc.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;swiping=true;item.classList.remove('swipe-left');},{passive:true});
+    var delBtn=item.querySelector('.history-delete');
+    var idx=parseInt(item.getAttribute('data-idx'));
+
+    // 触摸事件（手机端）
+    hc.addEventListener('touchstart',function(e){
+      startX=e.touches[0].clientX; swiping=true; moved=false;
+      item.classList.remove('released');
+      item.classList.add('swiping');
+    },{passive:true});
     hc.addEventListener('touchmove',function(e){
       if(!swiping) return;
-      var cx=e.touches[0].clientX-startX;
-      if(cx<-10) item.classList.add('swipe-left');
-      else if(cx>10) item.classList.remove('swipe-left');
+      var dx=e.touches[0].clientX-startX;
+      if(Math.abs(dx)>5) moved=true;
+      // 阻尼效果：越滑越难
+      var dampened=dx*0.6;
+      hc.style.transform='translateX('+dampened+'px)';
+      if(Math.abs(dx)>10) item.classList.add('swiping');
     },{passive:true});
-    hc.addEventListener('touchend',function(){swiping=false;},{passive:true});
+    hc.addEventListener('touchend',function(e){
+      if(!swiping) return;
+      swiping=false;
+      var dx=e.changedTouches[0].clientX-startX;
+      item.classList.remove('swiping');
+      item.classList.add('released');
+      if(Math.abs(dx)>THRESHOLD && moved){
+        // 超过阈值，直接删除
+        hc.style.transform='translateX('+(dx>0?300:-300)+'px)';
+        hc.style.opacity='0';
+        setTimeout(function(){ deleteHistory(idx); },250);
+      } else {
+        // 回弹
+        hc.style.transform='';
+      }
+    },{passive:true});
+
+    // 鼠标事件（电脑端）
+    hc.addEventListener('mousedown',function(e){
+      startX2=e.clientX; swiping=true; moved=false;
+      item.classList.remove('released');
+      item.classList.add('swiping');
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove',function(e){
+      if(!swiping) return;
+      var dx=e.clientX-startX2;
+      if(Math.abs(dx)>5) moved=true;
+      hc.style.transform='translateX('+(dx*0.6)+'px)';
+    });
+    document.addEventListener('mouseup',function(e){
+      if(!swiping) return;
+      swiping=false;
+      var dx=e.clientX-startX2;
+      item.classList.remove('swiping');
+      item.classList.add('released');
+      if(Math.abs(dx)>THRESHOLD && moved){
+        hc.style.transform='translateX('+(dx>0?300:-300)+'px)';
+        hc.style.opacity='0';
+        setTimeout(function(){ deleteHistory(idx); },250);
+      } else {
+        hc.style.transform='';
+      }
+    });
   });
+  // 点击其他区域收起
   document.addEventListener('click',function(e){
-    if(!e.target.closest('.history-item')) items.forEach(function(it){it.classList.remove('swipe-left');});
+    if(!e.target.closest('.history-item')){
+      items.forEach(function(it){
+        var h=it.querySelector('.h-content');
+        if(h){ h.style.transform=''; }
+        it.classList.remove('swiping');
+      });
+    }
   });
 }
 
