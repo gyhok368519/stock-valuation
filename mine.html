@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -227,8 +227,20 @@ function loadStockMap(cb){
   if(STOCK_MAP._loaded){ cb&&cb(); return; }
   var s=document.createElement('script');
   s.src='https://gyhok368519.github.io/stock-valuation/stock_map.js?v='+Date.now();
-  s.onload=function(){ if(typeof window.STOCK_MAP!=='undefined'){STOCK_MAP=window.STOCK_MAP;} if(typeof window.PINYIN_IDX!=='undefined'){PINYIN_IDX=window.PINYIN_IDX;} STOCK_MAP._loaded=true; cb&&cb(); };
-  s.onerror=function(){ STOCK_MAP._loaded=true; cb&&cb(); };
+  var done=false;
+  var timer=setTimeout(function(){
+    if(!done){ done=true; STOCK_MAP._loaded=true; cb&&cb(new Error('timeout')); }
+  },8000);
+  s.onload=function(){
+    if(done) return; done=true; clearTimeout(timer);
+    if(typeof window.STOCK_MAP!=='undefined'){STOCK_MAP=window.STOCK_MAP;}
+    if(typeof window.PINYIN_IDX!=='undefined'){PINYIN_IDX=window.PINYIN_IDX;}
+    STOCK_MAP._loaded=true; cb&&cb();
+  };
+  s.onerror=function(){
+    if(done) return; done=true; clearTimeout(timer);
+    STOCK_MAP._loaded=true; cb&&cb(new Error('load error'));
+  };
   document.head.appendChild(s);
 }
 function searchStock(input){
@@ -417,7 +429,10 @@ function fetchStockData() {
   }
   
   if (/^\d{6}$/.test(input)) { _doFetch(); return; }
-  loadStockMap(_doFetch);
+  loadStockMap(function(err){
+    if(err && !Object.keys(STOCK_MAP).length){ setFetchStatus('股票映射表加载失败，请输入6位数字代码','err'); return; }
+    _doFetch();
+  });
 }
 
 function _fetchData(code) {
@@ -499,7 +514,8 @@ function bindAutoFetch() {
   input.addEventListener('input', function () {
     var v = this.value.trim();
     if (!v || /^\d{6}$/.test(v)) { document.getElementById('suggestList').style.display='none'; return; }
-    loadStockMap(function(){
+    loadStockMap(function(err){
+      if(err && !Object.keys(STOCK_MAP).length){ document.getElementById('suggestList').style.display='none'; return; }
       var list = searchStock(v);
       if (list && list.length > 1) showSuggest(list);
       else document.getElementById('suggestList').style.display='none';
