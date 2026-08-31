@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.27';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.28';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -524,7 +524,7 @@ body {
   .note-add-btn:active { opacity:0.7; }
   .note-editor { position: absolute; top: 0; left: 110px; right: 0; overflow: hidden; }
   .note-toolbar { display: flex; flex-direction: column; padding: 2px 4px; background: var(--card); border-bottom: 1px solid var(--gray-light); gap: 2px; height: 28px; box-sizing: border-box; }
-  .note-toolbar-row { display:flex; align-items:center; gap:6px; height:100%; -webkit-user-select:none; user-select:none; overflow:hidden; }
+  .note-toolbar-row { display:flex; align-items:center; gap:8px; height:100%; -webkit-user-select:none; user-select:none; overflow:hidden; }
   .note-toolbar-row::-webkit-scrollbar { display:none; }
   .note-toolbar-btn { font-size:12px; padding:1px 4px; border:1px solid var(--gray-light); border-radius:4px; background:var(--card); color:var(--text); cursor:pointer; font-family:inherit; white-space:nowrap; -webkit-user-select:none; user-select:none; flex-shrink:0; line-height:1.4; display:flex; align-items:center; justify-content:center; }
   .note-toolbar-btn:active { opacity:0.7; }
@@ -3712,10 +3712,10 @@ function notePaste() {
       _noteSaveRange();
       showToast('已粘贴');
     }).catch(function() {
-      _fallbackPaste(contentEl);
+      showToast('请长按编辑区粘贴');
     });
   } else {
-    _fallbackPaste(contentEl);
+    showToast('请长按编辑区粘贴');
   }
 }
 
