@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.19';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.20';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -524,8 +524,8 @@ body {
   .note-add-btn:active { opacity:0.7; }
   .note-editor { position: absolute; top: 0; left: 110px; right: 0; overflow: hidden; }
   .note-toolbar { display: flex; flex-direction: column; padding: 4px 6px; background: var(--card); border-bottom: 1px solid var(--gray-light); gap: 2px; height: 28px; box-sizing: border-box; }
-  .note-toolbar-row { display:flex; align-items:center; gap:22px; height:100%; }
-  .note-toolbar-btn { font-size:14px; padding:3px 7px; border:1px solid var(--gray-light); border-radius:4px; background:var(--card); color:var(--text); cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .note-toolbar-row { display:flex; align-items:center; gap:22px; height:100%; -webkit-user-select:none; user-select:none; }
+  .note-toolbar-btn { font-size:14px; padding:3px 7px; border:1px solid var(--gray-light); border-radius:4px; background:var(--card); color:var(--text); cursor:pointer; font-family:inherit; white-space:nowrap; -webkit-user-select:none; user-select:none; }
   .note-toolbar-btn:active { opacity:0.7; }
   .note-toolbar-btn.active { background:var(--primary); color:var(--text-inv); border-color:var(--primary); }
   .note-editor-area { position: absolute; top: 28px; left: 0; right: 0; overflow: hidden; }
@@ -844,15 +844,15 @@ body {
     <div class="note-editor" id="noteEditor" style="display:none;">
       <div class="note-toolbar" id="noteToolbar">
         <div class="note-toolbar-row">
-          <button class="note-toolbar-btn" onclick="noteCut()" title="剪切">&#x2702;</button>
-          <button class="note-toolbar-btn" onclick="noteCopy()" title="复制">&#x2398;</button>
-          <button class="note-toolbar-btn" onclick="notePaste()" title="粘贴">&#x1F4CB;</button>
-          <button class="note-toolbar-btn" onclick="noteSelectAll()" title="全选">&#x2611;</button>
+          <button class="note-toolbar-btn" onmousedown="event.preventDefault()" onclick="noteCut()" title="剪切">&#x2702;</button>
+          <button class="note-toolbar-btn" onmousedown="event.preventDefault()" onclick="noteCopy()" title="复制">&#x2398;</button>
+          <button class="note-toolbar-btn" onmousedown="event.preventDefault()" onclick="notePaste()" title="粘贴">&#x1F4CB;</button>
+          <button class="note-toolbar-btn" onmousedown="event.preventDefault()" onclick="noteSelectAll()" title="全选">&#x2611;</button>
           <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器"><svg class="calc-icon-svg" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="8" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="16" r="1" fill="currentColor"/><circle cx="15" cy="16" r="1" fill="currentColor"/></svg></button>
           <div style="flex:1;"></div>
-          <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
-          <span id="noteFontSizeLabel" style="font-size:12px;min-width:20px;text-align:center;color:var(--text);">15</span>
-          <button class="note-toolbar-btn" onclick="noteFontSize(1)">A+</button>
+          <button class="note-toolbar-btn" onmousedown="event.preventDefault()" onclick="noteFontSize(-1)">A-</button>
+          <span id="noteFontSizeLabel" style="font-size:12px;min-width:20px;text-align:center;color:var(--text);-webkit-user-select:none;user-select:none;">15</span>
+          <button class="note-toolbar-btn" onmousedown="event.preventDefault()" onclick="noteFontSize(1)">A+</button>
         </div>
       </div>
       <div class="note-editor-area">
@@ -3623,15 +3623,28 @@ function _noteSaveRange() {
 }
 function noteCut() {
   var sel = window.getSelection();
-  if (!sel.rangeCount || sel.isCollapsed) return;
-  navigator.clipboard.writeText(sel.toString()).catch(function() {});
-  document.execCommand('cut');
+  if (!sel.rangeCount || sel.isCollapsed) { showToast('请先选择文字'); return; }
+  var text = sel.toString();
+  try {
+    document.execCommand('cut');
+    showToast('已剪切');
+  } catch(e) {
+    _fallbackCopy(text);
+    document.execCommand('delete');
+  }
   noteOnInput();
 }
 
 function noteCopy() {
   var sel = window.getSelection();
-  if (!sel.rangeCount || sel.isCollapsed) { showToast('请先选择文字'); return; }
+  if (!sel.rangeCount || sel.isCollapsed) {
+    // 尝试恢复上次选区（工具栏按钮点击可能导致选区丢失）
+    if (_noteLastRange) {
+      sel.removeAllRanges();
+      sel.addRange(_noteLastRange);
+    }
+    if (!sel.rangeCount || sel.isCollapsed) { showToast('请先选择文字'); return; }
+  }
   var text = sel.toString();
   try {
     document.execCommand('copy');
@@ -3864,8 +3877,9 @@ function noteFontSize(delta) {
   _noteFontSize = Math.max(12, Math.min(28, _noteFontSize + delta));
   localStorage.setItem('note_fontSize', _noteFontSize);
   var contentEl = document.getElementById('noteEditorContent');
-  contentEl.style.fontSize = _noteFontSize + 'px';
-  document.getElementById('noteFontSizeLabel').textContent = _noteFontSize;
+  if (contentEl) contentEl.style.fontSize = _noteFontSize + 'px';
+  var labelEl = document.getElementById('noteFontSizeLabel');
+  if (labelEl) labelEl.textContent = _noteFontSize;
 }
 
 function noteSetTheme(theme) {
@@ -3876,8 +3890,10 @@ function noteSetTheme(theme) {
 
 function _noteApplySettings() {
   var contentEl = document.getElementById('noteEditorContent');
+  if (!contentEl) return;
   contentEl.style.fontSize = _noteFontSize + 'px';
-  document.getElementById('noteFontSizeLabel').textContent = _noteFontSize;
+  var labelEl = document.getElementById('noteFontSizeLabel');
+  if (labelEl) labelEl.textContent = _noteFontSize;
   contentEl.className = 'note-editor-content note-theme-' + _noteTheme;
   document.querySelectorAll('.note-bg-btn').forEach(function(b) { b.classList.remove('active'); });
   var activeBtn = document.getElementById('noteBg' + _noteTheme.charAt(0).toUpperCase() + _noteTheme.slice(1));
@@ -3945,6 +3961,7 @@ setTimeout(function() {
   notePadRender();
   _noteApplyLeftState();
   _noteResizeLayout();
+  _noteApplySettings();
 }, 100);
 
 // === Custom Calendar Popup (replaces native date picker to avoid black theme on Android) ===
@@ -4235,7 +4252,7 @@ function switchTab(tab) {
   var tabEl = document.querySelector('.tab-item[data-tab="' + tab + '"]');
   if (tabEl) tabEl.classList.add('active');
   if (tab === 'fav') renderFavList();
-  if (tab === 'note') { _noteResizeLayout(); notePadRender(); }
+  if (tab === 'note') { _noteResizeLayout(); notePadRender(); _noteApplySettings(); }
 }
 
 // ===== Build search indexes (with pinyin) =====
