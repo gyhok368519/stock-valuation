@@ -144,12 +144,13 @@ body {
 <div class="container">
   <div class="topbar">
     <div>
-      <h1>ROE 分析器</h1>
+      <h1>ROE分析</h1>
     </div>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换亮/暗模式">🌙</button>
   </div>
   <div class="input-area">
-    <input type="text" id="searchInput" placeholder="股票代码（如600025）或简称（如HNSD/华能水电）" autocomplete="off"
+    <label for="searchInput" style="font-size:14px;color:var(--text2);white-space:nowrap;line-height:42px;">股票代码</label>
+    <input type="text" id="searchInput" placeholder="代码（如600025）或简称（如HNSD/华能水电）" autocomplete="off"
       onkeydown="if(event.key==='Enter')doSearch()">
     <button onclick="doSearch()">分析</button>
   </div>
@@ -507,9 +508,9 @@ function render(data){
       var at=dupont.assetTurnover, em=dupont.equityMultiplier;
       html+='<div class="card"><div class="card-title">杜邦三因子拆解（'+period+'）</div>'
         +'<div class="dupont-grid">'
-        +'<div class="dupont-item"><div class="icon" style="color:var(--green)">◆</div><div class="name">净利率</div><div class="val">'+_fmtPct(nm,2)+'</div><div class="desc">归母净利润/营业收入</div></div>'
-        +'<div class="dupont-item"><div class="icon" style="color:var(--blue)">▲</div><div class="name">总资产周转率</div><div class="val">'+_fmt(at,3)+'</div><div class="desc">营业收入/平均总资产</div></div>'
-        +'<div class="dupont-item"><div class="icon" style="color:var(--orange)">■</div><div class="name">权益乘数</div><div class="val">'+_fmt(em,3)+'</div><div class="desc">平均总资产/平均归母权益</div></div>'
+        +'<div class="dupont-item"><div class="name">净利率</div><div class="val">'+_fmtPct(nm,2)+'</div><div class="desc">归母净利润/营业收入</div></div>'
+        +'<div class="dupont-item"><div class="name">总资产周转率</div><div class="val">'+_fmt(at,3)+'</div><div class="desc">营业收入/平均总资产</div></div>'
+        +'<div class="dupont-item"><div class="name">权益乘数</div><div class="val">'+_fmt(em,3)+'</div><div class="desc">平均总资产/平均归母权益</div></div>'
         +'</div>'
         +'<div class="dupont-formula">'
         +'<span class="num">'+_fmtPct(nm,2)+'</span> × <span class="num">'+_fmt(at,3)+'</span> × <span class="num">'+_fmt(em,3)+'</span>'
@@ -563,9 +564,9 @@ function render(data){
       // 简化版（金融股）
       html+='<div class="card"><div class="card-title">杜邦分析（'+period+'）<span style="color:var(--yellow);font-size:11px;"> 金融行业简化版</span></div>'
         +'<div class="dupont-grid">'
-        +'<div class="dupont-item"><div class="icon" style="color:var(--green)">◆</div><div class="name">净利率</div><div class="val">'+_fmtPct(nm,2)+'</div><div class="desc">归母净利润/营业收入</div></div>'
-        +'<div class="dupont-item"><div class="icon" style="color:var(--blue)">▲</div><div class="name">周转×权益</div><div class="val">'+_fmt(dupont.combined,4)+'</div><div class="desc">营收/归母权益（合并）</div></div>'
-        +'<div class="dupont-item"><div class="icon" style="color:var(--text3)">—</div><div class="name">权益乘数</div><div class="val" style="color:var(--text3)">—</div><div class="desc">需资产负债表</div></div>'
+        +'<div class="dupont-item"><div class="name">净利率</div><div class="val">'+_fmtPct(nm,2)+'</div><div class="desc">归母净利润/营业收入</div></div>'
+        +'<div class="dupont-item"><div class="name">周转×权益</div><div class="val">'+_fmt(dupont.combined,4)+'</div><div class="desc">营收/归母权益（合并）</div></div>'
+        +'<div class="dupont-item"><div class="name">权益乘数</div><div class="val" style="color:var(--text3)">—</div><div class="desc">需资产负债表</div></div>'
         +'</div>'
         +'<div class="dupont-formula">'
         +'<span class="num">'+_fmtPct(nm,2)+'</span> × <span class="num">'+_fmt(dupont.combined,4)+'</span>'
