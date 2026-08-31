@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pb-calc-v186';
+const CACHE_NAME = 'pb-calc-v187';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './stock_index.json',
@@ -142,7 +142,11 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Stale-While-Revalidate for static assets
+  // Skip cross-origin requests entirely — let browser handle them directly
+  // (prevents SW from blocking mine.html/roe.html API calls on mobile WebView)
+  if (new URL(url).origin !== self.location.origin) return;
+
+  // Stale-While-Revalidate for same-origin static assets
   // - PB_PE_ROE_calc.html, sw.js, manifest.json, stock_index.json → SWR
   e.respondWith(swr(e.request));
 });
