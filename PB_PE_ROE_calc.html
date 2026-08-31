@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.29';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.30';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -524,7 +524,7 @@ body {
   .note-add-btn:active { opacity:0.7; }
   .note-editor { position: absolute; top: 0; left: 110px; right: 0; overflow: hidden; }
   .note-toolbar { display: flex; flex-direction: column; padding: 2px 4px; background: var(--card); border-bottom: 1px solid var(--gray-light); gap: 2px; height: 28px; box-sizing: border-box; }
-  .note-toolbar-row { display:flex; align-items:center; justify-content:space-between; gap:4px; height:100%; -webkit-user-select:none; user-select:none; overflow:hidden; }
+  .note-toolbar-row { display:flex; align-items:center; gap:6px; height:100%; -webkit-user-select:none; user-select:none; overflow:hidden; }
   .note-toolbar-row::-webkit-scrollbar { display:none; }
   .note-toolbar-btn { font-size:12px; padding:1px 4px; border:1px solid var(--gray-light); border-radius:4px; background:var(--card); color:var(--text); cursor:pointer; font-family:inherit; white-space:nowrap; -webkit-user-select:none; user-select:none; flex-shrink:0; line-height:1.4; display:flex; align-items:center; justify-content:center; }
   .note-toolbar-btn:active { opacity:0.7; }
@@ -850,6 +850,7 @@ body {
           <button class="note-toolbar-btn" onclick="notePaste()" title="粘贴">📋</button>
           <button class="note-toolbar-btn" onclick="noteSelectAll()" title="全选">☑</button>
           <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><circle cx="8" cy="12" r="0.5"/><circle cx="12" cy="12" r="0.5"/><circle cx="16" cy="12" r="0.5"/><circle cx="8" cy="16" r="0.5"/><circle cx="12" cy="16" r="0.5"/><circle cx="16" cy="16" r="0.5"/></svg></button>
+          <div style="flex:1;"></div>
           <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
           <span id="noteFontSizeLabel" style="font-size:11px;min-width:16px;text-align:center;color:var(--text);-webkit-user-select:none;user-select:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;">15</span>
           <button class="note-toolbar-btn" onclick="noteFontSize(1)">A+</button>
@@ -3673,26 +3674,8 @@ function notePaste() {
     sel.removeAllRanges();
     sel.addRange(_noteLastRange);
   }
-  if (navigator.clipboard && navigator.clipboard.readText) {
-    navigator.clipboard.readText().then(function(text) {
-      if (!text) { showToast('剪贴板为空'); return; }
-      // 重新恢复焦点和光标（异步回调中焦点可能已丢失）
-      contentEl.focus();
-      if (_noteLastRange) {
-        var sel2 = window.getSelection();
-        sel2.removeAllRanges();
-        sel2.addRange(_noteLastRange);
-      }
-      document.execCommand('insertText', false, text);
-      noteOnInput();
-      _noteSaveRange();
-      showToast('已粘贴');
-    }).catch(function() {
-      showToast('请长按编辑区粘贴');
-    });
-  } else {
-    showToast('请长按编辑区粘贴');
-  }
+  // navigator.clipboard.readText() Promise hangs in Android WebView - skip it entirely
+  showToast('请长按编辑区粘贴');
 }
 
 // 粘贴 fallback：弹临时输入框让用户手动 Ctrl+V，确认后插入编辑器光标位置
@@ -4337,30 +4320,15 @@ function _copyPhone() {
   var phone = document.querySelector('.info-menu-row .row-value[onclick="_copyPhone()"]');
   var num = phone ? phone.textContent.trim() : '';
   if (!num) return;
-  // Try clipboard API first, fallback to execCommand
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(num).then(function() {
-      showToast('已复制：' + num);
-    }).catch(function() {
-      _fallbackCopy(num);
-    });
-  } else {
-    _fallbackCopy(num);
-  }
+  _fallbackCopy(num);
 }
 function _fallbackCopy(text, silent) {
-  // Try clipboard API first (works in modern browsers and some WebViews)
+  // Directly use execCommand('copy') - navigator.clipboard.writeText() Promise hangs in Android WebView
   function done(ok) {
     if (ok) { if (!silent) showToast('已复制'); }
     else showToast('复制失败，请长按复制');
   }
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(function() { done(true); }).catch(function() {
-      _execCmdCopy(text, done);
-    });
-  } else {
-    _execCmdCopy(text, done);
-  }
+  _execCmdCopy(text, done);
 }
 function _execCmdCopy(text, cb) {
   try {
