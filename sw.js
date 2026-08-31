@@ -1,6 +1,8 @@
-const CACHE_NAME = 'pb-calc-v188';
+const CACHE_NAME = 'pb-calc-v189';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
+  './roe.html',
+  './mine.html',
   './stock_index.json',
   './manifest.json',
   './icon-512.jpg',
@@ -145,6 +147,11 @@ self.addEventListener('fetch', e => {
   // Skip cross-origin requests entirely — let browser handle them directly
   // (prevents SW from blocking mine.html/roe.html API calls on mobile WebView)
   if (new URL(url).origin !== self.location.origin) return;
+
+  // Skip navigation requests for HTML pages — let browser handle them directly
+  // (prevents SW from intercepting page loads like roe.html/mine.html on mobile WebView
+  // where SW is unstable and may return 502 "network error" instead of loading the page)
+  if (e.request.mode === 'navigate') return;
 
   // Stale-While-Revalidate for same-origin static assets
   // - PB_PE_ROE_calc.html, sw.js, manifest.json, stock_index.json → SWR
