@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.21';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.22';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -523,13 +523,14 @@ body {
   .note-add-btn { font-size:14px; color:var(--primary); cursor:pointer; padding:0 6px; border:none; background:none; font-family:inherit; white-space:nowrap; text-align:center; line-height:1; }
   .note-add-btn:active { opacity:0.7; }
   .note-editor { position: absolute; top: 0; left: 110px; right: 0; overflow: hidden; }
-  .note-toolbar { display: flex; flex-direction: column; padding: 4px 6px; background: var(--card); border-bottom: 1px solid var(--gray-light); gap: 2px; height: 28px; box-sizing: border-box; }
-  .note-toolbar-row { display:flex; align-items:center; gap:6px; height:100%; -webkit-user-select:none; user-select:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
+  .note-toolbar { display: flex; flex-direction: column; padding: 2px 4px; background: var(--card); border-bottom: 1px solid var(--gray-light); gap: 2px; height: 36px; box-sizing: border-box; }
+  .note-toolbar-row { display:flex; align-items:center; gap:4px; height:100%; -webkit-user-select:none; user-select:none; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
   .note-toolbar-row::-webkit-scrollbar { display:none; }
-  .note-toolbar-btn { font-size:14px; padding:3px 7px; border:1px solid var(--gray-light); border-radius:4px; background:var(--card); color:var(--text); cursor:pointer; font-family:inherit; white-space:nowrap; -webkit-user-select:none; user-select:none; }
+  .note-toolbar-btn { font-size:13px; padding:2px 5px; border:1px solid var(--gray-light); border-radius:4px; background:var(--card); color:var(--text); cursor:pointer; font-family:inherit; white-space:nowrap; -webkit-user-select:none; user-select:none; flex-shrink:0; line-height:1.4; }
   .note-toolbar-btn:active { opacity:0.7; }
   .note-toolbar-btn.active { background:var(--primary); color:var(--text-inv); border-color:var(--primary); }
-  .note-editor-area { position: absolute; top: 28px; left: 0; right: 0; overflow: hidden; }
+  .note-editor-area { position: absolute; top: 36px; left: 0; right: 0; overflow: hidden; }
+  .note-empty { position: absolute; top: 36px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; color: var(--text3); font-size: 13px; }
   .note-editor-scroll { width:100%; height:100%; overflow-y:auto; padding:12px; box-sizing:border-box; }
   .note-editor-content { width:100%; min-height:100%; outline:none; border:none; background:transparent; color:var(--text); font-size:15px; line-height:1.7; word-break:break-all; white-space:pre-wrap; resize:none; -webkit-user-select:text; user-select:text; }
   .note-editor-content:empty::before { content:attr(data-placeholder); color:var(--text3); pointer-events:none; }
@@ -542,7 +543,6 @@ body {
   .note-bg-warm { background:var(--note-warm-bg, #f5efc1); }
   .note-bg-green { background:var(--note-green-bg, #c8e6c9); }
   .note-bg-sage { background:var(--note-sage-bg, #b5c4a9); }
-  .note-empty { position: absolute; top: 28px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; color: var(--text3); font-size: 13px; }
   .fav-empty { text-align:center; padding:60px 20px; color:var(--text3); }
   .fav-empty-icon { font-size:48px; margin-bottom:12px; }
   .fav-empty p { font-size:14px; margin-bottom:6px; }
@@ -845,14 +845,14 @@ body {
     <div class="note-editor" id="noteEditor" style="display:none;">
       <div class="note-toolbar" id="noteToolbar">
         <div class="note-toolbar-row">
-          <button class="note-toolbar-btn" onclick="noteCut()" title="剪切">&#x2702;</button>
-          <button class="note-toolbar-btn" onclick="noteCopy()" title="复制">&#x2398;</button>
-          <button class="note-toolbar-btn" onclick="notePaste()" title="粘贴">&#x1F4CB;</button>
-          <button class="note-toolbar-btn" onclick="noteSelectAll()" title="全选">&#x2611;</button>
-          <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器"><svg class="calc-icon-svg" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="8" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="16" r="1" fill="currentColor"/><circle cx="15" cy="16" r="1" fill="currentColor"/></svg></button>
+          <button class="note-toolbar-btn" onclick="noteCut()" title="剪切">✂</button>
+          <button class="note-toolbar-btn" onclick="noteCopy()" title="复制">⎘</button>
+          <button class="note-toolbar-btn" onclick="notePaste()" title="粘贴">📋</button>
+          <button class="note-toolbar-btn" onclick="noteSelectAll()" title="全选">☑</button>
+          <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器">🧮</button>
           <div style="flex:1;"></div>
           <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
-          <span id="noteFontSizeLabel" style="font-size:12px;min-width:20px;text-align:center;color:var(--text);-webkit-user-select:none;user-select:none;">15</span>
+          <span id="noteFontSizeLabel" style="font-size:11px;min-width:16px;text-align:center;color:var(--text);-webkit-user-select:none;user-select:none;flex-shrink:0;">15</span>
           <button class="note-toolbar-btn" onclick="noteFontSize(1)">A+</button>
         </div>
       </div>
@@ -3616,45 +3616,56 @@ function _noteSaveCurrent() {
 var _noteLastRange = null;
 function _noteSaveRange() {
   var sel = window.getSelection();
+  // Only save when there's a non-collapsed selection (has actual selected text)
+  // This prevents onblur from overwriting a valid saved range with an empty/collapsed one
   if (sel.rangeCount && !sel.isCollapsed) {
-    _noteLastRange = sel.getRangeAt(0).cloneRange();
-  } else if (sel.rangeCount) {
     _noteLastRange = sel.getRangeAt(0).cloneRange();
   }
 }
 function noteCut() {
+  var contentEl = document.getElementById('noteEditorContent');
   var sel = window.getSelection();
-  if (!sel.rangeCount || sel.isCollapsed) { showToast('请先选择文字'); return; }
-  var text = sel.toString();
-  try {
-    document.execCommand('cut');
-    showToast('已剪切');
-  } catch(e) {
-    _fallbackCopy(text);
-    document.execCommand('delete');
+  var text = '';
+  if (sel.rangeCount && !sel.isCollapsed) {
+    text = sel.toString();
   }
+  if (!text && _noteLastRange) {
+    contentEl.focus();
+    sel.removeAllRanges();
+    sel.addRange(_noteLastRange);
+    text = sel.toString();
+  }
+  if (!text) { showToast('请先选择文字'); return; }
+  _fallbackCopy(text, true);
+  // Delete selected text
+  contentEl.focus();
+  if (_noteLastRange) {
+    sel.removeAllRanges();
+    sel.addRange(_noteLastRange);
+  }
+  document.execCommand('delete');
   noteOnInput();
+  showToast('已剪切');
 }
 
 function noteCopy() {
   var contentEl = document.getElementById('noteEditorContent');
   var sel = window.getSelection();
-  // If no active selection, try to restore from saved range (button click may have lost focus)
-  if (!sel.rangeCount || sel.isCollapsed) {
-    if (_noteLastRange) {
-      contentEl.focus();
-      sel.removeAllRanges();
-      sel.addRange(_noteLastRange);
-    }
-    if (!sel.rangeCount || sel.isCollapsed) { showToast('请先选择文字'); return; }
+  var text = '';
+  // Try to get selected text
+  if (sel.rangeCount && !sel.isCollapsed) {
+    text = sel.toString();
   }
-  var text = sel.toString();
-  try {
-    document.execCommand('copy');
-    showToast('已复制');
-  } catch(e) {
-    _fallbackCopy(text);
+  // If no selection, try restoring from saved range
+  if (!text && _noteLastRange) {
+    contentEl.focus();
+    sel.removeAllRanges();
+    sel.addRange(_noteLastRange);
+    text = sel.toString();
   }
+  if (!text) { showToast('请先选择文字'); return; }
+  _fallbackCopy(text, true);
+  showToast('已复制');
 }
 
 function notePaste() {
@@ -4341,7 +4352,7 @@ function _copyPhone() {
     _fallbackCopy(num);
   }
 }
-function _fallbackCopy(text) {
+function _fallbackCopy(text, silent) {
   var ta = document.createElement('textarea');
   ta.value = text;
   ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
@@ -4350,7 +4361,7 @@ function _fallbackCopy(text) {
   ta.setSelectionRange(0, text.length);
   try {
     document.execCommand('copy');
-    showToast('已复制：' + text);
+    if (!silent) showToast('已复制');
   } catch(e) {
     showToast('复制失败，请长按复制');
   }
