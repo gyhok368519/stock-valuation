@@ -235,11 +235,12 @@ function fetchStockName(code){
 
 /* ========== 数据处理 ========== */
 function extractAnnualReports(finData){
-  // 筛选年报，取最近5年
+  // 筛选年报(Q4结尾)，取最近5年
   var annuals=[];
   for(var i=0;i<finData.length;i++){
     var it=finData[i];
-    if(it.DATATYPE && it.DATATYPE.indexOf('年报')>=0){
+    // 用QDATE的Q4识别年报（更可靠，不受编码影响）
+    if(it.QDATE && /Q4$/.test(it.QDATE) && it.WEIGHTAVG_ROE !== null && it.WEIGHTAVG_ROE !== undefined && it.WEIGHTAVG_ROE !== ''){
       annuals.push(it);
     }
   }
@@ -355,7 +356,8 @@ function genConclusion(annuals, latest, dupont){
 
   // 4. 综合评价
   var summary = '';
-  if(latestROE >= 15 && (annuals.length >= 2 && (roeVals[roeVals.length-1] - roeVals[0]) >= -2)){
+  var trendStable = annuals.length >= 2 ? (roeVals[roeVals.length-1] - roeVals[0] >= -2) : true;
+  if(latestROE >= 15 && trendStable){
     summary = '该公司ROE处于优秀区间且趋势稳定或上升，盈利能力强，是优质盈利型公司的特征。';
   } else if(latestROE >= 10){
     summary = '该公司ROE处于良好水平，盈利能力尚可，可结合杜邦因子判断其盈利驱动来源。';
