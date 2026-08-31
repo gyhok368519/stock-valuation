@@ -38,8 +38,10 @@ body {
 .header {
   background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
   color: #fff; padding: 20px 16px 16px; text-align: center;
+  position: relative;
 }
 [data-theme="dark"] .header { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d5e 100%); }
+.header .back-btn { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; }
 .header h1 { font-size: 20px; font-weight: 600; }
 .header p { font-size: 12px; opacity: 0.85; margin-top: 4px; }
 .container { max-width: 480px; margin: 0 auto; padding: 12px 12px 24px; }
@@ -131,6 +133,7 @@ body {
 <body>
 
 <div class="header">
+  <a href="PB_PE_ROE_calc.html" class="back-btn" title="返回">&larr;</a>
   <h1>高分红排雷工具</h1>
   <p style="display:none;">7 项指标排查被动高息陷阱 · 数据仅供研究参考</p>
 </div>
