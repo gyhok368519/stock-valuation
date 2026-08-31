@@ -822,11 +822,13 @@ function _doFetch(code, stockName, market){
 // 实时搜索建议
 document.getElementById('searchInput').addEventListener('input',function(){
   var v=this.value.trim();
-  if(!v || /^\d{6}$/.test(v)){ document.getElementById('suggestList').style.display='none'; return; }
+  if(!v){ document.getElementById('suggestList').style.display='none'; return; }
   loadStockMap(function(err){
     if(err && !Object.keys(STOCK_MAP).length){ document.getElementById('suggestList').style.display='none'; return; }
     var list=searchStock(v);
-    if(list && list.length>1) showSuggest(list);
+    // searchStock returns single object for 6-digit code, wrap in array
+    if(list && !Array.isArray(list)) list=[list];
+    if(list && list.length>0) showSuggest(list);
     else document.getElementById('suggestList').style.display='none';
   });
 });
