@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.10';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.11';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -856,7 +856,7 @@ body {
       </div>
       <div class="note-editor-area">
         <div class="note-editor-scroll" id="noteEditorScroll">
-          <div class="note-editor-content note-theme-warm" id="noteEditorContent" contenteditable="true" data-placeholder="开始输入内容..." oninput="noteOnInput()"></div>
+          <div class="note-editor-content note-theme-warm" id="noteEditorContent" contenteditable="true" data-placeholder="开始输入内容..." oninput="noteOnInput()" onmouseup="_noteSaveRange()" onkeyup="_noteSaveRange()" onblur="_noteSaveRange()"></div>
         </div>
       </div>
     </div>
@@ -3593,6 +3593,15 @@ function _noteSaveCurrent() {
 }
 
 // === Edit operations ===
+var _noteLastRange = null;
+function _noteSaveRange() {
+  var sel = window.getSelection();
+  if (sel.rangeCount && !sel.isCollapsed) {
+    _noteLastRange = sel.getRangeAt(0).cloneRange();
+  } else if (sel.rangeCount) {
+    _noteLastRange = sel.getRangeAt(0).cloneRange();
+  }
+}
 function noteCut() {
   var sel = window.getSelection();
   if (!sel.rangeCount || sel.isCollapsed) return;
@@ -3605,9 +3614,10 @@ function noteCopy() {
   var sel = window.getSelection();
   if (!sel.rangeCount || sel.isCollapsed) { showToast('请先选择文字'); return; }
   var text = sel.toString();
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(function(){ showToast('已复制'); }).catch(function(){ _fallbackCopy(text); });
-  } else {
+  try {
+    document.execCommand('copy');
+    showToast('已复制');
+  } catch(e) {
     _fallbackCopy(text);
   }
 }
@@ -3615,53 +3625,19 @@ function noteCopy() {
 function notePaste() {
   var contentEl = document.getElementById('noteEditorContent');
   contentEl.focus();
-  if (navigator.clipboard && navigator.clipboard.readText) {
-    navigator.clipboard.readText().then(function(text) {
-      document.execCommand('insertText', false, text);
-      noteOnInput();
-    }).catch(function() {
-      _pasteFallback(contentEl);
-    });
-  } else {
-    _pasteFallback(contentEl);
+  // 恢复光标到上次位置
+  if (_noteLastRange) {
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_noteLastRange);
   }
-}
-
-function _pasteFallback(contentEl) {
-  // 用隐藏textarea接收粘贴内容
-  var ta = document.createElement('textarea');
-  ta.style.cssText = 'position:fixed;left:50%;top:50%;width:300px;height:80px;opacity:0.9;z-index:9999;';
-  ta.placeholder = '在此粘贴（Ctrl+V），然后点此处以外';
-  document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
-  var done = false;
-  function _finish() {
-    if (done) return; done = true;
-    var text = ta.value;
-    document.body.removeChild(ta);
-    if (text) {
-      contentEl.focus();
-      // 在光标位置插入文本
-      var sel = window.getSelection();
-      if (sel.rangeCount && !sel.isCollapsed) {
-        document.execCommand('delete');
-      }
-      document.execCommand('insertText', false, text);
-      noteOnInput();
-      showToast('已粘贴');
-    } else {
-      contentEl.focus();
-    }
+  // 尝试 execCommand('paste')，大多数浏览器会触发原生粘贴
+  try {
+    var ok = document.execCommand('paste');
+    if (!ok) showToast('请按 Ctrl+V 粘贴');
+  } catch(e) {
+    showToast('请按 Ctrl+V 粘贴');
   }
-  ta.addEventListener('blur', _finish);
-  ta.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' || (e.ctrlKey && e.key === 'v')) {
-      e.preventDefault();
-      setTimeout(_finish, 100);
-    }
-  });
-  showToast('请在弹出的框中粘贴');
 }
 
 function noteSelectAll() {
