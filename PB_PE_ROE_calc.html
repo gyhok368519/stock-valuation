@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.11';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.12';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -3631,11 +3631,24 @@ function notePaste() {
     sel.removeAllRanges();
     sel.addRange(_noteLastRange);
   }
-  // 尝试 execCommand('paste')，大多数浏览器会触发原生粘贴
-  try {
-    var ok = document.execCommand('paste');
-    if (!ok) showToast('请按 Ctrl+V 粘贴');
-  } catch(e) {
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    navigator.clipboard.readText().then(function(text) {
+      if (!text) { showToast('剪贴板为空'); return; }
+      // 重新恢复焦点和光标（异步回调中焦点可能已丢失）
+      contentEl.focus();
+      if (_noteLastRange) {
+        var sel2 = window.getSelection();
+        sel2.removeAllRanges();
+        sel2.addRange(_noteLastRange);
+      }
+      document.execCommand('insertText', false, text);
+      noteOnInput();
+      _noteSaveRange();
+      showToast('已粘贴');
+    }).catch(function() {
+      showToast('请按 Ctrl+V 粘贴');
+    });
+  } else {
     showToast('请按 Ctrl+V 粘贴');
   }
 }
