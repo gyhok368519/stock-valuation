@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pb-calc-v211';
+const CACHE_NAME = 'pb-calc-v212';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './roe.html',
@@ -113,8 +113,8 @@ self.addEventListener('fetch', e => {
   }
 
   // Update check requests: bypass all caches, force fresh from network
-  // Includes version.txt fetch (tiny file, much faster than fetching full HTML)
-  if (url.indexOf('_update=') !== -1 || url.indexOf('version.txt') !== -1) {
+  // Includes version.json fetch (tiny file, much faster than fetching full HTML)
+  if (url.indexOf('_update=') !== -1 || url.indexOf('version.json') !== -1) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' })
         .catch(function() {
