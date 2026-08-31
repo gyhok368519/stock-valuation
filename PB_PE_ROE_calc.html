@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.26';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.27';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -825,7 +825,7 @@ body {
     <h1>投资笔记</h1>
     <p id="noteSubTitle">0 条</p>
     <button class="info-btn" style="right:12px;" id="themeBtnNote" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconNote"></span></button>
-    <button class="info-btn" style="right:50px;" onclick="toggleToolMenu()" title="投资工具">📷</button>
+    <button class="info-btn" style="right:50px;" onclick="toggleToolMenu()" title="投资工具"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
   </div>
   <div class="note-layout">
     <!-- 左侧：列表（可收起） -->
@@ -849,7 +849,7 @@ body {
           <button class="note-toolbar-btn" onclick="noteCopy()" title="复制">⎘</button>
           <button class="note-toolbar-btn" onclick="notePaste()" title="粘贴">📋</button>
           <button class="note-toolbar-btn" onclick="noteSelectAll()" title="全选">☑</button>
-          <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器">🧮</button>
+          <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><circle cx="8" cy="12" r="0.5"/><circle cx="12" cy="12" r="0.5"/><circle cx="16" cy="12" r="0.5"/><circle cx="8" cy="16" r="0.5"/><circle cx="12" cy="16" r="0.5"/><circle cx="16" cy="16" r="0.5"/></svg></button>
           <div style="flex:1;"></div>
           <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
           <span id="noteFontSizeLabel" style="font-size:11px;min-width:16px;text-align:center;color:var(--text);-webkit-user-select:none;user-select:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;">15</span>
