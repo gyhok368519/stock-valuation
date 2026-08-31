@@ -5,26 +5,47 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>ROE分析器</title>
 <style>
+/* ========== 暗色主题（默认） ========== */
 :root {
   --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --text2:#8b949e; --text3:#6e7681;
   --blue:#58a6ff; --green:#3fb950; --red:#f85149; --yellow:#d29922; --purple:#bc8cff; --orange:#db6d28;
+  --input-bg:#0d1117; --tag-bg:rgba(88,166,255,.06); --dupont-border:rgba(88,166,255,.2);
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
   --mono:"SF Mono","Cascadia Code","Consolas",monospace;
   --radius:8px;
+  --shadow:0 0 0 1px rgba(48,54,61,.5);
+}
+/* 亮色主题 */
+:root.light {
+  --bg:#ffffff; --card:#f6f8fa; --border:#d0d7de; --text:#1f2328; --text2:#656d76; --text3:#8c959f;
+  --blue:#0969da; --green:#1a7f37; --red:#cf222e; --yellow:#9a6700; --purple:#8250df; --orange:#bc4c00;
+  --input-bg:#ffffff; --tag-bg:rgba(9,105,218,.06); --dupont-border:rgba(9,105,218,.2);
+  --shadow:0 0 0 1px rgba(208,215,222,.5);
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 html,body { height:100%; }
 body {
   background:var(--bg); color:var(--text); font-family:var(--font); font-size:15px; line-height:1.5;
   -webkit-font-smoothing:antialiased; padding:0 0 40px;
+  transition:background .2s, color .2s;
 }
 .container { max-width:880px; margin:0 auto; padding:12px 16px; }
-.header { text-align:center; padding:12px 0 16px; }
-.header h1 { font-size:22px; font-weight:600; color:var(--blue); letter-spacing:.5px; }
-.header .sub { font-size:12px; color:var(--text3); margin-top:2px; }
+
+/* 顶栏 + 主题切换 */
+.topbar { display:flex; align-items:center; justify-content:center; position:relative; padding:12px 0 16px; }
+.topbar h1 { font-size:22px; font-weight:600; color:var(--blue); letter-spacing:.5px; }
+.topbar .sub { font-size:12px; color:var(--text3); margin-top:2px; text-align:center; }
+.theme-toggle {
+  position:absolute; right:0; top:12px;
+  width:38px; height:38px; border-radius:50%; border:1px solid var(--border);
+  background:var(--card); color:var(--text2); cursor:pointer; font-size:17px;
+  display:flex; align-items:center; justify-content:center; transition:all .2s;
+}
+.theme-toggle:hover { border-color:var(--blue); color:var(--blue); }
+
 .input-area { display:flex; gap:8px; margin-bottom:12px; }
 .input-area input {
-  flex:1; height:42px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  flex:1; height:42px; background:var(--input-bg); border:1px solid var(--border); border-radius:var(--radius);
   color:var(--text); font-size:15px; padding:0 14px; outline:none; transition:border-color .2s;
 }
 .input-area input:focus { border-color:var(--blue); }
@@ -46,9 +67,7 @@ body {
 .card-title { font-size:13px; color:var(--text2); margin-bottom:10px; font-weight:600; letter-spacing:.3px; }
 .stock-name { font-size:20px; font-weight:600; color:var(--text); }
 .stock-code { font-size:13px; color:var(--text3); margin-left:6px; }
-.roe-current {
-  display:flex; align-items:baseline; gap:6px; margin-top:6px;
-}
+.roe-current { display:flex; align-items:baseline; gap:6px; margin-top:6px; flex-wrap:wrap; }
 .roe-current .val { font-size:28px; font-weight:700; font-family:var(--mono); }
 .roe-current .label { font-size:13px; color:var(--text2); }
 /* 5年ROE表格 */
@@ -66,7 +85,7 @@ body {
 /* 杜邦三因子 */
 .dupont-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
 .dupont-item {
-  background:rgba(88,166,255,.06); border:1px solid rgba(88,166,255,.2); border-radius:6px; padding:12px 8px; text-align:center;
+  background:var(--tag-bg); border:1px solid var(--dupont-border); border-radius:6px; padding:12px 8px; text-align:center;
 }
 .dupont-item .icon { font-size:18px; margin-bottom:4px; }
 .dupont-item .name { font-size:12px; color:var(--text2); margin-bottom:4px; }
@@ -75,16 +94,21 @@ body {
 .dupont-formula { text-align:center; font-size:13px; color:var(--text2); margin-top:12px; padding-top:10px; border-top:1px solid var(--border); }
 .dupont-formula .num { font-family:var(--mono); color:var(--text); }
 .dupont-formula .eq { color:var(--blue); margin:0 4px; }
+/* 多公式展开 */
+.formula-list { margin-top:12px; padding-top:10px; border-top:1px solid var(--border); }
+.formula-list .title { font-size:12px; color:var(--text3); margin-bottom:6px; font-weight:600; }
+.formula-row { font-size:12px; color:var(--text2); padding:3px 0; line-height:1.6; }
+.formula-row .fname { color:var(--text3); }
+.formula-row .fval { font-family:var(--mono); color:var(--text); font-weight:600; }
+.formula-row .fmain { color:var(--blue); font-weight:600; }
 /* 结论 */
 .conclusion { font-size:14px; line-height:1.7; color:var(--text); }
 .conclusion .tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600; margin-right:4px; }
 .tag-good { background:rgba(63,185,80,.15); color:var(--green); }
 .tag-warn { background:rgba(210,153,34,.15); color:var(--yellow); }
 .tag-bad { background:rgba(248,81,73,.15); color:var(--red); }
-.conclusion p { margin-bottom:6px; }
 .conclusion .section { margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
 .conclusion .section:first-child { margin-top:0; border-top:none; padding-top:0; }
-.empty { text-align:center; color:var(--text3); padding:40px 0; font-size:14px; }
 /* 历史记录 */
 .history-item {
   background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
@@ -108,7 +132,7 @@ body {
 .history-item.swipe-left .h-content { transform:translateX(-60px); }
 @media(max-width:600px) {
   .container { padding:10px 12px; }
-  .header h1 { font-size:19px; }
+  .topbar h1 { font-size:19px; }
   .dupont-grid { gap:6px; }
   .dupont-item .val { font-size:17px; }
   .roe-current .val { font-size:24px; }
@@ -118,9 +142,12 @@ body {
 </head>
 <body>
 <div class="container">
-  <div class="header">
-    <h1>ROE 分析器</h1>
-    <div class="sub">杜邦三因子拆解 · 五年ROE趋势</div>
+  <div class="topbar">
+    <div>
+      <h1>ROE 分析器</h1>
+      <div class="sub">杜邦三因子拆解 · 五年ROE趋势</div>
+    </div>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换亮/暗模式">🌙</button>
   </div>
   <div class="input-area">
     <input type="text" id="searchInput" placeholder="股票代码（如600025）或简称（如HNSD/华能水电）" autocomplete="off"
@@ -132,6 +159,21 @@ body {
   <div id="historySection"></div>
 </div>
 <script>
+/* ========== 主题切换 ========== */
+function toggleTheme(){
+  var root=document.documentElement;
+  root.classList.toggle('light');
+  var isLight=root.classList.contains('light');
+  document.getElementById('themeToggle').textContent=isLight?'☀️':'🌙';
+  try{ localStorage.setItem('roe_theme', isLight?'light':'dark'); }catch(e){}
+}
+(function initTheme(){
+  try{
+    var t=localStorage.getItem('roe_theme');
+    if(t==='light'){ document.documentElement.classList.add('light'); document.getElementById('themeToggle').textContent='☀️'; }
+  }catch(e){}
+})();
+
 /* ========== 工具 ========== */
 function _esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function _fmt(n,dec){ if(n===null||n===undefined||isNaN(n)) return '-'; return (+n).toFixed(dec); }
@@ -158,24 +200,20 @@ function loadStockMap(cb){
   document.head.appendChild(s);
 }
 
-/* 搜索股票：返回 {code, name, market} */
+/* 搜索股票 */
 function searchStock(input){
   input=(input||'').trim();
   if(!input) return null;
-  // 纯数字 → 代码
   if(/^\d{6}$/.test(input)){
     var name=STOCK_MAP[input]||'';
-    var market = input[0]==='6' ? 1 : (input[0]==='4'||input[0]==='8' ? 0 : 0);
+    var market = input[0]==='6' ? 1 : 0;
     return {code:input, name:name, market:market};
   }
-  // 非数字 → 简称/全拼/简拼搜索
   var q=input.toLowerCase();
-  // 先精确匹配简拼
   for(var code in PINYIN_IDX){
     var p=PINYIN_IDX[code];
     if(p.i===q || p.f===q) return {code:code, name:STOCK_MAP[code]||'', market:(code[0]==='6'?1:0)};
   }
-  // 模糊匹配简拼
   var fuzzy=[];
   for(var code2 in PINYIN_IDX){
     var p2=PINYIN_IDX[code2];
@@ -184,7 +222,6 @@ function searchStock(input){
       if(fuzzy.length>=5) break;
     }
   }
-  // 中文名称模糊匹配
   if(fuzzy.length===0){
     for(var code3 in STOCK_MAP){
       if(code3==='_loaded') continue;
@@ -198,7 +235,6 @@ function searchStock(input){
 }
 
 /* ========== 数据抓取 ========== */
-// 获取财务指标(ROE历史、净利润、营收等)
 function fetchFinance(code){
   var url='https://datacenter.eastmoney.com/api/data/v1/get'
     +'?reportName=RPT_LICO_FN_CPD'
@@ -211,7 +247,6 @@ function fetchFinance(code){
   });
 }
 
-// 获取资产负债表(总资产、归母权益)
 function fetchBalance(code){
   var url='https://datacenter.eastmoney.com/api/data/v1/get'
     +'?reportName=RPT_F10_FINANCE_GBALANCE'
@@ -219,36 +254,32 @@ function fetchBalance(code){
     +'&filter=(SECURITY_CODE=%22'+code+'%22)'
     +'&pageNumber=1&pageSize=100&sortColumns=REPORT_DATE&sortTypes=-1&source=WEB&client=WEB';
   return fetch(url).then(function(r){return r.json();}).then(function(d){
-    if(!d.success || !d.result || !d.result.data) throw new Error('资产负债表获取失败');
+    if(!d.success || !d.result || !d.result.data) return [];
     return d.result.data;
-  });
+  }).catch(function(){ return []; });
 }
 
-// 获取股票名称
 function fetchStockName(code){
   var secid = (code[0]==='6' ? '1.' : '0.') + code;
-  var url='https://push2.eastmoney.com/api/qt/stock/get?secid='+secid+'&fields=f57,f58';
+  var url='https://push2.eastmoney.com/api/qt/stock/get?secid='+secid+'&fields=f57,f58,f84';
   return fetch(url).then(function(r){return r.json();}).then(function(d){
-    return d && d.data ? d.data.f58 : '';
-  }).catch(function(){ return ''; });
+    return d && d.data ? {name:d.data.f58, totalShares:d.data.f84} : {name:'',totalShares:0};
+  }).catch(function(){ return {name:'',totalShares:0}; });
 }
 
 /* ========== 数据处理 ========== */
 function extractAnnualReports(finData){
-  // 筛选年报(Q4结尾)，取最近5年
   var annuals=[];
   for(var i=0;i<finData.length;i++){
     var it=finData[i];
-    // 用QDATE的Q4识别年报（更可靠，不受编码影响）
-    if(it.QDATE && /Q4$/.test(it.QDATE) && it.WEIGHTAVG_ROE !== null && it.WEIGHTAVG_ROE !== undefined && it.WEIGHTAVG_ROE !== ''){
+    if(it.QDATE && /Q4$/.test(it.QDATE) && it.WEIGHTAVG_ROE!==null && it.WEIGHTAVG_ROE!==undefined && it.WEIGHTAVG_ROE!==''){
       annuals.push(it);
     }
   }
-  return annuals.slice(0,5).reverse(); // 旧的在前
+  return annuals.slice(0,5).reverse();
 }
 
 function getLatestReport(finData){
-  // 最新一期报告
   return finData.length ? finData[0] : null;
 }
 
@@ -259,35 +290,68 @@ function findBalanceByDate(bsData, dateStr){
   return null;
 }
 
-function calcDupont(fin, bsCurrent, bsPrev){
-  if(!fin || !bsCurrent) return null;
-  var netProfit = fin.PARENT_NETPROFIT;
-  var revenue = fin.TOTAL_OPERATE_INCOME;
-  var totalAssets_cur = bsCurrent.TOTAL_ASSETS;
-  var parentEquity_cur = bsCurrent.TOTAL_PARENT_EQUITY;
-  var totalAssets_prev = bsPrev ? bsPrev.TOTAL_ASSETS : totalAssets_cur;
-  var parentEquity_prev = bsPrev ? bsPrev.TOTAL_PARENT_EQUITY : parentEquity_cur;
+/* 杜邦计算 —— 完整版（有资产负债表） */
+function calcDupontFull(fin, bsCur, bsPrev){
+  if(!fin || !bsCur) return null;
+  var netProfit=fin.PARENT_NETPROFIT, revenue=fin.TOTAL_OPERATE_INCOME;
+  var taCur=bsCur.TOTAL_ASSETS, eqCur=bsCur.TOTAL_PARENT_EQUITY, totalLiab=bsCur.TOTAL_LIABILITIES;
+  var taPrev=bsPrev?bsPrev.TOTAL_ASSETS:taCur;
+  var eqPrev=bsPrev?bsPrev.TOTAL_PARENT_EQUITY:eqCur;
+  if(!netProfit||!revenue||!taCur||!eqCur) return null;
 
-  if(!netProfit || !revenue || !totalAssets_cur || !parentEquity_cur) return null;
+  var avgTa=(taCur+taPrev)/2, avgEq=(eqCur+eqPrev)/2;
+  var sjlhz=fin.SJLHZ; // 接口销售净利率
 
-  var netMargin = netProfit / revenue; // 净利率
-  var avgAssets = (totalAssets_cur + totalAssets_prev) / 2;
-  var avgEquity = (parentEquity_cur + parentEquity_prev) / 2;
-  var assetTurnover = revenue / avgAssets; // 总资产周转率
-  var equityMultiplier = avgAssets / avgEquity; // 权益乘数
+  // 净利率 - 多种公式
+  var nm_parent = netProfit/revenue;             // 归母净利率
+  var nm_api = sjlhz!=null ? sjlhz/100 : null;   // 接口销售净利率
+
+  // 总资产周转率 - 多种公式
+  var at_avg = revenue/avgTa;   // 平均总资产
+  var at_end = revenue/taCur;   // 期末总资产
+
+  // 权益乘数 - 多种公式
+  var em_avg = avgTa/avgEq;                    // 平均总资产/平均归母权益
+  var em_end = taCur/eqCur;                     // 期末总资产/期末归母权益
+  var em_debt = (totalLiab&&taCur) ? 1/(1-totalLiab/taCur) : null; // 1/(1-资产负债率)
+
+  // 计算ROE（多种组合）
+  var roe_avg = nm_parent * at_avg * em_avg * 100;       // 全平均法
+  var roe_end = nm_parent * at_end * em_end * 100;       // 全期末法
+  var roe_mix = nm_parent * at_avg * em_debt * 100;      // 混合法
 
   return {
-    netMargin: netMargin,
-    assetTurnover: assetTurnover,
-    equityMultiplier: equityMultiplier,
-    calculatedROE: netMargin * assetTurnover * equityMultiplier * 100,
-    reportedROE: fin.WEIGHTAVG_ROE,
-    avgAssets: avgAssets,
-    avgEquity: avgEquity,
-    netProfit: netProfit,
-    revenue: revenue,
-    totalAssets_cur: totalAssets_cur,
-    parentEquity_cur: parentEquity_cur
+    type:'full',
+    netMargin:nm_parent, netMarginApi:nm_api,
+    assetTurnover:at_avg, assetTurnoverEnd:at_end,
+    equityMultiplier:em_avg, equityMultiplierEnd:em_end, equityMultiplierDebt:em_debt,
+    calcROE:roe_avg, calcROE_end:roe_end, calcROE_mix:roe_mix,
+    reportedROE:fin.WEIGHTAVG_ROE,
+    netProfit:netProfit, revenue:revenue,
+    taCur:taCur, taPrev:taPrev, eqCur:eqCur, eqPrev:eqPrev,
+    avgTa:avgTa, avgEq:avgEq, totalLiab:totalLiab
+  };
+}
+
+/* 杜邦计算 —— 简化版（金融股，无资产负债表，用BPS×总股本推算归母权益） */
+function calcDupontSimple(fin, totalShares){
+  if(!fin || !totalShares || !fin.BPS) return null;
+  var netProfit=fin.PARENT_NETPROFIT, revenue=fin.TOTAL_OPERATE_INCOME, bps=fin.BPS;
+  if(!netProfit||!revenue) return null;
+
+  var parentEquity = bps * totalShares; // 推算归母权益
+  var nm = netProfit/revenue;
+  // ROE = 净利率 × (总资产周转率 × 权益乘数)
+  // 合并因子 = 营收 / 归母权益
+  var combined = revenue / parentEquity;
+  var calcROE = nm * combined * 100;
+
+  return {
+    type:'simple',
+    netMargin:nm, netMarginApi:fin.SJLHZ!=null?fin.SJLHZ/100:null,
+    combined:combined,
+    calcROE:calcROE, reportedROE:fin.WEIGHTAVG_ROE,
+    netProfit:netProfit, revenue:revenue, parentEquity:parentEquity, bps:bps, totalShares:totalShares
   };
 }
 
@@ -296,379 +360,352 @@ function genConclusion(annuals, latest, dupont){
   var parts=[];
   if(!latest) return '<p>数据不足，无法生成结论。</p>';
 
-  var latestROE = latest.WEIGHTAVG_ROE;
+  var latestROE=latest.WEIGHTAVG_ROE;
   var roeLevel, roeTag;
-  if(latestROE >= 15){ roeLevel='优秀'; roeTag='tag-good'; }
-  else if(latestROE >= 10){ roeLevel='良好'; roeTag='tag-good'; }
-  else if(latestROE >= 5){ roeLevel='一般'; roeTag='tag-warn'; }
-  else if(latestROE > 0){ roeLevel='偏低'; roeTag='tag-warn'; }
-  else { roeLevel='负值'; roeTag='tag-bad'; }
+  if(latestROE>=15){roeLevel='优秀';roeTag='tag-good';}
+  else if(latestROE>=10){roeLevel='良好';roeTag='tag-good';}
+  else if(latestROE>=5){roeLevel='一般';roeTag='tag-warn';}
+  else if(latestROE>0){roeLevel='偏低';roeTag='tag-warn';}
+  else{roeLevel='负值';roeTag='tag-bad';}
 
-  // 1. ROE水平
-  var reportName = latest.DATATYPE || '最新报告期';
+  var reportName=latest.DATATYPE||'最新报告期';
   parts.push('<div class="section"><span class="tag '+roeTag+'">'+roeLevel+'</span>'
-    +'<b>'+_esc(reportName)+' ROE = '+_fmt(latestROE,2)+'%</b>'
-    +'，属于'+roeLevel+'水平。'
-    + (latestROE>=15?'超过15%的优秀线，股东回报能力强。'
-      : (latestROE>=10?'高于10%的良好线，盈利能力尚可。'
-      : (latestROE>=5?'处于5%~10%区间，盈利能力一般。'
-      : (latestROE>0?'低于5%，盈利能力偏弱。':'ROE为负值，股东处于亏损状态。'))))
-    + '</div>');
+    +'<b>'+_esc(reportName)+' ROE = '+_fmt(latestROE,2)+'%</b>，属于'+roeLevel+'水平。'
+    +(latestROE>=15?'超过15%优秀线，股东回报能力强。'
+      :(latestROE>=10?'高于10%良好线，盈利能力尚可。'
+      :(latestROE>=5?'处于5%~10%区间，盈利能力一般。'
+      :(latestROE>0?'低于5%，盈利能力偏弱。':'ROE为负值，股东处于亏损状态。'))))
+    +'</div>');
 
-  // 2. 五年趋势
-  if(annuals.length >= 2){
-    var roeVals = annuals.map(function(a){return a.WEIGHTAVG_ROE;});
-    var trend, trendTag;
-    var diff = roeVals[roeVals.length-1] - roeVals[0];
-    if(diff > 2){ trend='上升趋势'; trendTag='tag-good'; }
-    else if(diff < -2){ trend='下降趋势'; trendTag='tag-bad'; }
-    else { trend='相对稳定'; trendTag='tag-warn'; }
-
-    var trendStr = annuals.map(function(a,i){
-      return _fmt(a.WEIGHTAVG_ROE,2)+'%';
-    }).join(' → ');
-
+  if(annuals.length>=2){
+    var roeVals=annuals.map(function(a){return a.WEIGHTAVG_ROE;});
+    var diff=roeVals[roeVals.length-1]-roeVals[0];
+    var trend,trendTag;
+    if(diff>2){trend='上升趋势';trendTag='tag-good';}
+    else if(diff<-2){trend='下降趋势';trendTag='tag-bad';}
+    else{trend='相对稳定';trendTag='tag-warn';}
+    var trendStr=annuals.map(function(a){return _fmt(a.WEIGHTAVG_ROE,2)+'%';}).join(' → ');
     parts.push('<div class="section"><span class="tag '+trendTag+'">'+trend+'</span>'
       +'<b>五年ROE趋势：</b>'+trendStr
-      + (diff>2?'，逐年提升，盈利能力增强。'
-        : (diff<-2?'，逐年下滑，需关注盈利质量。':'，波动不大，盈利能力稳定。'))
-      + '</div>');
+      +(diff>2?'，逐年提升，盈利能力增强。'
+        :(diff<-2?'，逐年下滑，需关注盈利质量。':'，波动不大，盈利能力稳定。'))
+      +'</div>');
   }
 
-  // 3. 杜邦三因子拆解
   if(dupont){
-    var nm = dupont.netMargin * 100;
-    var at = dupont.assetTurnover;
-    var em = dupont.equityMultiplier;
-
-    var nmLevel = nm >= 20 ? '高净利率' : (nm >= 10 ? '中等净利率' : '低净利率');
-    var atLevel = at >= 0.8 ? '高周转' : (at >= 0.3 ? '中等周转' : '低周转');
-    var emLevel = em >= 3 ? '高杠杆' : (em >= 2 ? '中等杠杆' : '低杠杆');
-
-    parts.push('<div class="section"><span class="tag tag-good">杜邦拆解</span>'
-      +'<b>ROE = 净利率 × 总资产周转率 × 权益乘数</b><br>'
-      + '= ' + _fmtPct(nm,2) + ' × ' + _fmt(at,3) + ' × ' + _fmt(em,3) + '<br>'
-      + '= ' + _fmt(dupont.calculatedROE,2) + '%（报告值 ' + _fmt(dupont.reportedROE,2) + '%）<br>'
-      + '<b>盈利模式：</b>' + nmLevel + '（'+_fmtPct(nm,2)+'）+ ' + atLevel + '（'+_fmt(at,2)+'次）+ ' + emLevel + '（'+_fmt(em,2)+'倍）<br>'
-      + _genStrategy(nm, at, em)
-      + '</div>');
+    var nm=dupont.netMargin*100;
+    if(dupont.type==='full'){
+      var at=dupont.assetTurnover, em=dupont.equityMultiplier;
+      var nmLevel=nm>=20?'高净利率':(nm>=10?'中等净利率':'低净利率');
+      var atLevel=at>=0.8?'高周转':(at>=0.3?'中等周转':'低周转');
+      var emLevel=em>=3?'高杠杆':(em>=2?'中等杠杆':'低杠杆');
+      parts.push('<div class="section"><span class="tag tag-good">杜邦拆解</span>'
+        +'<b>ROE = 净利率 × 总资产周转率 × 权益乘数</b><br>'
+        +'= '+_fmtPct(nm,2)+' × '+_fmt(at,3)+' × '+_fmt(em,3)
+        +' = '+_fmt(dupont.calcROE,2)+'%（报告值 '+_fmt(dupont.reportedROE,2)+'%）<br>'
+        +'<b>盈利模式：</b>'+nmLevel+'('+_fmtPct(nm,2)+') + '+atLevel+'('+_fmt(at,2)+'次) + '+emLevel+'('+_fmt(em,2)+'倍)<br>'
+        +_genStrategy(nm,at,em)+'</div>');
+    } else {
+      parts.push('<div class="section"><span class="tag tag-warn">杜邦拆解（简化）</span>'
+        +'<b>ROE = 净利率 × (总资产周转率 × 权益乘数)</b><br>'
+        +'= '+_fmtPct(nm,2)+' × '+_fmt(dupont.combined,4)
+        +' = '+_fmt(dupont.calcROE,2)+'%（报告值 '+_fmt(dupont.reportedROE,2)+'%）<br>'
+        +'<span style="color:var(--text3);font-size:12px;">金融行业无法获取资产负债表，总资产周转率与权益乘数合并展示。归母权益由每股净资产×总股本推算。</span></div>');
+    }
   }
 
-  // 4. 综合评价
-  var summary = '';
-  var trendStable = annuals.length >= 2 ? (roeVals[roeVals.length-1] - roeVals[0] >= -2) : true;
-  if(latestROE >= 15 && trendStable){
-    summary = '该公司ROE处于优秀区间且趋势稳定或上升，盈利能力强，是优质盈利型公司的特征。';
-  } else if(latestROE >= 10){
-    summary = '该公司ROE处于良好水平，盈利能力尚可，可结合杜邦因子判断其盈利驱动来源。';
-  } else if(latestROE >= 5){
-    summary = '该公司ROE处于一般水平，盈利能力不强，需关注是否能通过提升净利率或周转率改善。';
+  var trendStable = annuals.length>=2 ? (roeVals[roeVals.length-1]-roeVals[0]>=-2) : true;
+  var summary='';
+  if(latestROE>=15 && trendStable){
+    summary='该公司ROE处于优秀区间且趋势稳定或上升，盈利能力强，是优质盈利型公司的特征。';
+  } else if(latestROE>=10){
+    summary='该公司ROE处于良好水平，盈利能力尚可，可结合杜邦因子判断其盈利驱动来源。';
+  } else if(latestROE>=5){
+    summary='该公司ROE处于一般水平，盈利能力不强，需关注是否能通过提升净利率或周转率改善。';
   } else {
-    summary = '该公司ROE偏低或为负值，盈利能力弱，投资需谨慎。';
+    summary='该公司ROE偏低或为负值，盈利能力弱，投资需谨慎。';
   }
   parts.push('<div class="section"><span class="tag '+(latestROE>=10?'tag-good':'tag-warn')+'">综合评价</span>'+summary+'</div>');
-
   return parts.join('');
 }
 
-function _genStrategy(nm, at, em){
-  // 判断盈利模式类型
-  if(nm >= 15 && at < 0.5){
-    return '<b>驱动来源：</b>高净利率驱动（典型行业：白酒、医药、科技），靠产品溢价赚钱。';
-  }
-  if(nm < 10 && at >= 0.8){
-    return '<b>驱动来源：</b>高周转率驱动（典型行业：零售、贸易），靠薄利多销赚钱。';
-  }
-  if(em >= 3){
-    return '<b>驱动来源：</b>高杠杆驱动（典型行业：银行、地产、公用事业），靠财务杠杆放大收益，需关注债务风险。';
-  }
-  if(nm >= 10 && at >= 0.3 && em < 3){
-    return '<b>驱动来源：</b>均衡型，净利率和周转率均有一定贡献，杠杆适中，盈利质量较好。';
-  }
+function _genStrategy(nm,at,em){
+  if(nm>=15 && at<0.5) return '<b>驱动来源：</b>高净利率驱动（典型行业：白酒、医药、科技），靠产品溢价赚钱。';
+  if(nm<10 && at>=0.8) return '<b>驱动来源：</b>高周转率驱动（典型行业：零售、贸易），靠薄利多销赚钱。';
+  if(em>=3) return '<b>驱动来源：</b>高杠杆驱动（典型行业：银行、地产、公用事业），靠财务杠杆放大收益，需关注债务风险。';
+  if(nm>=10 && at>=0.3 && em<3) return '<b>驱动来源：</b>均衡型，净利率和周转率均有一定贡献，杠杆适中，盈利质量较好。';
   return '<b>驱动来源：</b>各项指标均不突出，盈利模式有待优化。';
 }
 
 /* ========== 渲染 ========== */
 function render(data){
-  var finData = data.fin;
-  var bsData = data.bs;
-  var stockName = data.name;
-  var code = data.code;
+  var finData=data.fin, bsData=data.bs, stockName=data.name, code=data.code;
+  var totalShares=data.totalShares||0;
 
-  var annuals = extractAnnualReports(finData);
-  var latest = getLatestReport(finData);
-  var latestDate = latest ? latest.REPORTDATE.substring(0,10) : '';
+  var annuals=extractAnnualReports(finData);
+  var latest=getLatestReport(finData);
+  var latestDate=latest?latest.REPORTDATE.substring(0,10):'';
 
-  // 找到最新一期对应的资产负债表数据和上一期数据
-  var bsLatest = latestDate ? findBalanceByDate(bsData, latestDate) : null;
-  // 上一期（用于计算平均值）
-  var bsPrev = null;
+  var bsLatest=latestDate?findBalanceByDate(bsData,latestDate):null;
+  var bsPrev=null;
   if(bsLatest){
     for(var i=0;i<bsData.length;i++){
-      if(bsData[i].REPORT_DATE < bsLatest.REPORT_DATE){
-        bsPrev = bsData[i]; break;
-      }
+      if(bsData[i].REPORT_DATE<bsLatest.REPORT_DATE){bsPrev=bsData[i];break;}
     }
   }
 
-  var dupont = calcDupont(latest, bsLatest, bsPrev);
+  // 杜邦计算：优先完整版，无资产负债表时用简化版
+  var dupont=null;
+  var isFinance=false;
+  if(bsLatest){
+    dupont=calcDupontFull(latest, bsLatest, bsPrev);
+  }
+  if(!dupont && totalShares){
+    dupont=calcDupontSimple(latest, totalShares);
+    isFinance=true;
+  }
 
-  var html = '';
+  var html='';
 
-  // 股票信息卡片
-  html += '<div class="card">'
-    + '<div class="card-title">股票信息</div>'
-    + '<span class="stock-name">' + _esc(stockName) + '</span>'
-    + '<span class="stock-code">' + _esc(code) + '</span>'
-    + '<div class="roe-current"><span class="label">'+_esc(latest.DATATYPE||'')+' ROE：</span><span class="val" style="color:'+(latest.WEIGHTAVG_ROE>=10?'var(--green)':(latest.WEIGHTAVG_ROE>=5?'var(--yellow)':'var(--red)'))+'">'+_fmt(latest.WEIGHTAVG_ROE,2)+'%</span></div>'
-    + '</div>';
+  // 股票信息
+  html+='<div class="card"><div class="card-title">股票信息</div>'
+    +'<span class="stock-name">'+_esc(stockName)+'</span><span class="stock-code">'+_esc(code)+'</span>'
+    +'<div class="roe-current"><span class="label">'+_esc(latest.DATATYPE||'')+' ROE：</span>'
+    +'<span class="val" style="color:'+(latest.WEIGHTAVG_ROE>=10?'var(--green)':(latest.WEIGHTAVG_ROE>=5?'var(--yellow)':'var(--red)'))+'">'+_fmt(latest.WEIGHTAVG_ROE,2)+'%</span></div></div>';
 
-  // 五年ROE趋势
-  if(annuals.length > 0){
-    html += '<div class="card">'
-      + '<div class="card-title">最近五年加权平均ROE（年报）</div>'
-      + '<table class="roe-table"><thead><tr>';
+  // 五年ROE
+  if(annuals.length>0){
+    html+='<div class="card"><div class="card-title">最近五年加权平均ROE（年报）</div>'
+      +'<table class="roe-table"><thead><tr>';
+    annuals.forEach(function(a){html+='<th>'+_esc(a.QDATE?a.QDATE.replace(/Q4/,''):'')+'</th>';});
+    html+='</tr></thead><tbody><tr>';
+    var maxRoe=0;
+    annuals.forEach(function(a){if(a.WEIGHTAVG_ROE>maxRoe)maxRoe=a.WEIGHTAVG_ROE;});
     annuals.forEach(function(a){
-      var yr = a.QDATE ? a.QDATE.replace(/Q4/,'') : '';
-      html += '<th>'+_esc(yr)+'</th>';
+      var isLast=a===annuals[annuals.length-1];
+      html+='<td class="'+(isLast?'latest':'')+'">'+_fmt(a.WEIGHTAVG_ROE,2)+'%</td>';
     });
-    html += '</tr></thead><tbody><tr>';
-    var maxRoe = 0;
-    annuals.forEach(function(a){ if(a.WEIGHTAVG_ROE > maxRoe) maxRoe = a.WEIGHTAVG_ROE; });
-    annuals.forEach(function(a){
-      var isLatest = a === annuals[annuals.length-1];
-      html += '<td class="'+(isLatest?'latest':'')+'">'+_fmt(a.WEIGHTAVG_ROE,2)+'%</td>';
-    });
-    html += '</tr></tbody></table>';
-
-    // 柱状图
-    if(maxRoe > 0){
-      html += '<div class="roe-bar-container">';
+    html+='</tr></tbody></table>';
+    if(maxRoe>0){
+      html+='<div class="roe-bar-container">';
       annuals.forEach(function(a){
-        var h = Math.max(2, (a.WEIGHTAVG_ROE / maxRoe) * 70);
-        var color = a.WEIGHTAVG_ROE >= 15 ? 'var(--green)' : (a.WEIGHTAVG_ROE >= 10 ? 'var(--blue)' : (a.WEIGHTAVG_ROE >= 5 ? 'var(--yellow)' : 'var(--red)'));
-        var yr = a.QDATE ? a.QDATE.replace(/Q4/,'') : '';
-        html += '<div class="roe-bar-item">'
-          + '<div class="roe-bar-val">'+_fmt(a.WEIGHTAVG_ROE,1)+'</div>'
-          + '<div class="roe-bar" style="height:'+h+'px;background:'+color+'"></div>'
-          + '<div class="roe-bar-label">'+_esc(yr)+'</div>'
-          + '</div>';
+        var h=Math.max(2,(a.WEIGHTAVG_ROE/maxRoe)*70);
+        var color=a.WEIGHTAVG_ROE>=15?'var(--green)':(a.WEIGHTAVG_ROE>=10?'var(--blue)':(a.WEIGHTAVG_ROE>=5?'var(--yellow)':'var(--red)'));
+        html+='<div class="roe-bar-item"><div class="roe-bar-val">'+_fmt(a.WEIGHTAVG_ROE,1)+'</div>'
+          +'<div class="roe-bar" style="height:'+h+'px;background:'+color+'"></div>'
+          +'<div class="roe-bar-label">'+_esc(a.QDATE?a.QDATE.replace(/Q4/,''):'')+'</div></div>';
       });
-      html += '</div>';
+      html+='</div>';
     }
-    html += '</div>';
+    html+='</div>';
   }
 
-  // 杜邦三因子拆解
+  // 杜邦三因子
   if(dupont){
-    var nm = dupont.netMargin * 100;
-    var at = dupont.assetTurnover;
-    var em = dupont.equityMultiplier;
-    html += '<div class="card">'
-      + '<div class="card-title">杜邦三因子拆解（'+_esc(latest.DATATYPE||'最新一期')+'）</div>'
-      + '<div class="dupont-grid">'
-      + '<div class="dupont-item">'
-      + '<div class="icon" style="color:var(--green)">◆</div>'
-      + '<div class="name">净利率</div>'
-      + '<div class="val">'+_fmtPct(nm,2)+'</div>'
-      + '<div class="desc">净利润/营业收入</div>'
-      + '</div>'
-      + '<div class="dupont-item">'
-      + '<div class="icon" style="color:var(--blue)">▲</div>'
-      + '<div class="name">总资产周转率</div>'
-      + '<div class="val">'+_fmt(at,3)+'</div>'
-      + '<div class="desc">营业收入/平均总资产</div>'
-      + '</div>'
-      + '<div class="dupont-item">'
-      + '<div class="icon" style="color:var(--orange)">■</div>'
-      + '<div class="name">权益乘数</div>'
-      + '<div class="val">'+_fmt(em,3)+'</div>'
-      + '<div class="desc">平均总资产/平均归母权益</div>'
-      + '</div>'
-      + '</div>'
-      + '<div class="dupont-formula">'
-      + '<span class="num">'+_fmtPct(nm,2)+'</span>'
-      + ' × <span class="num">'+_fmt(at,3)+'</span>'
-      + ' × <span class="num">'+_fmt(em,3)+'</span>'
-      + ' <span class="eq">=</span>'
-      + '<span class="num">'+_fmt(dupont.calculatedROE,2)+'%</span>'
-      + ' <span style="color:var(--text3);font-size:12px;">（报告值 '+_fmt(dupont.reportedROE,2)+'%）</span>'
-      + '</div>'
-      + '</div>';
+    var nm=dupont.netMargin*100;
+    var period=_esc(latest.DATATYPE||'最新一期');
+    if(dupont.type==='full'){
+      var at=dupont.assetTurnover, em=dupont.equityMultiplier;
+      html+='<div class="card"><div class="card-title">杜邦三因子拆解（'+period+'）</div>'
+        +'<div class="dupont-grid">'
+        +'<div class="dupont-item"><div class="icon" style="color:var(--green)">◆</div><div class="name">净利率</div><div class="val">'+_fmtPct(nm,2)+'</div><div class="desc">归母净利润/营业收入</div></div>'
+        +'<div class="dupont-item"><div class="icon" style="color:var(--blue)">▲</div><div class="name">总资产周转率</div><div class="val">'+_fmt(at,3)+'</div><div class="desc">营业收入/平均总资产</div></div>'
+        +'<div class="dupont-item"><div class="icon" style="color:var(--orange)">■</div><div class="name">权益乘数</div><div class="val">'+_fmt(em,3)+'</div><div class="desc">平均总资产/平均归母权益</div></div>'
+        +'</div>'
+        +'<div class="dupont-formula">'
+        +'<span class="num">'+_fmtPct(nm,2)+'</span> × <span class="num">'+_fmt(at,3)+'</span> × <span class="num">'+_fmt(em,3)+'</span>'
+        +' <span class="eq">=</span> <span class="num">'+_fmt(dupont.calcROE,2)+'%</span>'
+        +' <span style="color:var(--text3);font-size:12px;">（报告值 '+_fmt(dupont.reportedROE,2)+'%）</span></div>';
+
+      // 多公式展开
+      html+='<div class="formula-list">'
+        +'<div class="title">各因子多公式对比</div>';
+
+      // 净利率
+      html+='<div class="formula-row"><span class="fmain">●</span> <span class="fname">净利率（归母口径）</span> = 归母净利润/营业收入 = <span class="fval fmain">'+_fmtPct(nm,2)+'</span></div>';
+      if(dupont.netMarginApi!==null){
+        html+='<div class="formula-row"><span class="fname">○ 净利率（接口值 SJLHZ）</span> = <span class="fval">'+_fmtPct(dupont.netMarginApi*100,2)+'</span> <span style="color:var(--text3)">(含少数股东损益，金融股可能异常)</span></div>';
+      }
+
+      // 总资产周转率
+      html+='<div class="formula-row"><span class="fmain">●</span> <span class="fname">总资产周转率（平均）</span> = 营收/((期初+期末总资产)/2) = <span class="fval fmain">'+_fmt(dupont.assetTurnover,4)+'</span></div>';
+      html+='<div class="formula-row"><span class="fname">○ 总资产周转率（期末）</span> = 营收/期末总资产 = <span class="fval">'+_fmt(dupont.assetTurnoverEnd,4)+'</span></div>';
+
+      // 权益乘数
+      html+='<div class="formula-row"><span class="fmain">●</span> <span class="fname">权益乘数（平均）</span> = 平均总资产/平均归母权益 = <span class="fval fmain">'+_fmt(dupont.equityMultiplier,4)+'</span></div>';
+      html+='<div class="formula-row"><span class="fname">○ 权益乘数（期末）</span> = 期末总资产/期末归母权益 = <span class="fval">'+_fmt(dupont.equityMultiplierEnd,4)+'</span></div>';
+      if(dupont.equityMultiplierDebt!==null && !isNaN(dupont.equityMultiplierDebt)){
+        html+='<div class="formula-row"><span class="fname">○ 权益乘数（负债率法）</span> = 1/(1-资产负债率) = 1/(1-'+_fmt(dupont.totalLiab/dupont.taCur*100,2)+'%) = <span class="fval">'+_fmt(dupont.equityMultiplierDebt,4)+'</span></div>';
+      }
+
+      // ROE组合
+      html+='<div class="formula-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px;"><span class="fmain">●</span> <span class="fname">ROE（全平均法）</span> = <span class="fval fmain">'+_fmt(dupont.calcROE,2)+'%</span></div>';
+      html+='<div class="formula-row"><span class="fname">○ ROE（全期末法）</span> = <span class="fval">'+_fmt(dupont.calcROE_end,2)+'%</span></div>';
+      if(dupont.calcROE_mix && !isNaN(dupont.calcROE_mix)){
+        html+='<div class="formula-row"><span class="fname">○ ROE（混合法：平均周转+负债率权益乘数）</span> = <span class="fval">'+_fmt(dupont.calcROE_mix,2)+'%</span></div>';
+      }
+      html+='</div>';
+
+      // 底层数据
+      html+='<div class="formula-list" style="border-top:1px solid var(--border);margin-top:0;">'
+        +'<div class="title">底层财务数据</div>'
+        +'<div class="formula-row"><span class="fname">归母净利润</span> = <span class="fval">'+_fmtBig(dupont.netProfit)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">营业收入</span> = <span class="fval">'+_fmtBig(dupont.revenue)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">期末总资产</span> = <span class="fval">'+_fmtBig(dupont.taCur)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">期初总资产</span> = <span class="fval">'+_fmtBig(dupont.taPrev)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">期末归母权益</span> = <span class="fval">'+_fmtBig(dupont.eqCur)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">期初归母权益</span> = <span class="fval">'+_fmtBig(dupont.eqPrev)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">期末总负债</span> = <span class="fval">'+_fmtBig(dupont.totalLiab)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">资产负债率</span> = <span class="fval">'+_fmtPct(dupont.totalLiab/dupont.taCur*100,2)+'</span></div>'
+        +'</div>';
+
+      html+='</div>';
+    } else {
+      // 简化版（金融股）
+      html+='<div class="card"><div class="card-title">杜邦分析（'+period+'）<span style="color:var(--yellow);font-size:11px;"> 金融行业简化版</span></div>'
+        +'<div class="dupont-grid">'
+        +'<div class="dupont-item"><div class="icon" style="color:var(--green)">◆</div><div class="name">净利率</div><div class="val">'+_fmtPct(nm,2)+'</div><div class="desc">归母净利润/营业收入</div></div>'
+        +'<div class="dupont-item"><div class="icon" style="color:var(--blue)">▲</div><div class="name">周转×权益</div><div class="val">'+_fmt(dupont.combined,4)+'</div><div class="desc">营收/归母权益（合并）</div></div>'
+        +'<div class="dupont-item"><div class="icon" style="color:var(--text3)">—</div><div class="name">权益乘数</div><div class="val" style="color:var(--text3)">—</div><div class="desc">需资产负债表</div></div>'
+        +'</div>'
+        +'<div class="dupont-formula">'
+        +'<span class="num">'+_fmtPct(nm,2)+'</span> × <span class="num">'+_fmt(dupont.combined,4)+'</span>'
+        +' <span class="eq">=</span> <span class="num">'+_fmt(dupont.calcROE,2)+'%</span>'
+        +' <span style="color:var(--text3);font-size:12px;">（报告值 '+_fmt(dupont.reportedROE,2)+'%）</span></div>'
+        +'<div class="formula-list">'
+        +'<div class="formula-row" style="color:var(--text3);">金融行业（银行/保险/证券）无法通过通用接口获取资产负债表，总资产周转率与权益乘数合并为"营收/归母权益"展示。归母权益 = 每股净资产(BPS) × 总股本。</div>'
+        +'<div class="formula-row"><span class="fmain">●</span> <span class="fname">净利率</span> = 归母净利润/营业收入 = <span class="fval fmain">'+_fmtPct(nm,2)+'</span></div>'
+        +'<div class="formula-row"><span class="fmain">●</span> <span class="fname">周转×权益乘数（合并）</span> = 营业收入/归母权益 = <span class="fval fmain">'+_fmt(dupont.combined,4)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">○ 归母权益（推算）</span> = BPS × 总股本 = '+_fmt(dupont.bps,4)+' × '+_fmtBig(dupont.totalShares)+' = <span class="fval">'+_fmtBig(dupont.parentEquity)+'</span></div>'
+        +'</div>'
+        +'<div class="formula-list" style="border-top:1px solid var(--border);margin-top:0;">'
+        +'<div class="title">底层财务数据</div>'
+        +'<div class="formula-row"><span class="fname">归母净利润</span> = <span class="fval">'+_fmtBig(dupont.netProfit)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">营业收入</span> = <span class="fval">'+_fmtBig(dupont.revenue)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">每股净资产 BPS</span> = <span class="fval">'+_fmt(dupont.bps,4)+'</span></div>'
+        +'<div class="formula-row"><span class="fname">总股本</span> = <span class="fval">'+_fmtBig(dupont.totalShares)+'</span></div>'
+        +'</div>'
+        +'</div>';
+    }
+  } else {
+    html+='<div class="card"><div class="card-title">杜邦三因子拆解</div>'
+      +'<div style="text-align:center;color:var(--text3);padding:20px 0;">资产负债表数据不足，无法进行杜邦分析</div></div>';
   }
 
   // 结论
-  html += '<div class="card">'
-    + '<div class="card-title">分析结论</div>'
-    + '<div class="conclusion">' + genConclusion(annuals, latest, dupont) + '</div>'
-    + '</div>';
+  html+='<div class="card"><div class="card-title">分析结论</div><div class="conclusion">'+genConclusion(annuals,latest,dupont)+'</div></div>';
 
-  document.getElementById('result').innerHTML = html;
-
-  // 保存到历史记录
+  document.getElementById('result').innerHTML=html;
   saveHistory(code, stockName, latest.WEIGHTAVG_ROE, latest.DATATYPE||'', roeLevel(latest.WEIGHTAVG_ROE));
 }
 
 function roeLevel(roe){
-  if(roe >= 15) return '优秀';
-  if(roe >= 10) return '良好';
-  if(roe >= 5) return '一般';
-  if(roe > 0) return '偏低';
+  if(roe>=15) return '优秀';
+  if(roe>=10) return '良好';
+  if(roe>=5) return '一般';
+  if(roe>0) return '偏低';
   return '负值';
 }
 
-/* ========== 历史记录 (LocalStorage) ========== */
-var HISTORY_KEY = 'roe_analyzer_history';
-function getHistory(){
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch(e){ return []; }
-}
-function saveHistory(code, name, roe, period, level){
-  var hist = getHistory();
-  // 去重
-  hist = hist.filter(function(h){ return h.code !== code; });
-  hist.unshift({ code:code, name:name, roe:roe, period:period, level:level, time:new Date().toLocaleString('zh-CN') });
-  if(hist.length > 20) hist = hist.slice(0,20);
-  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(hist)); } catch(e){}
+/* ========== 历史记录 ========== */
+var HISTORY_KEY='roe_analyzer_history';
+function getHistory(){ try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');}catch(e){return[];} }
+function saveHistory(code,name,roe,period,level){
+  var hist=getHistory();
+  hist=hist.filter(function(h){return h.code!==code;});
+  hist.unshift({code:code,name:name,roe:roe,period:period,level:level,time:new Date().toLocaleString('zh-CN')});
+  if(hist.length>20) hist=hist.slice(0,20);
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));}catch(e){}
   renderHistory();
 }
 function deleteHistory(idx){
-  var hist = getHistory();
-  hist.splice(idx,1);
-  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(hist)); } catch(e){}
+  var hist=getHistory(); hist.splice(idx,1);
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));}catch(e){}
   renderHistory();
 }
 function renderHistory(){
-  var hist = getHistory();
-  var el = document.getElementById('historySection');
-  if(!hist.length){ el.innerHTML=''; return; }
-  var html = '<div class="card"><div class="card-title">历史分析记录</div>';
-  hist.forEach(function(h, i){
-    var color = h.roe >= 15 ? 'var(--green)' : (h.roe >= 10 ? 'var(--blue)' : (h.roe >= 5 ? 'var(--yellow)' : 'var(--red)'));
-    html += '<div class="history-item" data-idx="'+i+'">'
-      + '<div class="h-content" onclick="loadHistory('+i+')">'
-      + '<div class="h-row">'
-      + '<div><span class="h-name">'+_esc(h.name)+'</span><span class="h-code">'+_esc(h.code)+'</span></div>'
-      + '<div class="h-roe" style="color:'+color+'">'+_fmt(h.roe,2)+'%</div>'
-      + '</div>'
-      + '<div class="h-meta">'+_esc(h.period)+' | '+_esc(h.time)+'</div>'
-      + '<div class="h-judge"><span class="tag '+(h.roe>=10?'tag-good':(h.roe>=5?'tag-warn':'tag-bad'))+'">'+_esc(h.level)+'</span></div>'
-      + '</div>'
-      + '<button class="history-delete" onclick="event.stopPropagation();deleteHistory('+i+')">删除</button>'
-      + '</div>';
+  var hist=getHistory();
+  var el=document.getElementById('historySection');
+  if(!hist.length){el.innerHTML='';return;}
+  var html='<div class="card"><div class="card-title">历史分析记录</div>';
+  hist.forEach(function(h,i){
+    var color=h.roe>=15?'var(--green)':(h.roe>=10?'var(--blue)':(h.roe>=5?'var(--yellow)':'var(--red)'));
+    html+='<div class="history-item" data-idx="'+i+'">'
+      +'<div class="h-content" onclick="loadHistory('+i+')">'
+      +'<div class="h-row"><div><span class="h-name">'+_esc(h.name)+'</span><span class="h-code">'+_esc(h.code)+'</span></div>'
+      +'<div class="h-roe" style="color:'+color+'">'+_fmt(h.roe,2)+'%</div></div>'
+      +'<div class="h-meta">'+_esc(h.period)+' | '+_esc(h.time)+'</div>'
+      +'<div class="h-judge"><span class="tag '+(h.roe>=10?'tag-good':(h.roe>=5?'tag-warn':'tag-bad'))+'">'+_esc(h.level)+'</span></div>'
+      +'</div><button class="history-delete" onclick="event.stopPropagation();deleteHistory('+i+')">删除</button></div>';
   });
-  html += '</div>';
-  el.innerHTML = html;
-  // 绑定滑动
+  html+='</div>';
+  el.innerHTML=html;
   bindSwipe();
 }
 function loadHistory(idx){
-  var hist = getHistory();
-  if(!hist[idx]) return;
-  var h = hist[idx];
-  document.getElementById('searchInput').value = h.code;
+  var hist=getHistory(); if(!hist[idx]) return;
+  document.getElementById('searchInput').value=hist[idx].code;
   doSearch();
 }
 function bindSwipe(){
-  var items = document.querySelectorAll('.history-item');
+  var items=document.querySelectorAll('.history-item');
   items.forEach(function(item){
-    var startX = 0, currentX = 0, swiping = false;
-    var hContent = item.querySelector('.h-content');
-    if(!hContent) return;
-    hContent.addEventListener('touchstart', function(e){
-      startX = e.touches[0].clientX; swiping = true;
-      item.classList.remove('swipe-left');
-    }, {passive:true});
-    hContent.addEventListener('touchmove', function(e){
+    var startX=0,swiping=false;
+    var hc=item.querySelector('.h-content'); if(!hc) return;
+    hc.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;swiping=true;item.classList.remove('swipe-left');},{passive:true});
+    hc.addEventListener('touchmove',function(e){
       if(!swiping) return;
-      currentX = e.touches[0].clientX - startX;
-      if(currentX < -10){
-        item.classList.add('swipe-left');
-      } else if(currentX > 10){
-        item.classList.remove('swipe-left');
-      }
-    }, {passive:true});
-    hContent.addEventListener('touchend', function(e){
-      swiping = false;
-    }, {passive:true});
+      var cx=e.touches[0].clientX-startX;
+      if(cx<-10) item.classList.add('swipe-left');
+      else if(cx>10) item.classList.remove('swipe-left');
+    },{passive:true});
+    hc.addEventListener('touchend',function(){swiping=false;},{passive:true});
   });
-  // 点击其他区域收起
-  document.addEventListener('click', function(e){
-    if(!e.target.closest('.history-item')){
-      items.forEach(function(it){ it.classList.remove('swipe-left'); });
-    }
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('.history-item')) items.forEach(function(it){it.classList.remove('swipe-left');});
   });
 }
 
 /* ========== 主流程 ========== */
 function doSearch(){
-  var input = document.getElementById('searchInput').value.trim();
-  if(!input){
-    setStatus('请输入股票代码或简称', 'error');
-    return;
-  }
-
-  setStatus('正在加载股票映射表...', 'loading');
+  var input=document.getElementById('searchInput').value.trim();
+  if(!input){setStatus('请输入股票代码或简称','error');return;}
+  setStatus('正在加载股票映射表...','loading');
   clearResult();
-
   loadStockMap(function(){
-    var result = searchStock(input);
-
-    if(!result){
-      setStatus('未找到匹配的股票，请检查输入', 'error');
-      return;
-    }
-
+    var result=searchStock(input);
+    if(!result){setStatus('未找到匹配的股票，请检查输入','error');return;}
     if(Array.isArray(result)){
-      // 多个匹配，选第一个A股
-      var found = null;
-      for(var i=0; i<result.length; i++){
-        if(result[i].market !== undefined){
-          found = result[i];
-          break;
-        }
-      }
-      if(!found) found = result[0];
-      result = found;
+      var found=null;
+      for(var i=0;i<result.length;i++){if(result[i].market!==undefined){found=result[i];break;}}
+      if(!found) found=result[0];
+      result=found;
     }
-
-    var code = result.code;
-    var btn = document.querySelector('.input-area button');
-    btn.disabled = true;
-    setStatus('正在分析 ' + (result.name || code) + '...', 'loading');
-
-    // 并行获取数据
-    Promise.allSettled([
-      fetchFinance(code),
-      fetchBalance(code),
-      fetchStockName(code)
-    ]).then(function(results){
-      btn.disabled = false;
-      var finRes = results[0];
-      var bsRes = results[1];
-      var nameRes = results[2];
-
-      if(finRes.status !== 'fulfilled' || !finRes.value || finRes.value.length === 0){
-        setStatus('财务数据获取失败：' + (finRes.reason ? finRes.reason.message : '无数据'), 'error');
-        return;
+    var code=result.code;
+    var btn=document.querySelector('.input-area button');
+    btn.disabled=true;
+    setStatus('正在分析 '+(result.name||code)+'...','loading');
+    Promise.allSettled([fetchFinance(code),fetchBalance(code),fetchStockName(code)]).then(function(results){
+      btn.disabled=false;
+      var finRes=results[0],bsRes=results[1],nameRes=results[2];
+      if(finRes.status!=='fulfilled'||!finRes.value||finRes.value.length===0){
+        setStatus('财务数据获取失败：'+(finRes.reason?finRes.reason.message:'无数据'),'error');return;
       }
-
-      var finData = finRes.value;
-      var bsData = bsRes.status === 'fulfilled' ? bsRes.value : [];
-      var stockName = nameRes.status === 'fulfilled' ? nameRes.value : '';
-      if(!stockName) stockName = (finData[0].SECURITY_NAME_ABBR || result.name || '');
-
-      setStatus('分析完成 ✓', 'success');
-      setTimeout(function(){ setStatus(''); }, 2000);
-
-      render({ code:code, name:stockName, fin:finData, bs:bsData });
+      var finData=finRes.value;
+      var bsData=bsRes.status==='fulfilled'?bsRes.value:[];
+      var stockName=nameRes.status==='fulfilled'?nameRes.value.name:'';
+      var totalShares=nameRes.status==='fulfilled'?nameRes.value.totalShares:0;
+      if(!stockName) stockName=(finData[0].SECURITY_NAME_ABBR||result.name||'');
+      setStatus('分析完成 ✓','success');
+      setTimeout(function(){setStatus('');},2000);
+      render({code:code,name:stockName,fin:finData,bs:bsData,totalShares:totalShares});
     }).catch(function(err){
-      btn.disabled = false;
-      setStatus('分析失败：' + err.message, 'error');
+      btn.disabled=false;
+      setStatus('分析失败：'+err.message,'error');
     });
   });
 }
 
-/* ========== 初始化 ========== */
 renderHistory();
 </script>
 </body>
