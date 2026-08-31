@@ -149,7 +149,7 @@ body {
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换亮/暗模式">🌙</button>
   </div>
   <div class="input-area">
-    <label for="searchInput" style="font-size:14px;color:var(--text2);white-space:nowrap;line-height:42px;">股票代码</label>
+    <label for="searchInput" style="font-size:14px;color:var(--text2);white-space:nowrap;flex-shrink:0;width:72px;text-align:left;">股票代码</label>
     <input type="text" id="searchInput" placeholder="代码（如600025）或简称（如HNSD/华能水电）" autocomplete="off"
       onkeydown="if(event.key==='Enter')doSearch()">
     <button onclick="doSearch()">分析</button>
@@ -195,8 +195,20 @@ function loadStockMap(cb){
   if(STOCK_MAP._loaded){ cb&&cb(); return; }
   var s=document.createElement('script');
   s.src='https://gyhok368519.github.io/stock-valuation/stock_map.js?v='+Date.now();
-  s.onload=function(){ if(typeof window.STOCK_MAP!=='undefined'){STOCK_MAP=window.STOCK_MAP;} if(typeof window.PINYIN_IDX!=='undefined'){PINYIN_IDX=window.PINYIN_IDX;} STOCK_MAP._loaded=true; cb&&cb(); };
-  s.onerror=function(){ STOCK_MAP._loaded=true; cb&&cb(); };
+  var done=false;
+  var timer=setTimeout(function(){
+    if(!done){ done=true; STOCK_MAP._loaded=true; cb&&cb(new Error('timeout')); }
+  },8000);
+  s.onload=function(){
+    if(done) return; done=true; clearTimeout(timer);
+    if(typeof window.STOCK_MAP!=='undefined'){STOCK_MAP=window.STOCK_MAP;}
+    if(typeof window.PINYIN_IDX!=='undefined'){PINYIN_IDX=window.PINYIN_IDX;}
+    STOCK_MAP._loaded=true; cb&&cb();
+  };
+  s.onerror=function(){
+    if(done) return; done=true; clearTimeout(timer);
+    STOCK_MAP._loaded=true; cb&&cb(new Error('load error'));
+  };
   document.head.appendChild(s);
 }
 
@@ -732,9 +744,19 @@ function bindSwipe(){
 function doSearch(){
   var input=document.getElementById('searchInput').value.trim();
   if(!input){setStatus('请输入股票代码或简称','error');return;}
-  setStatus('正在加载股票映射表...','loading');
   clearResult();
-  loadStockMap(function(){
+  // 纯6位数字代码不依赖stock_map.js，直接搜索
+  if(/^\d{6}$/.test(input)){
+    var code=input, market=code[0]==='6'?1:0;
+    _doFetch(code,'',market);
+    return;
+  }
+  // 非纯数字，需要加载映射表
+  setStatus('正在加载股票映射表...','loading');
+  loadStockMap(function(err){
+    if(err && !Object.keys(STOCK_MAP).length){
+      setStatus('股票映射表加载失败，请输入6位数字代码','error');return;
+    }
     var result=searchStock(input);
     if(!result){setStatus('未找到匹配的股票，请检查输入','error');return;}
     if(Array.isArray(result)){
@@ -743,28 +765,32 @@ function doSearch(){
       if(!found) found=result[0];
       result=found;
     }
-    var code=result.code;
-    var btn=document.querySelector('.input-area button');
-    btn.disabled=true;
-    setStatus('正在分析 '+(result.name||code)+'...','loading');
-    Promise.allSettled([fetchFinance(code),fetchBalance(code),fetchStockName(code)]).then(function(results){
-      btn.disabled=false;
-      var finRes=results[0],bsRes=results[1],nameRes=results[2];
-      if(finRes.status!=='fulfilled'||!finRes.value||finRes.value.length===0){
-        setStatus('财务数据获取失败：'+(finRes.reason?finRes.reason.message:'无数据'),'error');return;
-      }
-      var finData=finRes.value;
-      var bsData=bsRes.status==='fulfilled'?bsRes.value:[];
-      var stockName=nameRes.status==='fulfilled'?nameRes.value.name:'';
-      var totalShares=nameRes.status==='fulfilled'?nameRes.value.totalShares:0;
-      if(!stockName) stockName=(finData[0].SECURITY_NAME_ABBR||result.name||'');
-      setStatus('分析完成 ✓','success');
-      setTimeout(function(){setStatus('');},2000);
-      render({code:code,name:stockName,fin:finData,bs:bsData,totalShares:totalShares});
-    }).catch(function(err){
-      btn.disabled=false;
-      setStatus('分析失败：'+err.message,'error');
-    });
+    _doFetch(result.code, result.name||'', result.market||0);
+  });
+}
+
+function _doFetch(code, stockName, market){
+  var btn=document.querySelector('.input-area button');
+  btn.disabled=true;
+  setStatus('正在分析 '+(stockName||code)+'...','loading');
+  Promise.allSettled([fetchFinance(code),fetchBalance(code),fetchStockName(code)]).then(function(results){
+    btn.disabled=false;
+    var finRes=results[0],bsRes=results[1],nameRes=results[2];
+    if(finRes.status!=='fulfilled'||!finRes.value||finRes.value.length===0){
+      setStatus('财务数据获取失败：'+(finRes.reason?finRes.reason.message:'无数据'),'error');return;
+    }
+    var finData=finRes.value;
+    var bsData=bsRes.status==='fulfilled'?bsRes.value:[];
+    var name=stockName;
+    if(!name) name=nameRes.status==='fulfilled'?nameRes.value.name:'';
+    var totalShares=nameRes.status==='fulfilled'?nameRes.value.totalShares:0;
+    if(!name) name=(finData[0].SECURITY_NAME_ABBR||'');
+    setStatus('分析完成 ✓','success');
+    setTimeout(function(){setStatus('');},2000);
+    render({code:code,name:name,fin:finData,bs:bsData,totalShares:totalShares});
+  }).catch(function(err){
+    btn.disabled=false;
+    setStatus('分析失败：'+err.message,'error');
   });
 }
 
