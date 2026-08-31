@@ -139,9 +139,10 @@ body {
 
   <!-- 输入卡片 -->
   <div class="input-card">
-    <div class="stock-row">
-      <input id="stockCode" type="text" placeholder="股票代码（如000333）" maxlength="6" inputmode="numeric" style="flex:2">
-      <input id="stockName" type="text" placeholder="名称（选填）" maxlength="10" style="flex:1">
+    <div class="stock-row" style="position:relative;">
+      <input id="stockCode" type="text" placeholder="代码或简称（如000333/美的/MDSJ）" autocomplete="off" style="flex:1">
+      <input id="stockName" type="hidden">
+      <ul id="suggestList" style="display:none;position:absolute;top:44px;left:0;right:0;background:var(--card);border:1px solid var(--gray-light);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);list-style:none;z-index:50;max-height:240px;overflow-y:auto;margin:0;padding:0"></ul>
     </div>
     <div id="fetchStatus" style="display:none;font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5"></div>
 
@@ -202,7 +203,7 @@ body {
 <div class="footer-note">以上仅为指标筛选参考，不构成投资建议。<br>数据请以最新财报为准，金融产品有风险，投资需谨慎。</div>
 
 <script>
-var APP_VER = '1.5.5';
+var APP_VER = '1.6.0';
 var STORE_KEY = 'mine_history_v1';
 
 /* ===== 主题 ===== */
@@ -217,6 +218,67 @@ function toggleTheme() {
   if (dark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('mine_theme', 'light'); }
   else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('mine_theme', 'dark'); }
 }
+
+/* ===== stock_map (简称/拼音搜索) ===== */
+var STOCK_MAP={}; var PINYIN_IDX={};
+function loadStockMap(cb){
+  if(STOCK_MAP._loaded){ cb&&cb(); return; }
+  var s=document.createElement('script');
+  s.src='https://gyhok368519.github.io/stock-valuation/stock_map.js?v='+Date.now();
+  s.onload=function(){ if(typeof window.STOCK_MAP!=='undefined'){STOCK_MAP=window.STOCK_MAP;} if(typeof window.PINYIN_IDX!=='undefined'){PINYIN_IDX=window.PINYIN_IDX;} STOCK_MAP._loaded=true; cb&&cb(); };
+  s.onerror=function(){ STOCK_MAP._loaded=true; cb&&cb(); };
+  document.head.appendChild(s);
+}
+function searchStock(input){
+  input=(input||'').trim();
+  if(!input) return null;
+  if(/^\d{6}$/.test(input)){ return [{code:input, name:STOCK_MAP[input]||''}]; }
+  var q=input.toLowerCase();
+  var fuzzy=[];
+  for(var code in PINYIN_IDX){
+    var p=PINYIN_IDX[code];
+    if(p.i===q || p.f===q){ fuzzy.push({code:code, name:STOCK_MAP[code]||''}); if(fuzzy.length>=8) break; }
+  }
+  if(fuzzy.length<8){
+    for(var code2 in PINYIN_IDX){
+      var p2=PINYIN_IDX[code2];
+      if(p2.i.indexOf(q)===0 || p2.f.indexOf(q)===0){
+        if(!fuzzy.some(function(f){return f.code===code2;})) fuzzy.push({code:code2, name:STOCK_MAP[code2]||''});
+        if(fuzzy.length>=8) break;
+      }
+    }
+  }
+  if(fuzzy.length<8){
+    for(var code3 in STOCK_MAP){
+      if(code3==='_loaded') continue;
+      if(typeof STOCK_MAP[code3]==='string' && STOCK_MAP[code3].indexOf(input)>=0){
+        if(!fuzzy.some(function(f){return f.code===code3;})) fuzzy.push({code:code3, name:STOCK_MAP[code3]});
+        if(fuzzy.length>=8) break;
+      }
+    }
+  }
+  return fuzzy.length ? fuzzy : null;
+}
+function showSuggest(list){
+  var ul=document.getElementById('suggestList');
+  if(!list || list.length===0){ ul.style.display='none'; ul.innerHTML=''; return; }
+  ul.innerHTML=list.map(function(it,i){
+    return '<li data-idx="'+i+'" style="padding:8px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--gray-light);color:var(--text)" onmouseenter="this.style.background=\'var(--primary-light)\'" onmouseleave="this.style.background=\'\'">'
+      +'<span style="color:var(--primary);font-weight:600">'+it.name+'</span>'
+      +'<span style="color:var(--text2);font-size:12px;margin-left:8px">'+it.code+'</span></li>';
+  }).join('');
+  ul.style.display='block';
+  ul.querySelectorAll('li').forEach(function(li,i){
+    li.onclick=function(){ pickSuggest(list[i]); };
+  });
+}
+function pickSuggest(item){
+  document.getElementById('stockCode').value=item.code;
+  document.getElementById('stockName').value=item.name;
+  document.getElementById('suggestList').style.display='none';
+  fetchStockData();
+}
+function hideSuggest(){ setTimeout(function(){ document.getElementById('suggestList').style.display='none'; }, 200); }
 
 /* ===== 规则引擎 ===== */
 var RULES = [
@@ -331,15 +393,32 @@ function _fetchPrice(code) {
 
 /* 主抓取流程：拉全部数据并填入表单 */
 function fetchStockData() {
-  var code = document.getElementById('stockCode').value.trim();
-  if (!/^\d{6}$/.test(code)) {
-    setFetchStatus('请输入 6 位股票代码', 'err');
-    return;
+  var input = document.getElementById('stockCode').value.trim();
+  if (!input) { setFetchStatus('请输入股票代码或简称', 'err'); return; }
+  
+  function _doFetch() {
+    var code = input;
+    var name = '';
+    if (!/^\d{6}$/.test(input)) {
+      var list = searchStock(input);
+      if (list && list.length === 1) { code = list[0].code; name = list[0].name; }
+      else if (list && list.length > 1) { showSuggest(list); setFetchStatus('找到 ' + list.length + ' 个匹配，请点击选择', 'warn'); return; }
+      else { setFetchStatus('未找到匹配的股票，请检查输入', 'err'); return; }
+      document.getElementById('stockCode').value = code;
+    }
+    document.getElementById('stockName').value = name || '';
+    if (!/^\d{6}$/.test(code)) { setFetchStatus('代码解析失败', 'err'); return; }
+    var btn = document.getElementById('fetchBtn');
+    btn.disabled = true; btn.textContent = '抓取中…';
+    setFetchStatus('正在抓取 ' + code + ' 数据…', '');
+    _fetchData(code);
   }
-  var statusEl = document.getElementById('fetchStatus');
-  var btn = document.getElementById('fetchBtn');
-  btn.disabled = true; btn.textContent = '抓取中…';
-  setFetchStatus('正在抓取 ' + code + ' 数据…', '');
+  
+  if (/^\d{6}$/.test(input)) { _doFetch(); return; }
+  loadStockMap(_doFetch);
+}
+
+function _fetchData(code) {
   Promise.allSettled([
     _fetchFinance(code),
     _fetchCashflow(code),
@@ -399,6 +478,7 @@ function fetchStockData() {
     if (failInfo.length) msg += ' [失败原因: ' + failInfo.join('; ') + ']';
     setFetchStatus(msg, fetched === 7 ? 'ok' : 'warn');
   }).then(function () {
+    var btn = document.getElementById('fetchBtn');
     btn.textContent = '自动抓取数据';
     btn.disabled = false;
   });
@@ -411,16 +491,22 @@ function setFetchStatus(msg, type) {
   el.style.color = type === 'ok' ? 'var(--green)' : (type === 'warn' ? 'var(--yellow)' : (type === 'err' ? 'var(--red)' : 'var(--text2)'));
 }
 
-/* 代码输入后自动触发抓取 */
+/* 代码/简称输入后搜索或抓取 */
 function bindAutoFetch() {
   var input = document.getElementById('stockCode');
+  input.addEventListener('input', function () {
+    var v = this.value.trim();
+    if (!v || /^\d{6}$/.test(v)) { document.getElementById('suggestList').style.display='none'; return; }
+    loadStockMap(function(){
+      var list = searchStock(v);
+      if (list && list.length > 1) showSuggest(list);
+      else document.getElementById('suggestList').style.display='none';
+    });
+  });
   input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') fetchStockData();
+    if (e.key === 'Enter') { fetchStockData(); }
   });
-  input.addEventListener('blur', function () {
-    var v = input.value.trim();
-    if (/^\d{6}$/.test(v)) fetchStockData();
-  });
+  input.addEventListener('blur', hideSuggest);
 }
 
 function runMine() {
