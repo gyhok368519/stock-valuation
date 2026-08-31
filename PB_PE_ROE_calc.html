@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.17';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.18';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -3665,11 +3665,62 @@ function notePaste() {
       _noteSaveRange();
       showToast('已粘贴');
     }).catch(function() {
-      showToast('请按 Ctrl+V 粘贴');
+      _fallbackPaste(contentEl);
     });
   } else {
-    showToast('请按 Ctrl+V 粘贴');
+    _fallbackPaste(contentEl);
   }
+}
+
+// 粘贴 fallback：弹临时输入框让用户手动 Ctrl+V，确认后插入编辑器光标位置
+function _fallbackPaste(contentEl) {
+  // 如果已存在 fallback 弹窗，不重复创建
+  if (document.getElementById('_pasteFallback')) return;
+  var overlay = document.createElement('div');
+  overlay.id = '_pasteFallback';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  var card = document.createElement('div');
+  card.style.cssText = 'background:var(--card,#fff);border-radius:12px;padding:20px 16px;width:86%;max-width:360px;box-shadow:0 4px 24px rgba(0,0,0,0.2);';
+  card.innerHTML = ''
+    + '<div style="font-size:15px;font-weight:600;margin-bottom:10px;color:var(--text,#333);">粘贴内容</div>'
+    + '<textarea id="_pasteFallbackArea" style="width:100%;height:120px;border:1px solid var(--border,#ddd);border-radius:8px;padding:10px;font-size:15px;resize:none;outline:none;background:var(--bg,#fff);color:var(--text,#333);" placeholder="点击此处，按 Ctrl+V 或长按粘贴"></textarea>'
+    + '<div style="display:flex;gap:10px;margin-top:12px;">'
+    + '<button id="_pasteFallbackCancel" style="flex:1;padding:10px;border:none;border-radius:8px;background:var(--border,#ddd);color:var(--text,#333);font-size:15px;cursor:pointer;">取消</button>'
+    + '<button id="_pasteFallbackOK" style="flex:1;padding:10px;border:none;border-radius:8px;background:var(--blue,#1a73e8);color:#fff;font-size:15px;cursor:pointer;">插入</button>'
+    + '</div>';
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  var ta = card.querySelector('#_pasteFallbackArea');
+  var okBtn = card.querySelector('#_pasteFallbackOK');
+  var cancelBtn = card.querySelector('#_pasteFallbackCancel');
+
+  // 自动聚焦，方便用户直接 Ctrl+V
+  setTimeout(function(){ ta.focus(); }, 100);
+
+  function close() {
+    document.body.removeChild(overlay);
+  }
+  function confirmPaste() {
+    var text = ta.value;
+    close();
+    if (!text) { showToast('未输入内容'); return; }
+    contentEl.focus();
+    if (_noteLastRange) {
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(_noteLastRange);
+    }
+    document.execCommand('insertText', false, text);
+    noteOnInput();
+    _noteSaveRange();
+    showToast('已粘贴');
+  }
+
+  okBtn.onclick = confirmPaste;
+  cancelBtn.onclick = close;
+  // 点击遮罩关闭
+  overlay.onclick = function(e) { if (e.target === overlay) close(); };
 }
 
 function noteSelectAll() {
