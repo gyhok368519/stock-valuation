@@ -281,8 +281,8 @@ function showSuggest(list){
   if(!list || list.length===0){ ul.style.display='none'; ul.innerHTML=''; return; }
   ul.innerHTML=list.map(function(it,i){
     return '<li data-idx="'+i+'" style="padding:8px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--gray-light);color:var(--text)" onmouseenter="this.style.background=\'var(--primary-light)\'" onmouseleave="this.style.background=\'\'">'
-      +'<span style="color:var(--primary);font-weight:600">'+it.name+'</span>'
-      +'<span style="color:var(--text2);font-size:12px;margin-left:8px">'+it.code+'</span></li>';
+      +'<span style="color:var(--primary);font-weight:600">'+it.code+'</span>'
+      +'<span style="color:var(--text2);font-size:12px;margin-left:8px">'+it.name+'</span></li>';
   }).join('');
   ul.style.display='block';
   ul.querySelectorAll('li').forEach(function(li,i){
