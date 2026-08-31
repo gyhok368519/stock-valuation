@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.37';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.38';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -854,9 +854,9 @@ body {
             <button class="note-toolbar-btn" onclick="calcOpen()" title="计算器"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><circle cx="8" cy="12" r="0.5"/><circle cx="12" cy="12" r="0.5"/><circle cx="16" cy="12" r="0.5"/><circle cx="8" cy="16" r="0.5"/><circle cx="12" cy="16" r="0.5"/><circle cx="16" cy="16" r="0.5"/></svg></button>
           </div>
           <div style="display:flex;align-items:center;flex-shrink:0;">
-            <button class="note-toolbar-btn" onclick="noteFontSize(-1)">A-</button>
-            <span id="noteFontSizeLabel" style="font-size:12px;min-width:14px;text-align:center;color:var(--text);-webkit-user-select:none;user-select:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-right:15px;">15</span>
-            <button class="note-toolbar-btn" onclick="noteFontSize(1)">A+</button>
+            <button class="note-toolbar-btn" onclick="noteFontSize(-1)" style="margin-right:2px;">A-</button>
+            <span id="noteFontSizeLabel" style="font-size:12px;min-width:14px;text-align:center;color:var(--text);-webkit-user-select:none;user-select:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin:0 2px;">15</span>
+            <button class="note-toolbar-btn" onclick="noteFontSize(1)" style="margin-right:0;">A+</button>
           </div>
         </div>
       </div>
