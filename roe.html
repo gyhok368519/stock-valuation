@@ -198,7 +198,7 @@ function clearResult(){ document.getElementById('result').innerHTML=''; }
 var STOCK_MAP={}; var PINYIN_IDX={};
 function loadStockMap(cb){
   if(STOCK_MAP._loaded){ cb&&cb(); return; }
-  fetch('stock_index.json?_t='+Date.now(),{cache:'no-store'})
+  fetch('stock_index.json?_dc='+Date.now(),{cache:'no-store'})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(data){
       STOCK_MAP=data.stocks||{};
