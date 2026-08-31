@@ -43,7 +43,8 @@ body {
 }
 .theme-toggle:hover { border-color:var(--blue); color:var(--blue); }
 
-.input-area { display:flex; gap:8px; margin-bottom:12px; }
+.input-area { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.input-area label { font-size:14px; color:var(--text2); white-space:nowrap; flex-shrink:0; width:60px; text-align:left; }
 .input-area input {
   flex:1; min-width:0; height:42px; background:var(--input-bg); border:1px solid var(--border); border-radius:var(--radius);
   color:var(--text); font-size:15px; padding:0 14px; outline:none; transition:border-color .2s;
@@ -148,11 +149,12 @@ body {
     </div>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换亮/暗模式">🌙</button>
   </div>
-  <div class="input-area">
-    <label for="searchInput" style="font-size:14px;color:var(--text2);white-space:nowrap;flex-shrink:0;width:60px;text-align:left;">股票代码</label>
+  <div class="input-area" style="position:relative;">
+    <label for="searchInput">股票代码</label>
     <input type="text" id="searchInput" placeholder="代码（如600025）或简称（如HNSD/华能水电）" autocomplete="off"
-      onkeydown="if(event.key==='Enter')doSearch()">
+      onkeydown="if(event.key==='Enter')doSearch()" onblur="hideSuggest()">
     <button onclick="doSearch()">分析</button>
+    <ul id="suggestList" style="display:none;position:absolute;top:44px;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 12px rgba(0,0,0,0.15);list-style:none;z-index:50;max-height:240px;overflow-y:auto;margin:0;padding:0"></ul>
   </div>
   <div class="status" id="status"></div>
   <div id="result"></div>
@@ -245,6 +247,28 @@ function searchStock(input){
   }
   return fuzzy.length ? fuzzy : null;
 }
+
+function showSuggest(list){
+  var ul=document.getElementById('suggestList');
+  if(!list || list.length===0){ ul.style.display='none'; ul.innerHTML=''; return; }
+  ul.innerHTML=list.map(function(it,i){
+    return '<li data-idx="'+i+'" style="padding:8px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--border);color:var(--text)" onmouseenter="this.style.background=\'var(--tag-bg)\'" onmouseleave="this.style.background=\'\'">'
+      +'<span style="color:var(--blue);font-weight:600">'+_esc(it.name||'')+'</span>'
+      +'<span style="color:var(--text3);font-size:12px;margin-left:8px">'+it.code+'</span></li>';
+  }).join('');
+  ul.style.display='block';
+  ul.querySelectorAll('li').forEach(function(li,i){
+    li.onclick=function(){ pickSuggest(list[i]); };
+  });
+}
+
+function pickSuggest(item){
+  document.getElementById('searchInput').value=item.code;
+  document.getElementById('suggestList').style.display='none';
+  doSearch();
+}
+
+function hideSuggest(){ setTimeout(function(){ document.getElementById('suggestList').style.display='none'; }, 200); }
 
 /* ========== 数据抓取 ========== */
 function fetchFinance(code){
@@ -760,10 +784,8 @@ function doSearch(){
     var result=searchStock(input);
     if(!result){setStatus('未找到匹配的股票，请检查输入','error');return;}
     if(Array.isArray(result)){
-      var found=null;
-      for(var i=0;i<result.length;i++){if(result[i].market!==undefined){found=result[i];break;}}
-      if(!found) found=result[0];
-      result=found;
+      if(result.length===1){ result=result[0]; }
+      else { showSuggest(result); setStatus('找到 '+result.length+' 个匹配，请点击选择','loading'); return; }
     }
     _doFetch(result.code, result.name||'', result.market||0);
   });
@@ -793,6 +815,18 @@ function _doFetch(code, stockName, market){
     setStatus('分析失败：'+err.message,'error');
   });
 }
+
+// 实时搜索建议
+document.getElementById('searchInput').addEventListener('input',function(){
+  var v=this.value.trim();
+  if(!v || /^\d{6}$/.test(v)){ document.getElementById('suggestList').style.display='none'; return; }
+  loadStockMap(function(err){
+    if(err && !Object.keys(STOCK_MAP).length){ document.getElementById('suggestList').style.display='none'; return; }
+    var list=searchStock(v);
+    if(list && list.length>1) showSuggest(list);
+    else document.getElementById('suggestList').style.display='none';
+  });
+});
 
 renderHistory();
 </script>
