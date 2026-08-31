@@ -491,7 +491,7 @@ function render(data){
       annuals.forEach(function(a){
         var h=Math.max(2,(a.WEIGHTAVG_ROE/maxRoe)*70);
         var color=a.WEIGHTAVG_ROE>=15?'var(--green)':(a.WEIGHTAVG_ROE>=10?'var(--blue)':(a.WEIGHTAVG_ROE>=5?'var(--yellow)':'var(--red)'));
-        html+='<div class="roe-bar-item"><div class="roe-bar-val">'+_fmt(a.WEIGHTAVG_ROE,1)+'</div>'
+        html+='<div class="roe-bar-item">'
           +'<div class="roe-bar" style="height:'+h+'px;background:'+color+'"></div>'
           +'<div class="roe-bar-label">'+_esc(a.QDATE?a.QDATE.replace(/Q4/,''):'')+'</div></div>';
       });
