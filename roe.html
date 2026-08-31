@@ -45,13 +45,13 @@ body {
 
 .input-area { display:flex; gap:8px; margin-bottom:12px; }
 .input-area input {
-  flex:1; height:42px; background:var(--input-bg); border:1px solid var(--border); border-radius:var(--radius);
+  flex:1; min-width:0; height:42px; background:var(--input-bg); border:1px solid var(--border); border-radius:var(--radius);
   color:var(--text); font-size:15px; padding:0 14px; outline:none; transition:border-color .2s;
 }
 .input-area input:focus { border-color:var(--blue); }
-.input-area input::placeholder { color:var(--text3); }
+.input-area input::placeholder { color:var(--text3); font-size:13px; }
 .input-area button {
-  height:42px; padding:0 22px; background:var(--blue); color:#fff; border:none; border-radius:var(--radius);
+  flex-shrink:0; height:42px; padding:0 16px; background:var(--blue); color:#fff; border:none; border-radius:var(--radius);
   font-size:15px; font-weight:600; cursor:pointer; transition:opacity .2s; white-space:nowrap;
 }
 .input-area button:hover { opacity:.88; }
@@ -149,7 +149,7 @@ body {
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换亮/暗模式">🌙</button>
   </div>
   <div class="input-area">
-    <label for="searchInput" style="font-size:14px;color:var(--text2);white-space:nowrap;flex-shrink:0;width:72px;text-align:left;">股票代码</label>
+    <label for="searchInput" style="font-size:14px;color:var(--text2);white-space:nowrap;flex-shrink:0;width:60px;text-align:left;">股票代码</label>
     <input type="text" id="searchInput" placeholder="代码（如600025）或简称（如HNSD/华能水电）" autocomplete="off"
       onkeydown="if(event.key==='Enter')doSearch()">
     <button onclick="doSearch()">分析</button>
