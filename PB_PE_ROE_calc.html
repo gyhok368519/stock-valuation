@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.40';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.41';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -5230,13 +5230,12 @@ function _applyUpdate(remoteVer) {
   localStorage.setItem(key, String(now));
 
   function doCheck() {
-    // Force update: fetch HTML with cache-bust, bypass CDN + SW
-    var fetchUrl = location.origin + location.pathname + '?_update=' + Date.now();
+    // Fetch tiny version.txt instead of full HTML (much faster - 6 bytes vs 5000+ lines)
+    var fetchUrl = location.origin + location.pathname.replace(/PB_PE_ROE_calc\.html.*$/, 'version.txt') + '?_update=' + Date.now();
     fetch(fetchUrl, {cache: 'no-store', mode: 'same-origin'})
       .then(function(r) { return r.text(); })
-      .then(function(html) {
-        var m = html.match(/var APP_VER='([^']+)'/);
-        var remoteVer = m ? m[1] : '';
+      .then(function(txt) {
+        var remoteVer = txt.trim();
         if (remoteVer && remoteVer !== localVer) {
           console.log('New version detected: v' + remoteVer + ' (current: v' + localVer + ')');
           _applyUpdate(remoteVer);
@@ -5260,12 +5259,12 @@ function manualCheckUpdate() {
   var localVer = APP_VER || '0';
   if (statusEl) statusEl.textContent = '检查中...';
 
-  var fetchUrl = location.origin + location.pathname + '?_update=' + Date.now();
+  // Fetch tiny version.txt instead of full HTML (much faster)
+  var fetchUrl = location.origin + location.pathname.replace(/PB_PE_ROE_calc\.html.*$/, 'version.txt') + '?_update=' + Date.now();
   fetch(fetchUrl, {cache: 'no-store', mode: 'same-origin'})
     .then(function(r) { return r.text(); })
-    .then(function(html) {
-      var m = html.match(/var APP_VER='([^']+)'/);
-      var remoteVer = m ? m[1] : '';
+    .then(function(txt) {
+      var remoteVer = txt.trim();
       if (remoteVer && remoteVer !== localVer) {
         _applyUpdate(remoteVer);
       } else {
