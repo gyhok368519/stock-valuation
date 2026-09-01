@@ -48,13 +48,21 @@ body {
 
 /* ===== Input card ===== */
 .input-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; margin-bottom: 12px; }
-.stock-row { display: flex; gap: 0; margin-bottom: 12px; }
-.stock-row input { border: 1.5px solid var(--gray-light); padding: 10px 12px; font-size: 15px; outline: none; background: var(--card); color: var(--text); transition: border-color 0.2s; min-width: 0; }
-.stock-row input:first-child { border-radius: 10px 0 0 10px; }
-.stock-row input:last-child { border-radius: 0 10px 10px 0; border-left: none; }
-.stock-row input:first-child { border-radius: 10px 0 0 10px; }
-.stock-row input:last-child { border-radius: 0 10px 10px 0; }
-.stock-row input:focus { border-color: var(--primary); }
+.input-area { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; position: relative; }
+.input-area label { font-size: 14px; color: var(--text2); white-space: nowrap; flex-shrink: 0; width: 60px; text-align: left; }
+.input-area input[type="text"] {
+  flex: 1; min-width: 0; height: 42px; background: var(--card); border: 1.5px solid var(--gray-light); border-radius: 10px;
+  color: var(--text); font-size: 15px; padding: 0 12px; outline: none; transition: border-color 0.2s;
+}
+.input-area input[type="text"]:focus { border-color: var(--primary); }
+.input-area input[type="text"]::placeholder { color: var(--text3); font-size: 13px; }
+.input-area .fetch-btn {
+  flex-shrink: 0; height: 42px; padding: 0 16px; background: var(--primary); color: #fff; border: none; border-radius: 10px;
+  font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; white-space: nowrap;
+}
+.input-area .fetch-btn:hover { opacity: .88; }
+.input-area .fetch-btn:disabled { opacity: .5; cursor: not-allowed; }
+[data-theme="dark"] .input-area .fetch-btn { color: #0b1220; }
 
 .form-pair { display: flex; gap: 8px; margin-bottom: 10px; }
 .form-row { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -143,11 +151,13 @@ body {
 
   <!-- 输入卡片 -->
   <div class="input-card">
-    <div class="stock-row" style="position:relative;display:flex;align-items:center;gap:0;">
-      <label for="stockCode" style="font-size:14px;color:var(--text2);white-space:nowrap;flex-shrink:0;width:72px;text-align:left;">股票代码</label>
-      <input id="stockCode" type="text" placeholder="代码或简称（如000333/美的/MDSJ）" autocomplete="off" style="flex:1;margin-left:8px;">
+    <div class="input-area">
+      <label for="stockCode">股票代码</label>
+      <input id="stockCode" type="text" placeholder="代码或简称（如000333/美的/MDSJ）" autocomplete="off"
+        onkeydown="if(event.key==='Enter')fetchStockData()" onblur="hideSuggest()">
+      <button class="fetch-btn" id="fetchBtn" onclick="fetchStockData()">抓取</button>
       <input id="stockName" type="hidden">
-      <ul id="suggestList" style="display:none;position:absolute;top:44px;left:80px;right:0;background:var(--card);border:1px solid var(--gray-light);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);list-style:none;z-index:50;max-height:240px;overflow-y:auto;margin:0;padding:0"></ul>
+      <ul id="suggestList" style="display:none;position:absolute;top:44px;left:68px;right:60px;background:var(--card);border:1px solid var(--gray-light);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);list-style:none;z-index:50;max-height:240px;overflow-y:auto;margin:0;padding:0"></ul>
     </div>
     <div id="fetchStatus" style="display:none;font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5"></div>
 
@@ -168,10 +178,7 @@ body {
       <div class="form-spacer"></div>
     </div>
 
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-primary" id="fetchBtn" style="flex:1" onclick="fetchStockData()">自动抓取数据</button>
-      <button class="btn btn-secondary" id="runBtn" style="flex:1" onclick="runMine()">开始排雷</button>
-    </div>
+    <button class="btn btn-primary" id="runBtn" onclick="runMine()" style="width:100%;background:var(--primary);color:#fff">开始排雷</button>
   </div>
 
   <!-- 规则表 -->
@@ -530,7 +537,7 @@ function _fetchData(code) {
     setFetchStatus(msg, fetched === 7 ? 'ok' : 'warn');
   }).then(function () {
     var btn = document.getElementById('fetchBtn');
-    btn.textContent = '自动抓取数据';
+    btn.textContent = '抓取';
     btn.disabled = false;
   });
 }
