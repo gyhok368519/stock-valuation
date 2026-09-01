@@ -873,6 +873,28 @@ document.getElementById('searchInput').addEventListener('input',function(){
 // Pre-load stock index on page open for instant suggestions
 loadStockMap();
 renderHistory();
+
+// Version check: if main app version changed, force reload to get latest roe.html
+(function checkVer() {
+  var key = '_app_ver_last_check';
+  var now = Date.now();
+  var last = parseInt(localStorage.getItem(key) || '0', 10);
+  if (now - last < 10000) return;
+  localStorage.setItem(key, String(now));
+  setTimeout(function() {
+    fetch('version.json?_update=' + Date.now(), {cache: 'no-store'})
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var remoteVer = (d && d.v) ? String(d.v).trim() : '';
+        var localVer = localStorage.getItem('_roe_ver') || '';
+        if (remoteVer && remoteVer !== localVer) {
+          localStorage.setItem('_roe_ver', remoteVer);
+          location.reload();
+        }
+      })
+      .catch(function() {});
+  }, 2000);
+})();
 </script>
 </body>
 </html>
