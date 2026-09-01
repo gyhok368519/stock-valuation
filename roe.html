@@ -196,18 +196,59 @@ function clearResult(){ document.getElementById('result').innerHTML=''; }
 
 /* ========== stock_index.json (简称搜索) ========== */
 var STOCK_MAP={}; var PINYIN_IDX={};
+var _SI_CACHE_KEY='_stock_idx_cache';
 function loadStockMap(cb){
   if(STOCK_MAP._loaded){ cb&&cb(); return; }
+  // 1. Try localStorage cache first (instant, works offline)
+  try{
+    var cached=localStorage.getItem(_SI_CACHE_KEY);
+    if(cached){
+      var d=JSON.parse(cached);
+      if(d&&d.stocks){
+        STOCK_MAP=d.stocks; PINYIN_IDX=d.pinyin||{};
+        STOCK_MAP._loaded=true; cb&&cb();
+        // Background refresh (non-blocking)
+        _refreshStockIndex();
+        return;
+      }
+    }
+  }catch(e){}
+  // 2. Network fetch
   fetch('stock_index.json?_dc='+Date.now(),{cache:'no-store'})
     .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
     .then(function(data){
-      STOCK_MAP=data.stocks||{};
-      PINYIN_IDX=data.pinyin||{};
-      STOCK_MAP._loaded=true; cb&&cb();
+      STOCK_MAP=data.stocks||{}; PINYIN_IDX=data.pinyin||{};
+      STOCK_MAP._loaded=true;
+      try{ localStorage.setItem(_SI_CACHE_KEY,JSON.stringify(data)); }catch(e){}
+      cb&&cb();
     })
     .catch(function(e){
-      STOCK_MAP._loaded=true; cb&&cb(new Error(e.message));
+      // Network failed: try localStorage as fallback (don't cache failure)
+      try{
+        var c2=localStorage.getItem(_SI_CACHE_KEY);
+        if(c2){
+          var d2=JSON.parse(c2);
+          if(d2&&d2.stocks){
+            STOCK_MAP=d2.stocks; PINYIN_IDX=d2.pinyin||{};
+            STOCK_MAP._loaded=true; cb&&cb(); return;
+          }
+        }
+      }catch(e2){}
+      cb&&cb(new Error(e.message));
     });
+}
+// Background refresh of stock index cache
+function _refreshStockIndex(){
+  fetch('stock_index.json?_dc='+Date.now(),{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){
+      if(data&&data.stocks){
+        STOCK_MAP=data.stocks; PINYIN_IDX=data.pinyin||{};
+        STOCK_MAP._loaded=true;
+        try{ localStorage.setItem(_SI_CACHE_KEY,JSON.stringify(data)); }catch(e){}
+      }
+    })
+    .catch(function(){});
 }
 
 /* 搜索股票 */
