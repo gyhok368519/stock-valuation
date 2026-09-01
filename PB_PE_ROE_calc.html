@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.45';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.46';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -5208,14 +5208,27 @@ if ('serviceWorker' in navigator) {
   }).catch(function(e) { console.log('SW fail', e); });
 }
 
-// Apply update: force reload with cache-bust (SW & caches kept for fallback)
+// Apply update: clear all caches + unregister SW, then force reload
 function _applyUpdate(remoteVer) {
   showToast('正在更新到 v' + remoteVer + '...');
-  // Direct reload: SW remains active to serve cached page if network fails
-  // New SW will clean old caches on activate after fresh page loads successfully
-  setTimeout(function() {
-    location.href = location.pathname + '?v=' + remoteVer + '&_t=' + Date.now();
-  }, 800);
+  var tasks = [];
+  // 1. Clear all Cache Storage (force fresh fetch from network)
+  tasks.push(caches.keys().then(function(keys) {
+    return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+  }).catch(function(e) { console.warn('Clear caches failed:', e); }));
+  // 2. Unregister all Service Workers (remove old SW, new SW will register on fresh page)
+  if (navigator.serviceWorker) {
+    tasks.push(navigator.serviceWorker.getRegistrations().then(function(regs) {
+      return Promise.all(regs.map(function(r) { return r.unregister(); }));
+    }).catch(function(e) { console.warn('Unregister SW failed:', e); }));
+  }
+  // 3. Wait for cleanup + small delay, then hard reload with cache-bust
+  Promise.all(tasks).then(function() {
+    console.log('Caches cleared & SW unregistered, reloading...');
+    setTimeout(function() {
+      location.href = location.pathname + '?v=' + remoteVer + '&_t=' + Date.now();
+    }, 300);
+  });
 }
 
 // ===== Auto Update Check =====
