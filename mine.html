@@ -157,7 +157,7 @@ body {
         onkeydown="if(event.key==='Enter')fetchStockData()" onblur="hideSuggest()">
       <button class="fetch-btn" id="fetchBtn" onclick="fetchStockData()">抓取</button>
       <input id="stockName" type="hidden">
-      <ul id="suggestList" style="display:none;position:absolute;top:44px;left:68px;right:60px;background:var(--card);border:1px solid var(--gray-light);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);list-style:none;z-index:50;max-height:240px;overflow-y:auto;margin:0;padding:0"></ul>
+      <ul id="suggestList" style="display:none;position:absolute;top:44px;left:0;right:0;background:var(--card);border:1px solid var(--gray-light);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);list-style:none;z-index:50;max-height:240px;overflow-y:auto;margin:0;padding:0"></ul>
     </div>
     <div id="fetchStatus" style="display:none;font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5"></div>
 
@@ -695,6 +695,28 @@ renderHistory(JSON.parse(localStorage.getItem(STORE_KEY) || '[]'));
 bindAutoFetch();
 // Pre-load stock index on page open for instant suggestions
 loadStockMap();
+
+// Version check: if main app version changed, force reload to get latest mine.html
+(function checkVer() {
+  var key = '_app_ver_last_check';
+  var now = Date.now();
+  var last = parseInt(localStorage.getItem(key) || '0', 10);
+  if (now - last < 10000) return;
+  localStorage.setItem(key, String(now));
+  setTimeout(function() {
+    fetch('version.json?_update=' + Date.now(), {cache: 'no-store'})
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var remoteVer = (d && d.v) ? String(d.v).trim() : '';
+        var localVer = localStorage.getItem('_mine_ver') || '';
+        if (remoteVer && remoteVer !== localVer) {
+          localStorage.setItem('_mine_ver', remoteVer);
+          location.reload();
+        }
+      })
+      .catch(function() {});
+  }, 2000);
+})();
 </script>
 </body>
 </html>
