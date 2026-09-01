@@ -858,8 +858,11 @@ document.getElementById('searchInput').addEventListener('input',function(){
   var v=this.value.trim();
   if(!v){ document.getElementById('suggestList').style.display='none'; return; }
   loadStockMap(function(err){
+    // Re-read current value in case user typed more while loading
+    var cv=document.getElementById('searchInput').value.trim();
+    if(!cv){ document.getElementById('suggestList').style.display='none'; return; }
     if(err && !Object.keys(STOCK_MAP).length){ document.getElementById('suggestList').style.display='none'; return; }
-    var list=searchStock(v);
+    var list=searchStock(cv);
     // searchStock returns single object for 6-digit code, wrap in array
     if(list && !Array.isArray(list)) list=[list];
     if(list && list.length>0) showSuggest(list);
@@ -867,6 +870,8 @@ document.getElementById('searchInput').addEventListener('input',function(){
   });
 });
 
+// Pre-load stock index on page open for instant suggestions
+loadStockMap();
 renderHistory();
 </script>
 </body>
