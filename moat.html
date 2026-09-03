@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ROIC-WACC护城河</title>
+<style>
+/* ========== 暗色主题（默认，与 roe.html 一致） ========== */
+:root {
+  --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --text2:#8b949e; --text3:#6e7681;
+  --blue:#58a6ff; --green:#3fb950; --red:#f85149; --yellow:#d29922; --purple:#bc8cff; --orange:#db6d28;
+  --input-bg:#0d1117; --tag-bg:rgba(88,166,255,.06); --dupont-border:rgba(88,166,255,.2);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"SF Mono","Cascadia Code","Consolas",monospace;
+  --radius:8px;
+  --shadow:0 0 0 1px rgba(48,54,61,.5);
+}
+/* 亮色主题 */
+:root.light {
+  --bg:#ffffff; --card:#f6f8fa; --border:#d0d7de; --text:#1f2328; --text2:#656d76; --text3:#8c959f;
+  --blue:#0969da; --green:#1a7f37; --red:#cf222e; --yellow:#9a6700; --purple:#8250df; --orange:#bc4c00;
+  --input-bg:#ffffff; --tag-bg:rgba(9,105,218,.06); --dupont-border:rgba(9,105,218,.2);
+  --shadow:0 0 0 1px rgba(208,215,222,.5);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; }
+body {
+  background:var(--bg); color:var(--text); font-family:var(--font); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding:0 0 40px;
+  transition:background .2s, color .2s;
+}
+.container { max-width:880px; margin:0 auto; padding:12px 16px; }
+
+/* 顶栏 + 主题切换 */
+.topbar { display:flex; align-items:center; justify-content:center; position:relative; padding:12px 0 16px; }
+.topbar .back-btn { position:absolute; left:0; top:12px; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text2); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:all .2s; text-decoration:none; }
+.topbar .back-btn:hover { border-color:var(--blue); color:var(--blue); }
+.topbar h1 { font-size:22px; font-weight:600; color:var(--blue); letter-spacing:.5px; }
+.theme-toggle {
+  position:absolute; right:0; top:12px;
+  width:38px; height:38px; border-radius:50%; border:1px solid var(--border);
+  background:var(--card); color:var(--text2); cursor:pointer; font-size:17px;
+  display:flex; align-items:center; justify-content:center; transition:all .2s;
+}
+.theme-toggle:hover { border-color:var(--blue); color:var(--blue); }
+.theme-icon { display:inline-block; vertical-align:middle; width:18px; height:18px; }
+.theme-icon svg { width:100%; height:100%; }
+
+/* 搜索区 */
+.input-area { display:flex; align-items:center; margin-bottom:12px; position:relative; }
+.input-area label { font-size:14px; color:var(--text2); white-space:nowrap; flex-shrink:0; width:72px; text-align:left; }
+.input-area input {
+  flex:1; min-width:0; height:42px; background:var(--input-bg); border:1px solid var(--border); border-radius:var(--radius);
+  color:var(--text); font-size:15px; padding:0 14px; outline:none; transition:border-color .2s;
+}
+.input-area input:focus { border-color:var(--blue); }
+.input-area input::placeholder { color:var(--text3); font-size:13px; }
+.input-area button {
+  flex-shrink:0; height:42px; padding:0 16px; margin-left:8px; background:var(--blue); color:#fff; border:none; border-radius:var(--radius);
+  font-size:15px; font-weight:600; cursor:pointer; transition:opacity .2s; white-space:nowrap;
+}
+.input-area button:hover { opacity:.88; }
+.input-area button:disabled { opacity:.5; cursor:not-allowed; }
+.status { text-align:center; font-size:13px; color:var(--text2); min-height:20px; margin-bottom:10px; }
+.status.error { color:var(--red); }
+.status.loading { color:var(--yellow); }
+.status.success { color:var(--green); }
+
+.card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; margin-bottom:12px;
+}
+.card-title { font-size:13px; color:var(--text2); margin-bottom:10px; font-weight:600; letter-spacing:.3px; }
+.stock-name { font-size:20px; font-weight:600; color:var(--text); }
+.stock-code { font-size:13px; color:var(--text3); margin-left:6px; }
+.stock-meta { font-size:12px; color:var(--text3); margin-top:2px; }
+
+/* 护城河三态判定 */
+.verdict { text-align:center; padding:14px 0 4px; }
+.verdict .v-icon { width:46px; height:46px; margin:0 auto 8px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(127,127,127,.12); }
+.verdict .v-icon svg { width:26px; height:26px; }
+.verdict .v-label { font-size:23px; font-weight:700; letter-spacing:1px; }
+.verdict .v-desc { font-size:12px; color:var(--text2); margin-top:5px; line-height:1.7; }
+.verdict-wide    .v-icon, .verdict-wide    .v-label { color:var(--green); background:transparent; }
+.verdict-wide    .v-icon { background:rgba(63,185,80,.14); }
+.verdict-narrow  .v-icon, .verdict-narrow  .v-label { color:var(--blue); }
+.verdict-narrow  .v-icon { background:rgba(88,166,255,.14); }
+.verdict-none    .v-icon, .verdict-none    .v-label { color:var(--yellow); }
+.verdict-none    .v-icon { background:rgba(210,153,34,.14); }
+.verdict-destroy .v-icon, .verdict-destroy .v-label { color:var(--red); }
+.verdict-destroy .v-icon { background:rgba(248,81,73,.14); }
+
+/* 核心指标区 */
+.spread-hero { display:flex; align-items:baseline; justify-content:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.spread-hero .num { font-size:34px; font-weight:700; font-family:var(--mono); }
+.spread-hero .lbl { font-size:13px; color:var(--text2); }
+.core-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:12px; }
+.core-item { background:var(--tag-bg); border:1px solid var(--dupont-border); border-radius:6px; padding:9px 6px; text-align:center; }
+.core-item .name { font-size:11px; color:var(--text2); margin-bottom:2px; }
+.core-item .val { font-size:18px; font-weight:700; font-family:var(--mono); }
+.core-item .sub { font-size:10px; color:var(--text3); margin-top:2px; }
+
+/* 判定标尺 */
+.ruler { margin-top:14px; }
+.ruler-wrap { position:relative; }
+.ruler-bar { position:relative; height:14px; border-radius:7px; overflow:hidden; display:flex; }
+.ruler-bar .seg { height:100%; }
+.ruler-pointer { position:absolute; top:-4px; width:2px; height:22px; background:var(--text); transform:translateX(-1px); border-radius:1px; box-shadow:0 0 0 1px var(--bg); }
+.ruler-marks { position:relative; height:16px; margin-top:3px; font-size:10px; color:var(--text3); }
+.ruler-marks span { position:absolute; transform:translateX(-50%); font-family:var(--mono); }
+.ruler-note { font-size:11px; color:var(--text3); text-align:center; margin-top:2px; }
+
+/* 计算过程行 */
+.calc-list { font-size:12px; color:var(--text2); padding:2px 0; line-height:1.75; }
+.calc-list .fname { color:var(--text3); }
+.calc-list .fval { font-family:var(--mono); color:var(--text); font-weight:600; }
+.calc-list .fmain { font-family:var(--mono); color:var(--blue); font-weight:700; }
+.calc-block { margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
+.calc-block .btitle { font-size:12px; color:var(--text3); margin-bottom:4px; font-weight:600; }
+
+/* 折叠明细 */
+details.fold { margin-top:8px; }
+details.fold summary { cursor:pointer; font-size:12px; color:var(--text3); font-weight:600; list-style:none; user-select:none; }
+details.fold summary::-webkit-details-marker { display:none; }
+details.fold summary::before { content:'\25B8 '; }
+details.fold[open] summary::before { content:'\25BE '; }
+details.fold .fold-body { padding-top:8px; }
+
+/* 趋势条形图 */
+.trend-bar-container { display:flex; align-items:flex-end; gap:5px; height:96px; margin-top:10px; }
+.trend-bar-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; }
+.trend-bar { width:100%; max-width:44px; min-height:2px; border-radius:3px 3px 0 0; transition:height .4s ease; }
+.trend-bar-label { font-size:10px; color:var(--text3); }
+.trend-bar-val { font-size:10px; color:var(--text2); font-family:var(--mono); }
+.trend-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:10px; }
+.trend-table th, .trend-table td { padding:5px 4px; text-align:center; border-bottom:1px solid var(--border); }
+.trend-table th { color:var(--text3); font-weight:500; font-size:11px; }
+.trend-table td { font-family:var(--mono); }
+.trend-table tr:last-child td { border-bottom:none; }
+.trend-note { font-size:11px; color:var(--text3); margin-top:8px; line-height:1.6; }
+
+/* 参数校准区 */
+.calib-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
+.calib-toggle .hint { font-size:11px; color:var(--text3); }
+.calib-arrow { font-size:11px; color:var(--text3); transition:transform .2s; display:inline-block; }
+.calib-arrow.open { transform:rotate(90deg); }
+.calib-body { display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+.calib-body.open { display:block; }
+.param-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; }
+.param-item { display:flex; align-items:center; }
+.param-item label { font-size:13px; color:var(--text2); white-space:nowrap; flex-shrink:0; }
+.param-item input {
+  flex:1; min-width:0; height:36px; background:var(--input-bg); border:1px solid var(--border); border-radius:6px;
+  color:var(--text); font-size:14px; padding:0 10px; outline:none; transition:border-color .2s; margin-left:8px;
+  font-family:var(--mono);
+}
+.param-item input:focus { border-color:var(--blue); }
+.param-hint { font-size:11px; color:var(--text3); margin-top:10px; line-height:1.7; }
+.calib-actions { display:flex; gap:10px; margin-top:12px; }
+.calib-actions button { flex:1; height:38px; border-radius:var(--radius); border:1px solid var(--border); background:var(--card); color:var(--text); font-size:14px; cursor:pointer; transition:all .2s; }
+.calib-actions button.primary { background:var(--blue); color:#fff; border-color:var(--blue); font-weight:600; }
+.calib-actions button:hover { opacity:.88; }
+.warn-strip { background:rgba(210,153,34,.12); border:1px solid rgba(210,153,34,.35); color:var(--yellow); border-radius:6px; font-size:12px; padding:8px 10px; margin-top:10px; line-height:1.6; display:none; }
+.warn-strip.show { display:block; }
+.beta-note { font-size:11px; color:var(--text3); margin-top:6px; line-height:1.7; }
+
+/* 历史记录（与 roe.html 一致） */
+.history-item {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px 14px; margin-bottom:8px; position:relative; overflow:hidden; cursor:pointer;
+  transition:border-color .2s;
+}
+.history-item:hover { border-color:var(--blue); }
+.history-item .h-row { display:flex; align-items:center; justify-content:space-between; }
+.history-item .h-name { font-size:15px; font-weight:600; color:var(--text); }
+.history-item .h-code { font-size:12px; color:var(--text3); margin-left:5px; }
+.history-item .h-spread { font-size:18px; font-weight:700; font-family:var(--mono); }
+.history-item .h-meta { font-size:12px; color:var(--text3); margin-top:3px; }
+.history-item .h-judge { font-size:12px; margin-top:4px; }
+.history-delete {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
+  width:50px; height:28px; background:var(--red); color:#fff; border:none; border-radius:14px;
+  font-size:13px; cursor:pointer; transition:transform .25s, opacity .25s; display:flex; align-items:center; justify-content:center; opacity:0; z-index:5; pointer-events:none;
+}
+.history-item.swiping .history-delete { transform:translate(-50%,-50%) scale(1); opacity:.45; }
+.history-item .h-content { transition:transform .15s; position:relative; z-index:2; }
+.history-item.released .h-content { transition:transform .3s; }
+.tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600; margin-right:4px; }
+.tag-good { background:rgba(63,185,80,.15); color:var(--green); }
+.tag-info { background:rgba(88,166,255,.15); color:var(--blue); }
+.tag-warn { background:rgba(210,153,34,.15); color:var(--yellow); }
+.tag-bad { background:rgba(248,81,73,.15); color:var(--red); }
+
+@media(max-width:600px) {
+  .container { padding:10px 12px; }
+  .topbar h1 { font-size:19px; }
+  .core-grid { grid-template-columns:repeat(2,1fr); gap:6px; }
+  .core-item .val { font-size:17px; }
+  .spread-hero .num { font-size:28px; }
+  .stock-name { font-size:18px; }
+  .param-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <a href="PB_PE_ROE_calc.html" class="back-btn" title="返回">&larr;</a>
+    <div><h1>护城河分析</h1></div>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换深色模式"><span id="themeIcon" class="theme-icon"></span></button>
+  </div>
+  <div class="input-area">
+    <label for="searchInput">股票代码</label>
+    <input type="text" id="searchInput" placeholder="代码（如600025）或简称（如HNSD/华能水电）" autocomplete="off"
+      onkeydown="if(event.key==='Enter')doSearch()" onblur="hideSuggest()">
+    <button onclick="doSearch()">分析</button>
+    <ul id="suggestList" style="display:none;position:absolute;top:44px;left:72px;right:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 12px rgba(0,0,0,0.15);list-style:none;z-index:50;max-height:240px;overflow-y:auto;margin:0;padding:0"></ul>
+  </div>
+  <div class="status" id="status"></div>
+  <div id="result"></div>
+  <div id="historySection"></div>
+</div>
+<script>
+/* ========== 主题切换（与 roe.html 一致） ========== */
+function _themeIconSVG(isDark) {
+  var fg = isDark ? '#ffffff' : '#161b22';
+  var fill = isDark ? '#ffffff' : '#f6f8fa';
+  return '<span class="theme-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<line x1="12" y1="1.5" x2="12" y2="4" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="12" y1="20" x2="12" y2="22.5" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="1.5" y1="12" x2="4" y2="12" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="20" y1="12" x2="22.5" y2="12" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="4.1" y1="4.1" x2="5.9" y2="5.9" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="18.1" y1="18.1" x2="19.9" y2="19.9" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="4.1" y1="19.9" x2="5.9" y2="18.1" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="18.1" y1="5.9" x2="19.9" y2="4.1" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<circle cx="12" cy="12" r="5.5" stroke="' + fg + '" stroke-width="1.6" fill="none"/>' +
+    '<path d="M10.5 7.2a5.5 5.5 0 0 1 0 9.6a4.2 4.2 0 0 0 0-9.6z" fill="' + fill + '"/>' +
+    '</svg></span>';
+}
+function _updateThemeIcon(){
+  var isLight = document.documentElement.classList.contains('light');
+  var el = document.getElementById('themeIcon');
+  if (el) el.innerHTML = _themeIconSVG(!isLight);
+  document.getElementById('themeToggle').title = isLight ? '切换深色模式' : '切换浅色模式';
+}
+function toggleTheme(){
+  var root=document.documentElement;
+  root.classList.toggle('light');
+  var isLight=root.classList.contains('light');
+  _updateThemeIcon();
+  try{ localStorage.setItem('moat_theme', isLight?'light':'dark'); }catch(e){}
+}
+(function initTheme(){
+  try{
+    var t=localStorage.getItem('moat_theme');
+    if(t==='light'){ document.documentElement.classList.add('light'); }
+    _updateThemeIcon();
+  }catch(e){ _updateThemeIcon(); }
+})();
+
+/* ========== 工具 ========== */
+function _esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function _fmt(n,dec){ if(n===null||n===undefined||isNaN(n)) return '-'; return (+n).toFixed(dec); }
+function _fmtPct(n,dec){ if(n===null||n===undefined||isNaN(n)) return '-'; return (+n).toFixed(dec)+'%'; }
+function _fmtBig(n){
+  if(n===null||n===undefined||isNaN(n)) return '-';
+  var a=Math.abs(n);
+  if(a>=1e12) return (n/1e12).toFixed(2)+'万亿';
+  if(a>=1e8) return (n/1e8).toFixed(2)+'亿';
+  if(a>=1e4) return (n/1e4).toFixed(2)+'万';
+  return _fmt(n,2);
+}
+function _fmtYi(n){ if(n===null||n===undefined||isNaN(n)) return '-'; return (n/1e8).toFixed(1); }
+function setStatus(msg,type){ var el=document.getElementById('status'); el.className=type||''; el.innerHTML=msg; }
+function clearResult(){ document.getElementById('result').innerHTML=''; }
+/* 取对象中第一个非空字段并转数字 */
+function F(o, names){
+  if(!o) return null;
+  for(var i=0;i<names.length;i++){
+    var v=o[names[i]];
+    if(v!==null&&v!==undefined&&v!==''){ var n=+v; if(!isNaN(n)) return n; }
+  }
+  return null;
+}
+function num(v){ return (v===null||v===undefined||isNaN(+v))?0:+v; }
+
+/* ========== stock_index.json（与 roe.html 一致） ========== */
+var STOCK_MAP={}; var PINYIN_IDX={};
+var _SI_CACHE_KEY='_stock_idx_cache';
+function loadStockMap(cb){
+  if(STOCK_MAP._loaded){ cb&&cb(); return; }
+  try{
+    var cached=localStorage.getItem(_SI_CACHE_KEY);
+    if(cached){
+      var d=JSON.parse(cached);
+      if(d&&d.stocks){
+        STOCK_MAP=d.stocks; PINYIN_IDX=d.pinyin||{};
+        STOCK_MAP._loaded=true; cb&&cb();
+        _refreshStockIndex();
+        return;
+      }
+    }
+  }catch(e){}
+  fetch('stock_index.json?_dc='+Date.now(),{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){
+      STOCK_MAP=data.stocks||{}; PINYIN_IDX=data.pinyin||{};
+      STOCK_MAP._loaded=true;
+      try{ localStorage.setItem(_SI_CACHE_KEY,JSON.stringify(data)); }catch(e){}
+      cb&&cb();
+    })
+    .catch(function(e){
+      try{
+        var c2=localStorage.getItem(_SI_CACHE_KEY);
+        if(c2){
+          var d2=JSON.parse(c2);
+          if(d2&&d2.stocks){
+            STOCK_MAP=d2.stocks; PINYIN_IDX=d2.pinyin||{};
+            STOCK_MAP._loaded=true; cb&&cb(); return;
+          }
+        }
+      }catch(e2){}
+      cb&&cb(new Error(e.message));
+    });
+}
+function _refreshStockIndex(){
+  fetch('stock_index.json?_dc='+Date.now(),{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){
+      if(data&&data.stocks){
+        STOCK_MAP=data.stocks; PINYIN_IDX=data.pinyin||{};
+        STOCK_MAP._loaded=true;
+        try{ localStorage.setItem(_SI_CACHE_KEY,JSON.stringify(data)); }catch(e){}
+      }
+    })
+    .catch(function(){});
+}
+function searchStock(input){
+  input=(input||'').trim();
+  if(!input) return null;
+  if(/^\d{6}$/.test(input)){
+    var name=STOCK_MAP[input]||'';
+    var market = input[0]==='6' ? 1 : 0;
+    return {code:input, name:name, market:market};
+  }
+  var q=input.toLowerCase();
+  for(var code in PINYIN_IDX){
+    var p=PINYIN_IDX[code];
+    if(p.i===q || p.f===q) return {code:code, name:STOCK_MAP[code]||'', market:(code[0]==='6'?1:0)};
+  }
+  var fuzzy=[];
+  for(var code2 in PINYIN_IDX){
+    var p2=PINYIN_IDX[code2];
+    if(p2.i.indexOf(q)===0 || p2.f.indexOf(q)===0){
+      fuzzy.push({code:code2, name:STOCK_MAP[code2]||'', market:(code2[0]==='6'?1:0)});
+      if(fuzzy.length>=5) break;
+    }
+  }
+  if(fuzzy.length===0){
+    for(var code3 in STOCK_MAP){
+      if(code3==='_loaded') continue;
+      if(typeof STOCK_MAP[code3]==='string' && STOCK_MAP[code3].indexOf(input)>=0){
+        fuzzy.push({code:code3, name:STOCK_MAP[code3], market:(code3[0]==='6'?1:0)});
+        if(fuzzy.length>=5) break;
+      }
+    }
+  }
+  return fuzzy.length ? fuzzy : null;
+}
+function showSuggest(list){
+  var ul=document.getElementById('suggestList');
+  if(!list || list.length===0){ ul.style.display='none'; ul.innerHTML=''; return; }
+  ul.innerHTML=list.map(function(it,i){
+    return '<li data-idx="'+i+'" style="padding:8px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--border);color:var(--text)" onmouseenter="this.style.background=\'var(--tag-bg)\'" onmouseleave="this.style.background=\'\'">'
+      +'<span style="color:var(--blue);font-weight:600">'+it.code+'</span>'
+      +'<span style="color:var(--text3);font-size:12px;margin-left:8px">'+_esc(it.name||'')+'</span></li>';
+  }).join('');
+  ul.style.display='block';
+  ul.querySelectorAll('li').forEach(function(li,i){
+    li.onclick=function(){ pickSuggest(list[i]); };
+  });
+}
+function pickSuggest(item){
+  document.getElementById('searchInput').value=item.code;
+  document.getElementById('suggestList').style.display='none';
+  doSearch();
+}
+function hideSuggest(){ setTimeout(function(){ document.getElementById('suggestList').style.display='none'; }, 200); }
+
+/* ========== 参数（Rf/MRP/布鲁姆/永续债/租赁负债） ========== */
+var PARAM_KEY='moat_params';
+var DEF_PARAMS={ rf:2.3, mrp:6.5, bloom:true, perpetual:true, lease:false, taxMode:'eff' };
+function getParams(){
+  try{
+    var s=JSON.parse(localStorage.getItem(PARAM_KEY)||'null');
+    if(s&&typeof s==='object') return Object.assign({},DEF_PARAMS,s);
+  }catch(e){}
+  return Object.assign({},DEF_PARAMS);
+}
+function setParams(p){ try{ localStorage.setItem(PARAM_KEY,JSON.stringify(p)); }catch(e){} }
+
+/* ========== 数据抓取（东财 datacenter securities API） ========== */
+var DC_API='https://datacenter.eastmoney.com/securities/api/data/get';
+function _secuSfx(code){ return (code[0]==='6') ? '.SH' : (code[0]==='8'||code[0]==='4') ? '.BJ' : '.SZ'; }
+function _dcUrl(type,sty,filter,ps){
+  return DC_API+'?type='+type+'&sty='+sty+'&filter='+encodeURIComponent(filter)
+    +'&p=1&ps='+(ps||12)+'&sr=-1&st=REPORT_DATE&source=HSF10&client=PC';
+}
+function _dcJson(url){
+  return fetch(url,{cache:'no-store'}).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(d){
+    if(d && d.success===false) throw new Error(d.message||'接口返回失败');
+    var rows=d && d.result && d.result.data ? d.result.data : null;
+    if(!rows || !rows.length) throw new Error('无数据');
+    return rows;
+  });
+}
+/* 主指标：含东财官方 ROIC / TAXRATE / ZCFZL / ROEJQ（ps=24 覆盖6年年报） */
+function fetchMain(code){
+  return _dcJson(_dcUrl('RPT_F10_FINANCE_MAINFINADATA','APP_F10_MAINFINADATA','(SECUCODE="'+code+_secuSfx(code)+'")',24));
+}
+/* 利润表 */
+function fetchIncome(code){
+  return _dcJson(_dcUrl('RPT_F10_FINANCE_GINCOME','APP_F10_GINCOME','(SECUCODE="'+code+_secuSfx(code)+'")',24));
+}
+/* 资产负债表（注意 sty=F10_FINANCE_GBALANCE，非 APP_ 前缀） */
+function fetchBalance(code){
+  return _dcJson(_dcUrl('RPT_F10_FINANCE_GBALANCE','F10_FINANCE_GBALANCE','(SECUCODE="'+code+_secuSfx(code)+'")',24));
+}
+/* 月K线（β回归用）：klt=103 月线，fqt=1 前复权，61个月 -> 60个月度收益率 */
+function fetchKlineSecid(secid){
+  var url='https://push2his.eastmoney.com/api/qt/stock/kline/get?secid='+secid
+    +'&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f53&klt=103&fqt=1&lmt=61&end=20500101';
+  return fetch(url,{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+    if(!d||!d.data||!d.data.klines||!d.data.klines.length) throw new Error('K线数据缺失');
+    var ks=d.data.klines.map(function(k){ var a=k.split(','); return {m:a[0].substring(0,7), c:+a[1]}; });
+    if(ks.length<25) throw new Error('K线不足25个月，回归样本不够');
+    return ks; /* 升序：旧 -> 新 */
+  });
+}
+/* 实时行情：名称/现价/总市值（腾讯，失败回退东财 push2） */
+function fetchQuote(code){
+  var mkt=code[0]==='6'?'sh':'sz';
+  return fetch('https://qt.gtimg.cn/q='+mkt+code,{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){
+    var arr=t.split('~');
+    if(arr.length<50 || !+arr[3]) throw new Error('行情数据异常');
+    return { name:arr[1], price:+arr[3], mktcap:+arr[38]*1e8 };
+  }).catch(function(){
+    var secid=(code[0]==='6'?'1.':'0.')+code;
+    return fetch('https://push2.eastmoney.com/api/qt/stock/get?secid='+secid+'&fields=f57,f58,f43,f116')
+      .then(function(r){return r.json();}).then(function(d){
+        if(!d||!d.data||!d.data.f116) throw new Error('行情获取失败');
+        return { name:d.data.f58, price:(+d.data.f43)/100, mktcap:+d.data.f116 };
+      });
+  });
+}
+/* ========== 数据处理 ========== */
+function cleanRows(rows){
+  return (rows||[]).filter(function(r){ return r && r.REPORT_DATE; });
+}
+function pickLatestAnnual(rows){
+  var rs=cleanRows(rows);
+  for(var i=0;i<rs.length;i++){ if(/-12-31/.test(rs[i].REPORT_DATE)) return rs[i]; }
+  return rs[0]||null;
+}
+function annualSeries(rows, field){
+  var out=[], seen={};
+  cleanRows(rows).forEach(function(r){
+    if(!/-12-31/.test(r.REPORT_DATE)) return;
+    var y=r.REPORT_DATE.substring(0,4);
+    if(seen[y]) return; seen[y]=1;
+    var v=r[field];
+    if(v!==null&&v!==undefined&&v!=='') out.push({year:y, val:+v});
+  });
+  return out; /* 最新在前 */
+}
+function findRowByDate(rows,dateStr){
+  var rs=cleanRows(rows);
+  for(var i=0;i<rs.length;i++){ if(rs[i].REPORT_DATE.indexOf(dateStr)===0) return rs[i]; }
+  return null;
+}
+
+/* ========== 计算层 ========== */
+/* 有息负债 = 短借+一年内到期+长借+应付债券（+永续债/租赁负债可选） */
+function calcDebt(bs, p){
+  var parts=[];
+  var add=function(label,v,always){
+    if(v!==null&&v!==undefined&&!isNaN(+v)&&(always||+v!==0)) parts.push({label:label,val:+v});
+    return num(v);
+  };
+  var d=0;
+  d+=add('短期借款', bs.SHORT_LOAN, true);
+  d+=add('一年内到期的非流动负债', bs.NCL_1_YEAR, true);
+  d+=add('长期借款', bs.LONG_LOAN, true);
+  d+=add('应付债券', bs.BOND_PAYABLE, true);
+  if(p.perpetual) d+=add('永续债', bs.PERPETUAL_BOND_PAYBALE, true);
+  if(p.lease) d+=add('租赁负债', bs.LEASE_LIAB, true);
+  return { debt:d, parts:parts };
+}
+/* 有效税率 = 所得税费用/利润总额；异常时回退 25% */
+function calcTaxRate(inc){
+  var tax=num(inc.INCOME_TAX), tp=num(inc.TOTAL_PROFIT);
+  if(tp<=0) return null;
+  var r=tax/tp;
+  if(r<0||r>1) return null;
+  return r;
+}
+/* EBIT = 营业利润 + 利息费用（费用化利息，含资本化兜底说明） */
+function calcEbit(inc){
+  var op=F(inc,['OPERATE_PROFIT']);
+  var ie=F(inc,['FE_INTEREST_EXPENSE']);
+  if(op===null) return null;
+  return op + (ie===null?0:ie);
+}
+/* ROIC 手算：NOPAT/IC；IC=归母权益+少数股东权益+有息负债-min(货币资金,有息负债) */
+function calcRoicManual(inc, bs, bsPrev, p){
+  var ebit=calcEbit(inc);
+  if(ebit===null) return { err:'利润表缺少营业利润' };
+  var effTax=calcTaxRate(inc);
+  var taxRate = (p.taxMode==='eff') ? (effTax!==null?effTax:0.25) : 0.25;
+  var nopat=ebit*(1-taxRate);
+
+  var eqP=F(bs,['TOTAL_PARENT_EQUITY']);
+  var eqM=F(bs,['MINORITY_EQUITY']);
+  var totalEq=(eqP===null?0:eqP)+(eqM===null?0:eqM);
+  var debtR=calcDebt(bs,p);
+  var cash=F(bs,['MONETARYFUNDS']);
+  if(eqP===null) return { err:'缺少归母权益字段' };
+  var excess = (cash===null?0:Math.min(cash, debtR.debt));
+  var ic = totalEq + debtR.debt - excess;
+  var roic = ic>0 ? nopat/ic : null;
+  return {
+    nopat:nopat, ic:ic, roic:roic, taxRate:taxRate, effTax:effTax,
+    ebit:ebit, debt:debtR.debt, debtParts:debtR.parts,
+    eqP:eqP, eqM:eqM, cash:cash, excess:excess,
+    interestExp:F(inc,['FE_INTEREST_EXPENSE'])
+  };
+}
+/* Rd = 利息费用/期初期末平均有息负债；无法计算时回退 3.5% */
+function calcRd(inc, debtCur, debtPrev){
+  var ie=F(inc,['FE_INTEREST_EXPENSE']);
+  if(ie===null||ie<=0) return { rd:null, usedDefault:true };
+  var base=(debtCur+(debtPrev||debtCur))/2;
+  if(base<=0) return { rd:null, usedDefault:true };
+  var rd=ie/base;
+  if(rd<0.005||rd>0.15) return { rd:Math.min(Math.max(rd,0.005),0.15), usedDefault:false, clamped:true };
+  return { rd:rd, usedDefault:false };
+}
+/* β：60个月度收益率对沪深300回归 + 可选布鲁姆调整 */
+function calcBeta(stockKs, idxKs, bloom){
+  var map={};
+  idxKs.forEach(function(k){ map[k.m]=k.c; });
+  var pairs=[], pm=null, im=null;
+  stockKs.forEach(function(k){
+    if(map[k.m]===undefined) return;
+    if(pm!==null && map[k.m]!==undefined && im!==null){
+      var rs=k.c/pm-1, rm=map[k.m]/im-1;
+      if(isFinite(rs)&&isFinite(rm)) pairs.push([rs,rm]);
+    }
+    pm=k.c; im=map[k.m];
+  });
+  if(pairs.length<24) return { err:'有效月度样本不足24期' };
+  var n=pairs.length, sx=0, sy=0;
+  pairs.forEach(function(pt){ sx+=pt[1]; sy+=pt[0]; });
+  var mx=sx/n, my=sy/n;
+  var cov=0, varx=0;
+  pairs.forEach(function(pt){ cov+=(pt[1]-mx)*(pt[0]-my); varx+=(pt[1]-mx)*(pt[1]-mx); });
+  if(varx<=0) return { err:'市场收益方差为零' };
+  var raw=cov/varx;
+  var adj = bloom ? 0.67*raw+0.33 : raw;
+  /* R² 用于展示回归质量 */
+  var b=raw, a=my-b*mx, ssr=0, sst=0;
+  pairs.forEach(function(pt){
+    var fit=a+b*pt[1];
+    ssr+=(pt[0]-fit)*(pt[0]-fit); sst+=(pt[0]-my)*(pt[0]-my);
+  });
+  var r2 = sst>0 ? 1-ssr/sst : 0;
+  return { raw:raw, adj:adj, n:n, r2:r2, alpha:a, bloomUsed:!!bloom };
+}
+/* WACC 主计算 */
+function calcWaccAll(ctx, p, override){
+  var main=ctx.main, inc=ctx.inc, bs=ctx.bs, bsPrev=ctx.bsPrev, ks=ctx.ks, idxKs=ctx.idxKs;
+  var out={};
+
+  /* ROIC */
+  var man=calcRoicManual(inc, bs, bsPrev, p);
+  var roicApi = main.ROIC!=null && main.ROIC!=='' ? +main.ROIC/100 : null;
+  var roicVal = (override&&override.roic!=null) ? override.roic/100 : (man.roic!=null?man.roic:roicApi);
+  out.roicSrc = (override&&override.roic!=null) ? 'manual' : (man.roic!=null?'manual':'api');
+  out.roic=roicVal; out.roicApi=roicApi; out.man=man;
+
+  /* 有息负债 D（独立于手算ROIC成败，手算失败时直接从资产负债表算） */
+  var debtCur = (man && man.debt!=null) ? man.debt : (bs?calcDebt(bs,p).debt:0);
+  var debtPrev = bsPrev ? calcDebt(bsPrev,p).debt : debtCur;
+
+  /* β */
+  var bt=calcBeta(ks, idxKs, p.bloom);
+  var beta = (override&&override.beta!=null) ? override.beta/100 : (bt.err?null:(p.bloom?bt.adj:bt.raw));
+  out.beta=beta; out.betaCalc=bt;
+  if(beta===null) beta=1.0; /* 兜底：行业法替代前先用市场平均 */
+  out.betaFallback = (override&&override.beta!=null)?false:(bt.err?true:false);
+
+  /* E/V, D/V（E=现价×总股本=总市值） */
+  var E=ctx.mktcap, D=debtCur;
+  var V=E+D;
+  if(V<=0) return { err:'股权市值与有息负债均为0' };
+  var wE=E/V, wD=D/V;
+  out.E=E; out.D=D; out.V=V; out.wE=wE; out.wD=wD;
+
+  /* Re = Rf + β×MRP */
+  var rf=p.rf/100, mrp=p.mrp/100;
+  var Re=rf+beta*mrp;
+  out.rf=p.rf; out.mrp=p.mrp; out.Re=Re;
+
+  /* Rd */
+  var rdR=calcRd(inc, D, debtPrev);
+  var Rd = (override&&override.rd!=null) ? override.rd/100 : (rdR.rd!==null?rdR.rd:0.035);
+  out.Rd=Rd; out.rdCalc=rdR;
+  var rdDisp = (override&&override.rd!=null) ? true : !rdR.usedDefault;
+  out.rdDisplayable=rdDisp;
+
+  /* 税率 */
+  var taxRate = (override&&override.tax!=null) ? override.tax/100 : (man.taxRate||0.25);
+  out.taxRate=taxRate;
+
+  out.wacc = wE*Re + wD*Rd*(1-taxRate);
+  out.spread = roicVal - out.wacc;
+  return out;
+}
+/* 三态判定 */
+function verdictOf(spread){
+  if(spread===null||isNaN(spread)) return null;
+  if(spread>=0.10) return {key:'wide', label:'宽护城河', tag:'tag-good', cls:'verdict-wide', desc:'ROIC 持续大幅超越资本成本，具备强大竞争优势与再投资价值。'};
+  if(spread>=0.05) return {key:'narrow', label:'窄护城河', tag:'tag-info', cls:'verdict-narrow', desc:'ROIC 稳定高于资本成本，具备一定竞争优势，需关注持续性。'};
+  if(spread>=0)   return {key:'none', label:'无护城河', tag:'tag-warn', cls:'verdict-none', desc:'ROIC 仅勉强覆盖或低于资本成本，增长并不创造股东价值。'};
+  return {key:'destroy', label:'价值毁灭', tag:'tag-bad', cls:'verdict-destroy', desc:'ROIC 低于 WACC，资本回报不足以覆盖资金成本，扩张越快毁灭价值越多。'};
+}
+
+/* ========== 渲染 ========== */
+var MOAT_VERDICT={}; /* code -> verdict 供历史记录用 */
+var CURRENT=null;   /* 当前分析上下文（校准重算用） */
+
+function renderMain(ctx, calc, p){
+  var code=ctx.code, name=ctx.name, main=ctx.main;
+  var v=verdictOf(calc.spread);
+  var html='';
+  var reportDate=(main.REPORT_DATE||'').substring(0,10);
+  var roicNote='';
+  if(main.REPORT_TYPE&&main.REPORT_TYPE!=='年报') roicNote='（未年化）';
+
+  /* 头卡：判定 */
+  html+='<div class="card '+(v?v.cls:'')+'">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+    +'<div><span class="stock-name">'+_esc(name)+'</span><span class="stock-code">'+_esc(code)+'</span>'
+    +'<div class="stock-meta">报告期 '+_esc(reportDate)+'（'+_esc(main.REPORT_TYPE||'年报')+'）| 实时价 '+_fmt(ctx.price,2)+' 元 | 总市值 '+_fmtBig(ctx.mktcap)+'</div></div>'
+    +'<span class="tag '+(v?v.tag:'tag-warn')+'">'+(v?v.label:'待定')+'</span>'
+    +'</div>'
+    +'<div class="verdict">'
+    +'<div class="v-icon">'+_shieldIcon(v?v.key:'none')+'</div>'
+    +'<div class="v-label">'+(v?v.label:'无法判定')+'</div>'
+    +'<div class="v-desc">'+(v?v.desc:'数据不足，无法完成判定。')+'</div>'
+    +'<div class="spread-hero"><span class="lbl">ROIC − WACC =</span><span class="num" style="color:'+(v?vColor(v.key):'inherit')+'">'
+    +(v?_fmtPct(calc.spread*100,2):'-')+'</span></div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:2px;">ROIC '+_fmtPct((calc.roic||0)*100,2)+' − WACC '+_fmtPct((calc.wacc||0)*100,2)+'</div>'
+    +'</div>';
+
+  /* 标尺 */
+  html+='<div class="ruler">'+_rulerHtml(calc.spread)+'</div>';
+  html+='</div>';
+
+  /* 核心指标四宫格 */
+  html+='<div class="card"><div class="card-title">核心指标</div><div class="core-grid">'
+    +'<div class="core-item"><div class="name">ROIC</div><div class="val" style="color:var(--blue)">'+_fmtPct((calc.roic||0)*100,2)+'</div><div class="sub">'+(calc.roicSrc==='api'?'东财官方值':'NOPAT÷IC 手算')+'</div></div>'
+    +'<div class="core-item"><div class="name">WACC</div><div class="val" style="color:var(--yellow)">'+_fmtPct((calc.wacc||0)*100,2)+'</div><div class="sub">加权资本成本</div></div>'
+    +'<div class="core-item"><div class="name">Spread</div><div class="val" style="color:'+(v?vColor(v.key):'inherit')+'">'+_fmtPct((calc.spread||0)*100,2)+'</div><div class="sub">ROIC−WACC</div></div>'
+    +'<div class="core-item"><div class="name">β'+(calc.betaFallback?'(兜底)':'')+'</div><div class="val" style="color:var(--purple)">'+_fmt(calc.beta,2)+'</div><div class="sub">'+_betaSub(calc)+'</div></div>'
+    +'</div>';
+
+  /* 计算过程（两层） */
+  html+='<div class="calc-block"><div class="btitle">ROIC 计算过程'+(calc.roicSrc==='manual'?'（手算）':'（接口值）')+'</div>'
+    +_roicCalcHtml(ctx, calc, p)
+    +'</div>';
+  html+='<div class="calc-block"><div class="btitle">WACC 计算过程</div>'
+    +_waccCalcHtml(ctx, calc, p)
+    +'</div>';
+
+  /* WACC 合理性提示 */
+  var waccPct=calc.wacc*100;
+  var oor = waccPct<8||waccPct>12;
+  html+='<div class="warn-strip'+(oor?' show':'')+'" id="waccWarn">提示：当前 WACC '+_fmt(waccPct,2)+'% 超出 A股常见区间 8%~12%。'
+    +'<span style="color:var(--text3)">可检查 β、Rf、MRP 与债务权重是否合理，或在参数校准中调整。</span></div>';
+
+  /* β 明细折叠 */
+  if(calc.betaCalc && !calc.betaCalc.err){
+    var bt=calc.betaCalc;
+    html+='<details class="fold"><summary>β 回归明细（近5年月度，'+bt.n+'个样本）</summary><div class="fold-body">'
+      +'<div class="calc-list"><span class="fname">原始β</span> = <span class="fval">'+_fmt(bt.raw,3)+'</span>'
+      +(bt.bloomUsed?'，布鲁姆调整后 = 0.67×'+_fmt(bt.raw,3)+'+0.33 = <span class="fmain">'+_fmt(bt.adj,3)+'</span>':'（未启用布鲁姆调整）')
+      +'</div>'
+      +'<div class="calc-list"><span class="fname">回归 R²</span> = <span class="fval">'+_fmt(bt.r2,3)+'</span> <span style="color:var(--text3)">（个股收益能被市场解释的比例，越低说明个股特质波动越大）</span></div>'
+      +'<div class="beta-note">基准：沪深300（月收益率，前复权）。β 基于历史数据，仅反映系统性风险；R²偏低时建议参考行业β并人工校准。</div>'
+      +'</div></details>';
+  } else if(calc.betaCalc && calc.betaCalc.err){
+    html+='<details class="fold"><summary>β 回归明细</summary><div class="fold-body"><div class="calc-list"><span class="fval" style="color:var(--yellow)">'+_esc(calc.betaCalc.err)+'，已用市场平均 β=1.0 兜底，建议在参数校准中手动录入。</span></div></div></details>';
+  }
+  html+='</div>';
+
+  /* ROIC 交叉验证折叠 */
+  html+='<details class="fold" style="margin-top:0"><summary>ROIC 交叉验证</summary><div class="fold-body"><div class="calc-list">'
+    +'<span class="fname">手算 ROIC</span> = <span class="fval">'+(calc.man&&calc.man.roic!=null?_fmtPct(calc.man.roic*100,2):'-')+'</span>'
+    +'（NOPAT '+_fmtBig(calc.man?calc.man.nopat:0)+' ÷ IC '+_fmtBig(calc.man?calc.man.ic:0)+'）'
+    +'<br><span class="fname">东财官方 ROIC</span> = <span class="fval">'+(calc.roicApi!=null?_fmtPct(calc.roicApi*100,2):'-')+'</span>'
+    +'<br><span style="color:var(--text3)">东财 IC 口径偏严格（扣除超额现金及在建工程等），绝对值与手算略有差异属正常；趋势与判定结论一致即可。'
+    +(calc.roicSrc==='api'?'<br>当前采用东财官方值（手算缺少字段，见下方明细）。':'')
+    +'</span></div></div></details>';
+
+  /* ROIC 5年趋势 */
+  html+='<div class="card"><div class="card-title">近5年 ROIC-WACC 趋势（年报）</div>'+_trendHtml(ctx, calc, p)+'</div>';
+
+  document.getElementById('result').innerHTML=html;
+}
+function vColor(key){ return key==='wide'?'var(--green)':key==='narrow'?'var(--blue)':key==='none'?'var(--yellow)':'var(--red)'; }
+function _shieldIcon(key){
+  var c = key==='wide'?'var(--green)':key==='narrow'?'var(--blue)':key==='none'?'var(--yellow)':'var(--red)';
+  var inner = key==='wide'
+    ? '<path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M8.8 12l2.2 2.2 4.2-4.4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    : key==='narrow'
+    ? '<path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M9 12h6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+    : key==='none'
+    ? '<path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/>'
+    : '<path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5v5.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/>';
+  return '<svg viewBox="0 0 24 24" style="color:'+c+'">'+inner+'</svg>';
+}
+function _betaSub(calc){
+  if(calc.betaFallback) return '回归失败，用市场平均兜底';
+  var bt=calc.betaCalc;
+  return '5年月度回归'+(bt&&bt.bloomUsed?' +布鲁姆调整':'')+(bt?'，R²='+_fmt(bt.r2,2):'');
+}
+function _rulerHtml(spread){
+  var pct=null;
+  var pos=null;
+  if(spread!==null&&!isNaN(spread)){
+    /* 标尺范围 -10% .. +15%，位置按线性 */
+    var lo=-10, hi=15;
+    pos=Math.max(0,Math.min(100,(spread*100-lo)/(hi-lo)*100));
+  }
+  var segs='<div class="seg" style="flex:10;background:rgba(248,81,73,.45)"></div>'
+    +'<div class="seg" style="flex:10;background:rgba(210,153,34,.45)"></div>'
+    +'<div class="seg" style="flex:5;background:rgba(88,166,255,.45)"></div>'
+    +'<div class="seg" style="flex:15;background:rgba(63,185,80,.45)"></div>';
+  var marks='<span style="left:0%">-10%</span><span style="left:40%">0%</span><span style="left:'+ (40+10/35*100).toFixed(1) +'%">5%</span><span style="left:100%">+15%</span>';
+  return '<div class="ruler-wrap"><div class="ruler-bar">'+segs+(pos!==null?'<div class="ruler-pointer" style="left:'+pos.toFixed(1)+'%"></div>':'')+'</div>'
+    +'<div class="ruler-marks">'+marks+'</div>'
+    +'<div class="ruler-note">&lt;0 价值毁灭 | 0~5% 无护城河 | 5%~10% 窄护城河 | &gt;10% 宽护城河</div></div>';
+}
+function _roicCalcHtml(ctx, calc, p){
+  var man=calc.man;
+  if(!man || man.err){
+    return '<div class="calc-list"><span class="fval" style="color:var(--yellow)">'+_esc(man&&man.err||'手算失败')+'，已采用东财官方 ROIC。</span></div>';
+  }
+  var rows=[];
+  rows.push('<div class="calc-list"><span class="fname">EBIT</span> = 营业利润 '+_fmtYi(man.ebit)+'亿'
+    +(man.interestExp?' + 利息费用 '+_fmtYi(man.interestExp)+'亿':'')
+    +' = <span class="fval">'+_fmtYi(man.ebit)+'亿</span></div>');
+  rows.push('<div class="calc-list"><span class="fname">有效税率</span> = 所得税 '+_fmtYi(F(ctx.inc,['INCOME_TAX'])||0)+'亿 ÷ 利润总额 '+_fmtYi(F(ctx.inc,['TOTAL_PROFIT'])||0)+'亿 = <span class="fval">'+_fmtPct(man.taxRate*100,2)+'</span>'
+    +(man.effTax===null?'（异常回退25%）':'')+'</div>');
+  rows.push('<div class="calc-list"><span class="fname">NOPAT</span> = EBIT ×(1−税率) = '+_fmtYi(man.ebit)+'亿 × '+_fmt(1-man.taxRate,4)+' = <span class="fmain">'+_fmtYi(man.nopat)+'亿</span></div>');
+  /* IC 明细 */
+  rows.push('<div class="calc-list"><span class="fname">IC</span> = 归母权益 '+_fmtYi(man.eqP)+'亿 + 少数股东权益 '+_fmtYi(man.eqM||0)+'亿 + 有息负债 '+_fmtYi(man.debt)+'亿 − 超额现金 '+_fmtYi(man.excess)+'亿 = <span class="fmain">'+_fmtYi(man.ic)+'亿</span></div>');
+  var det=man.debtParts.map(function(x){ return x.label+' '+_fmtYi(x.val)+'亿'; }).join(' + ');
+  rows.push('<div class="calc-list" style="font-size:11px;color:var(--text3)">有息负债明细：'+(det||'0')+'（超额现金 = min(货币资金 '+_fmtYi(man.cash)+'亿, 有息负债)）</div>');
+  rows.push('<div class="calc-list"><span class="fname">ROIC</span> = NOPAT ÷ IC = '+_fmtYi(man.nopat)+'亿 ÷ '+_fmtYi(man.ic)+'亿 = <span class="fmain">'+(man.roic!=null?_fmtPct(man.roic*100,2):'-')+'</span></div>');
+  if(calc.roicApi!=null && calc.roicSrc==='manual'){
+    rows.push('<div class="calc-list" style="font-size:11px;color:var(--text3)">参考：东财官方 ROIC（口径更严）= '+_fmtPct(calc.roicApi*100,2)+'</div>');
+  }
+  return rows.join('');
+}
+function _waccCalcHtml(ctx, calc, p){
+  var rows=[];
+  rows.push('<div class="calc-list"><span class="fname">E（股权）</span> = '+_fmtBig(calc.E)+'　<span class="fname">D（有息负债）</span> = '+_fmtBig(calc.D)+'　<span class="fname">V</span> = '+_fmtBig(calc.V)+'</div>');
+  rows.push('<div class="calc-list"><span class="fname">权重</span> E/V = <span class="fval">'+_fmtPct(calc.wE*100,1)+'</span>，D/V = <span class="fval">'+_fmtPct(calc.wD*100,1)+'</span></div>');
+  rows.push('<div class="calc-list"><span class="fname">Re</span> = Rf '+_fmt(calc.rf,2)+'% + β '+_fmt(calc.beta,2)+' × MRP '+_fmt(calc.mrp,2)+'% = <span class="fmain">'+_fmtPct(calc.Re*100,2)+'</span></div>');
+  if(calc.rdDisplayable){
+    rows.push('<div class="calc-list"><span class="fname">Rd</span> = 利息费用 ÷ 平均有息负债 = <span class="fval">'+_fmtPct(calc.Rd*100,2)+'</span>'+(calc.rdCalc&&calc.rdCalc.clamped?'（异常截断）':'')+'</div>');
+  } else {
+    rows.push('<div class="calc-list"><span class="fname">Rd</span>（无利息费用数据，默认 3.5%）= <span class="fval">'+_fmtPct(calc.Rd*100,2)+'</span></div>');
+  }
+  rows.push('<div class="calc-list"><span class="fname">WACC</span> = E/V×Re + D/V×Rd×(1−T) = '+_fmtPct(calc.wE*100,1)+'%×'+_fmtPct(calc.Re*100,2)+' + '+_fmtPct(calc.wD*100,1)+'%×'+_fmtPct(calc.Rd*100,2)+'×'+_fmt(1-calc.taxRate,3)+' = <span class="fmain">'+_fmtPct(calc.wacc*100,2)+'</span></div>');
+  rows.push('<div class="calc-list"><span class="fname">Spread</span> = ROIC '+_fmtPct(calc.roic*100,2)+' − WACC '+_fmtPct(calc.wacc*100,2)+' = <span class="fmain">'+_fmtPct(calc.spread*100,2)+'</span></div>');
+  return rows.join('');
+}
+/* 近5年 ROIC-WACC 趋势（当前WACC + 历年手算ROIC） */
+function _trendHtml(ctx, calc, p){
+  var series=annualSeries(ctx.mainRows,'ROIC'); /* 最新在前 */
+  if(series.length===0) series=annualSeries(ctx.mainRows,'ROICTZ');
+  if(series.length===0) return '<div class="trend-note">暂无可用的 ROIC 历史数据。</div>';
+  var five=series.slice(0,5);
+  var waccPct=calc.wacc*100;
+  /* 东财 ROIC 为百分数值（如5.88），转小数展示 */
+  var vals=five.map(function(x){ return x.val; });
+  var maxAbs=Math.max.apply(null, vals.concat([waccPct]).map(Math.abs).concat([1]));
+  var bars='<div class="trend-bar-container">';
+  var oldestFirst=five.slice().reverse();
+  oldestFirst.forEach(function(x){
+    var pct=x.val;
+    var h=Math.max(2,Math.abs(pct)/maxAbs*80);
+    var color=pct>=waccPct?'var(--green)':(pct>0?'var(--yellow)':'var(--red)');
+    bars+='<div class="trend-bar-item">'
+      +'<div class="trend-bar-val">'+_fmt(pct,2)+'</div>'
+      +'<div class="trend-bar" style="height:'+h+'px;background:'+color+'"></div>'
+      +'<div class="trend-bar-label">'+x.year+'</div></div>';
+  });
+  bars+='</div>';
+  var tbl='<table class="trend-table"><thead><tr><th>年份</th>';
+  oldestFirst.forEach(function(x){ tbl+='<th>'+x.year+'</th>'; });
+  tbl+='</tr></thead><tbody>';
+  tbl+='<tr><td style="color:var(--text3)">ROIC%</td>';
+  oldestFirst.forEach(function(x,i){
+    var isLatest=(i===oldestFirst.length-1);
+    tbl+='<td'+(isLatest?' style="color:var(--green);font-weight:600"':'')+'>'+_fmt(x.val,2)+'</td>';
+  });
+  tbl+='</tr>';
+  tbl+='<tr><td style="color:var(--text3)">WACC%</td><td colspan="'+(five.length)+'" style="color:var(--yellow)">'+_fmt(waccPct,2)+'（当前估算，历史未回溯）</td></tr>';
+  tbl+='</tbody></table>';
+  return bars+tbl+'<div class="trend-note">绿色=当年 ROIC 高于当前估算 WACC；黄色=低于但为正。东财 ROIC 为官方口径，绝对值与手算略有差异；WACC 以当前参数估算，仅供参考。</div>';
+}
+
+/* ========== 参数校准 ========== */
+function renderCalib(ctx, calc, p){
+  var el=document.getElementById('calibCard');
+  if(!el){
+    el=document.createElement('div');
+    el.className='card'; el.id='calibCard';
+    document.getElementById('result').appendChild(el);
+  }
+  var bt=calc.betaCalc;
+  var betaHint = bt&&!bt.err ? ('回归原始β='+_fmt(bt.raw,2)+'，调整后β='+_fmt(bt.adj,2)+'（R²='+_fmt(bt.r2,2)+'，'+bt.n+'个月）') : '回归不可用，建议手动录入';
+  el.innerHTML='<div class="calib-toggle" onclick="toggleCalib()">'
+    +'<div><div class="card-title" style="margin-bottom:2px;">参数校准</div><div class="hint">调整 β / Rf / MRP / 税率 / Rd / ROIC，重新计算 WACC 与判定</div></div>'
+    +'<span class="calib-arrow" id="calibArrow">&#9654;</span></div>'
+    +'<div class="calib-body" id="calibBody">'
+    +'<div class="param-grid">'
+    +'<div class="param-item"><label>β（%）</label><input id="pBeta" type="number" step="0.01" value="'+(calc.beta*100).toFixed(2)+'"></div>'
+    +'<div class="param-item"><label>Rf（%）</label><input id="pRf" type="number" step="0.01" value="'+p.rf.toFixed(2)+'"></div>'
+    +'<div class="param-item"><label>MRP（%）</label><input id="pMrp" type="number" step="0.05" value="'+p.mrp.toFixed(2)+'"></div>'
+    +'<div class="param-item"><label>税率（%）</label><input id="pTax" type="number" step="0.1" value="'+(calc.taxRate*100).toFixed(1)+'"></div>'
+    +'<div class="param-item"><label>Rd（%）</label><input id="pRd" type="number" step="0.01" value="'+(calc.Rd*100).toFixed(2)+'"></div>'
+    +'<div class="param-item"><label>ROIC（%）</label><input id="pRoic" type="number" step="0.01" value="'+((calc.roic||0)*100).toFixed(2)+'"></div>'
+    +'</div>'
+    +'<div class="param-hint">· β：'+_esc(betaHint)+'；布鲁姆调整开关与永续债/租赁负债是否计入有息负债，见下方开关。'
+    +'<br>· 税率/Rd/ROIC 已预填当前自动值，可按研报或自己的口径覆盖。Rf 为10年国债收益率，MRP 取 6~7。</div>'
+    +'<div class="calib-actions"><button class="primary" onclick="applyCalib()">重新计算</button><button onclick="resetCalib()">恢复自动值</button></div>'
+    +'<div class="param-hint" style="margin-top:10px;">开关：'
+    +'<label style="margin-right:14px;cursor:pointer;"><input type="checkbox" id="pBloom" '+(p.bloom?'checked':'')+' onchange="onParamSwitch()"> 布鲁姆调整</label>'
+    +'<label style="margin-right:14px;cursor:pointer;"><input type="checkbox" id="pPerp" '+(p.perpetual?'checked':'')+' onchange="onParamSwitch()"> 永续债计入有息负债</label>'
+    +'<label style="cursor:pointer;"><input type="checkbox" id="pLease" '+(p.lease?'checked':'')+' onchange="onParamSwitch()"> 租赁负债计入有息负债</label>'
+    +'</div>'
+    +'<details class="fold"><summary>行业β速查表</summary><div class="fold-body"><table class="trend-table">'
+    +'<thead><tr><th>类型</th><th>β范围</th><th>典型行业</th></tr></thead><tbody>'
+    +'<tr><td>防守型</td><td>0.5~0.8</td><td style="font-family:var(--font)">公用事业、白酒龙头</td></tr>'
+    +'<tr><td>市场平均</td><td>≈1.0</td><td style="font-family:var(--font)">与大盘同步</td></tr>'
+    +'<tr><td>进攻型</td><td>1.2~1.5</td><td style="font-family:var(--font)">科技成长</td></tr>'
+    +'<tr><td>高波动</td><td>&gt;1.5</td><td style="font-family:var(--font)">强周期、高杠杆</td></tr>'
+    +'</tbody></table>'
+    +'<div class="beta-note">次新股或数据不足时，可取同行业5~10家可比公司平均β填入。</div>'
+    +'</div></details>'
+    +'</div>';
+}
+function toggleCalib(){
+  var body=document.getElementById('calibBody');
+  var arrow=document.getElementById('calibArrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+function _readCalibInputs(){
+  var gv=function(id){ var el=document.getElementById(id); return el?el.value:''; };
+  var p=getParams();
+  p.bloom=document.getElementById('pBloom').checked;
+  p.perpetual=document.getElementById('pPerp').checked;
+  p.lease=document.getElementById('pLease').checked;
+  var ov={};
+  var beta=parseFloat(gv('pBeta')); if(!isNaN(beta)) ov.beta=beta;
+  var tax=parseFloat(gv('pTax')); if(!isNaN(tax)) ov.tax=tax;
+  var rd=parseFloat(gv('pRd')); if(!isNaN(rd)) ov.rd=rd;
+  var roic=parseFloat(gv('pRoic')); if(!isNaN(roic)) ov.roic=roic;
+  return { p:p, ov:ov };
+}
+function onParamSwitch(){
+  var r=_readCalibInputs();
+  setParams(r.p);
+  CURRENT.params=r.p;
+  recalcCurrent(r.ov);
+  /* 开关变化会影响 ROIC 手算值，重抓参数面板保持一致 */
+  refreshCalibPanel();
+}
+function refreshCalibPanel(){
+  var calc=CURRENT.calc, p=CURRENT.params;
+  document.getElementById('pBeta').value=(calc.beta*100).toFixed(2);
+  document.getElementById('pTax').value=(calc.taxRate*100).toFixed(1);
+  document.getElementById('pRd').value=(calc.Rd*100).toFixed(2);
+  document.getElementById('pRoic').value=((calc.roic||0)*100).toFixed(2);
+}
+function applyCalib(){
+  var r=_readCalibInputs();
+  setParams(r.p);
+  CURRENT.params=r.p;
+  recalcCurrent(r.ov);
+  setStatus('已按校准参数重算 ✓','success');
+  setTimeout(function(){setStatus('');},1500);
+}
+function resetCalib(){
+  var p=Object.assign({},DEF_PARAMS,{bloom:document.getElementById('pBloom').checked,perpetual:document.getElementById('pPerp').checked,lease:document.getElementById('pLease').checked});
+  setParams(p);
+  CURRENT.params=p;
+  recalcCurrent(null);
+  refreshCalibPanel();
+  setStatus('已恢复自动参数 ✓','success');
+  setTimeout(function(){setStatus('');},1500);
+}
+function recalcCurrent(ov){
+  var calc=calcWaccAll(CURRENT.ctx, CURRENT.params, ov||null);
+  if(calc.err){ setStatus('重算失败：'+calc.err,'error'); return; }
+  CURRENT.calc=calc;
+  CURRENT.overrides=ov||null;
+  var rEl=document.getElementById('result');
+  renderMain(CURRENT.ctx, calc, CURRENT.params);
+  renderCalib(CURRENT.ctx, calc, CURRENT.params);
+  /* 保持校准面板展开状态 */
+  if(CURRENT.calibOpen){ document.getElementById('calibBody').classList.add('open'); document.getElementById('calibArrow').classList.add('open'); }
+  saveHistory(CURRENT.ctx.code, CURRENT.ctx.name, calc);
+}
+function toggleCalibOpen(){
+  CURRENT.calibOpen=true;
+}
+
+/* ========== 历史记录（与 roe.html 一致，键 moat_history） ========== */
+var HISTORY_KEY='moat_history';
+function getHistory(){ try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');}catch(e){return[];} }
+function saveHistory(code,name,calc){
+  var v=verdictOf(calc.spread);
+  var hist=getHistory();
+  hist=hist.filter(function(h){return h.code!==code;});
+  hist.unshift({code:code,name:name,spread:calc.spread,roic:calc.roic,wacc:calc.wacc,
+    level:v?v.label:'待定',tag:v?v.tag:'tag-warn',time:new Date().toLocaleString('zh-CN')});
+  if(hist.length>20) hist=hist.slice(0,20);
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));}catch(e){}
+  renderHistory();
+}
+function deleteHistory(idx){
+  var hist=getHistory(); hist.splice(idx,1);
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));}catch(e){}
+  renderHistory();
+}
+function renderHistory(){
+  var hist=getHistory();
+  var el=document.getElementById('historySection');
+  if(!hist.length){el.innerHTML='';return;}
+  var html='<div class="card"><div class="card-title">历史分析记录</div>';
+  hist.forEach(function(h,i){
+    var color=h.spread>=0.10?'var(--green)':(h.spread>=0.05?'var(--blue)':(h.spread>=0?'var(--yellow)':'var(--red)'));
+    html+='<div class="history-item" data-idx="'+i+'">'
+      +'<div class="h-content" onclick="loadHistory('+i+')">'
+      +'<div class="h-row"><div><span class="h-name">'+_esc(h.name)+'</span><span class="h-code">'+_esc(h.code)+'</span></div>'
+      +'<div class="h-spread" style="color:'+color+'">'+(h.spread!=null?_fmtPct(h.spread*100,2):'-')+'</div></div>'
+      +'<div class="h-meta">ROIC '+_fmtPct((h.roic||0)*100,2)+' / WACC '+_fmtPct((h.wacc||0)*100,2)+' | '+_esc(h.time)+'</div>'
+      +'<div class="h-judge"><span class="tag '+h.tag+'">'+_esc(h.level)+'</span></div>'
+      +'</div><button class="history-delete">删除</button></div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+  bindSwipe();
+}
+function loadHistory(idx){
+  var hist=getHistory(); if(!hist[idx]) return;
+  document.getElementById('searchInput').value=hist[idx].code;
+  doSearch();
+}
+function bindSwipe(){
+  var items=document.querySelectorAll('.history-item');
+  var THRESHOLD=80;
+  items.forEach(function(item){
+    var startX=0, startX2=0, swiping=false, moved=false;
+    var hc=item.querySelector('.h-content'); if(!hc) return;
+    var idx=parseInt(item.getAttribute('data-idx'));
+    hc.addEventListener('touchstart',function(e){
+      startX=e.touches[0].clientX; swiping=true; moved=false;
+      item.classList.remove('released'); item.classList.add('swiping');
+    },{passive:true});
+    hc.addEventListener('touchmove',function(e){
+      if(!swiping) return;
+      var dx=e.touches[0].clientX-startX;
+      if(Math.abs(dx)>5) moved=true;
+      hc.style.transform='translateX('+(dx*0.6)+'px)';
+      if(Math.abs(dx)>10) item.classList.add('swiping');
+    },{passive:true});
+    hc.addEventListener('touchend',function(e){
+      if(!swiping) return;
+      swiping=false;
+      var dx=e.changedTouches[0].clientX-startX;
+      item.classList.remove('swiping'); item.classList.add('released');
+      if(Math.abs(dx)>THRESHOLD && moved){
+        hc.style.transform='translateX('+(dx>0?300:-300)+'px)';
+        hc.style.opacity='0';
+        setTimeout(function(){ deleteHistory(idx); },250);
+      } else { hc.style.transform=''; }
+    },{passive:true});
+    hc.addEventListener('mousedown',function(e){
+      startX2=e.clientX; swiping=true; moved=false;
+      item.classList.remove('released'); item.classList.add('swiping');
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove',function(e){
+      if(!swiping) return;
+      var dx=e.clientX-startX2;
+      if(Math.abs(dx)>5) moved=true;
+      hc.style.transform='translateX('+(dx*0.6)+'px)';
+    });
+    document.addEventListener('mouseup',function(e){
+      if(!swiping) return;
+      swiping=false;
+      var dx=e.clientX-startX2;
+      item.classList.remove('swiping'); item.classList.add('released');
+      if(Math.abs(dx)>THRESHOLD && moved){
+        hc.style.transform='translateX('+(dx>0?300:-300)+'px)';
+        hc.style.opacity='0';
+        setTimeout(function(){ deleteHistory(idx); },250);
+      } else { hc.style.transform=''; }
+    });
+  });
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('.history-item')){
+      items.forEach(function(it){
+        var h=it.querySelector('.h-content');
+        if(h){ h.style.transform=''; }
+        it.classList.remove('swiping');
+      });
+    }
+  });
+}
+
+/* ========== 主流程 ========== */
+function doSearch(){
+  var input=document.getElementById('searchInput').value.trim();
+  if(!input){setStatus('请输入股票代码或简称','error');return;}
+  clearResult();
+  if(/^\d{6}$/.test(input)){
+    var code=input;
+    _doFetch(code,'');
+    return;
+  }
+  setStatus('正在加载股票映射表...','loading');
+  loadStockMap(function(err){
+    if(err && !Object.keys(STOCK_MAP).length){
+      setStatus('股票映射表加载失败，请输入6位数字代码','error');return;
+    }
+    var result=searchStock(input);
+    if(!result){setStatus('未找到匹配的股票，请检查输入','error');return;}
+    if(Array.isArray(result)){
+      if(result.length===1){ result=result[0]; }
+      else { showSuggest(result); setStatus('找到 '+result.length+' 个匹配，请点击选择','loading'); return; }
+    }
+    _doFetch(result.code, result.name||'');
+  });
+}
+function _doFetch(code, stockName){
+  var btn=document.querySelector('.input-area button');
+  btn.disabled=true;
+  setStatus('正在抓取 '+(stockName||code)+' 财务数据...','loading');
+  var pCurrent=getParams();
+  var tasks=[fetchMain(code),fetchIncome(code),fetchBalance(code),fetchKlineSecid((code[0]==='6'?'1.':'0.')+code),fetchQuote(code)];
+  Promise.allSettled(tasks).then(function(results){
+    btn.disabled=false;
+    var errs=[];
+    [0,1,2].forEach(function(i){ if(results[i].status!=='fulfilled') errs.push(results[i].reason&&results[i].reason.message); });
+    if(results[0].status!=='fulfilled'){
+      setStatus('主指标获取失败：'+(results[0].reason?results[0].reason.message:''),'error');return;
+    }
+    var mainRows=results[0].value;
+    var incomeRows=results[1].status==='fulfilled'?results[1].value:[];
+    var balanceRows=results[2].status==='fulfilled'?results[2].value:[];
+    var ks=results[3].status==='fulfilled'?results[3].value:null;
+    var quote=results[4].status==='fulfilled'?results[4].value:{name:'',price:0,mktcap:0};
+    if(!ks){ setStatus('K线数据获取失败（β回归不可用）','error'); return; }
+
+    var main=pickLatestAnnual(mainRows);
+    var income=pickLatestAnnual(incomeRows);
+    var bs=pickLatestAnnual(balanceRows);
+    var bsPrev=null;
+    if(bs){
+      var curD=bs.REPORT_DATE.substring(0,10);
+      for(var i=0;i<balanceRows.length;i++){
+        var d=balanceRows[i].REPORT_DATE.substring(0,10);
+        if(d<curD && /-12-31/.test(d)){ bsPrev=balanceRows[i]; break; }
+      }
+    }
+    var name=stockName || quote.name || main.SECURITY_NAME_ABBR || code;
+    var ctx={code:code,name:name,mainRows:mainRows,incomeRows:incomeRows,balanceRows:balanceRows,
+      main:main,income:income,bs:bs,bsPrev:bsPrev,ks:ks,idxKs:null,mktcap:quote.mktcap,price:quote.price};
+
+    setStatus('正在回归β（沪深300）...','loading');
+    fetchKlineSecid('1.000300').then(function(idxKs){
+      ctx.idxKs=idxKs;
+      var calc=calcWaccAll(ctx, pCurrent, null);
+      if(calc.err){ setStatus('计算失败：'+calc.err,'error'); return; }
+      CURRENT={ctx:ctx,calc:calc,params:pCurrent,overrides:null,calibOpen:false};
+      setStatus('分析完成 ✓','success');
+      setTimeout(function(){setStatus('');},2000);
+      renderMain(ctx,calc,pCurrent);
+      renderCalib(ctx,calc,pCurrent);
+      saveHistory(code,name,calc);
+    }).catch(function(e){
+      /* 沪深300获取失败：β兜底，仍出结果 */
+      ctx.idxKs=[];
+      var calc=calcWaccAll(ctx, pCurrent, null);
+      CURRENT={ctx:ctx,calc:calc,params:pCurrent,overrides:null,calibOpen:false};
+      setStatus('沪深300数据获取失败，β已用兜底值','loading');
+      setTimeout(function(){setStatus('分析完成（β为兜底值）✓','success');},100);
+      setTimeout(function(){setStatus('');},2200);
+      renderMain(ctx,calc,pCurrent);
+      renderCalib(ctx,calc,pCurrent);
+      saveHistory(code,name,calc);
+    });
+  });
+}
+/* 实时搜索建议 */
+document.getElementById('searchInput').addEventListener('input',function(){
+  var v=this.value.trim();
+  if(!v){ document.getElementById('suggestList').style.display='none'; return; }
+  loadStockMap(function(err){
+    var cv=document.getElementById('searchInput').value.trim();
+    if(!cv){ document.getElementById('suggestList').style.display='none'; return; }
+    if(err && !Object.keys(STOCK_MAP).length){ document.getElementById('suggestList').style.display='none'; return; }
+    var list=searchStock(cv);
+    if(list && !Array.isArray(list)) list=[list];
+    if(list && list.length>0) showSuggest(list);
+    else document.getElementById('suggestList').style.display='none';
+  });
+});
+loadStockMap();
+renderHistory();
+
+/* 版本检查：主APP版本变化时强制刷新本页缓存 */
+(function checkVer() {
+  var key='_moat_ver_last_check';
+  var now=Date.now();
+  var last=parseInt(localStorage.getItem(key)||'0',10);
+  if(now-last<10000) return;
+  localStorage.setItem(key,String(now));
+  setTimeout(function(){
+    fetch('version.json?_update='+Date.now(),{cache:'no-store'})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var remoteVer=(d&&d.v)?String(d.v).trim():'';
+        var localVer=localStorage.getItem('_moat_ver')||'';
+        if(remoteVer && remoteVer!==localVer){
+          localStorage.setItem('_moat_ver',remoteVer);
+          location.reload();
+        }
+      })
+      .catch(function(){});
+  },2000);
+})();
+</script>
+</body>
+</html>
