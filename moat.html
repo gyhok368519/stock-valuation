@@ -441,21 +441,24 @@ function fetchKlineSecid(secid){
     return ks; /* 升序：旧 -> 新 */
   });
 }
-/* 实时行情：名称/现价/总市值（腾讯，失败回退东财 push2） */
+/* 实时行情：名称/现价/总市值（东财 push2 为主源 UTF-8，腾讯 GBK 回退） */
 function fetchQuote(code){
-  var mkt=code[0]==='6'?'sh':'sz';
-  return fetch('https://qt.gtimg.cn/q='+mkt+code,{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){
-    var arr=t.split('~');
-    if(arr.length<50 || !+arr[3]) throw new Error('行情数据异常');
-    return { name:arr[1], price:+arr[3], mktcap:+arr[38]*1e8 };
-  }).catch(function(){
-    var secid=(code[0]==='6'?'1.':'0.')+code;
-    return fetch('https://push2.eastmoney.com/api/qt/stock/get?secid='+secid+'&fields=f57,f58,f43,f116')
-      .then(function(r){return r.json();}).then(function(d){
-        if(!d||!d.data||!d.data.f116) throw new Error('行情获取失败');
-        return { name:d.data.f58, price:(+d.data.f43)/100, mktcap:+d.data.f116 };
-      });
-  });
+  var secid=(code[0]==='6'?'1.':'0.')+code;
+  return fetch('https://push2.eastmoney.com/api/qt/stock/get?secid='+secid+'&fields=f57,f58,f43,f116',{cache:'no-store'})
+    .then(function(r){return r.json();}).then(function(d){
+      if(!d||!d.data||!d.data.f116) throw new Error('行情数据异常');
+      return { name:d.data.f58, price:(+d.data.f43)/100, mktcap:+d.data.f116 };
+    }).catch(function(){
+      var mkt=code[0]==='6'?'sh':'sz';
+      return fetch('https://qt.gtimg.cn/q='+mkt+code,{cache:'no-store'})
+        .then(function(r){return r.arrayBuffer();})
+        .then(function(ab){return new TextDecoder('gb18030').decode(ab);})
+        .then(function(t){
+          var arr=t.split('~');
+          if(arr.length<50 || !+arr[3]) throw new Error('行情获取失败');
+          return { name:arr[1], price:+arr[3], mktcap:+arr[38]*1e8 };
+        });
+    });
 }
 /* ========== 数据处理 ========== */
 function cleanRows(rows){
