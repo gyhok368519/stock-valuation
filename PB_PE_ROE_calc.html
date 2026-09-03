@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.55';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.56';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -605,6 +605,8 @@ body {
 <body>
 
 <!-- ========== Auth Overlay ========== -->
+<!-- Anti-flash: if a session exists, hide auth overlay before it renders (removed by _authShow when needed) -->
+<script>(function(){try{if(localStorage.getItem('current_user')){var s=document.createElement('style');s.id='authAntiFlash';s.textContent='#authOverlay{display:none!important}';document.head.appendChild(s);}}catch(e){}})();</script>
 <div class="auth-overlay" id="authOverlay">
   <div class="auth-card">
     <div class="auth-logo">
@@ -1821,7 +1823,9 @@ async function doResetPassword() {
 }
 
 // Auth helpers
+function _authRemoveAntiFlash() { var s = document.getElementById('authAntiFlash'); if (s && s.parentNode) s.parentNode.removeChild(s); }
 function _authShow() {
+  _authRemoveAntiFlash();
   var ao = document.getElementById('authOverlay'); if (ao) ao.classList.remove('hidden'); updateMenuUser();
   // Show file:// protocol warning
   if (IS_FILE_PROTOCOL) {
@@ -1834,7 +1838,7 @@ function _authShow() {
     }
   }
 }
-function _authHide() { var ao = document.getElementById('authOverlay'); if (ao) ao.classList.add('hidden'); updateMenuUser(); }
+function _authHide() { _authRemoveAntiFlash(); var ao = document.getElementById('authOverlay'); if (ao) ao.classList.add('hidden'); updateMenuUser(); }
 function _cloudValidate(session) {
   ghGet().then(function(db) {
     if (db === null) return;
