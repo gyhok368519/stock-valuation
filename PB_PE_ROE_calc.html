@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.54';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.55';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -690,7 +690,7 @@ body {
 </div>
 
 <!-- ========== Anti-flash: hide default page before render if tab param present ========== -->
-<script>(function(){var m=location.search.match(/[?&]tab=(\w+)/);if(m&&m[1]&&m[1]!=='db'){var s=document.createElement('style');s.textContent='#pageDB{display:none!important}';document.head.appendChild(s);}})();</script>
+<script>(function(){var m=location.search.match(/[?&]tab=(\w+)/);if(m&&m[1]&&m[1]!=='db'){var s=document.createElement('style');s.id='antiFlashStyle';s.textContent='#pageDB{display:none!important}';document.head.appendChild(s);}})();</script>
 
 <!-- ========== PAGE 1: Database ========== -->
 <div class="page active" id="pageDB">
@@ -4246,6 +4246,9 @@ const PCT_FIELDS = ['毛利率','净利率','ROE','负债率','股利支付率',
 const LONG_TEXT_FIELDS = ['主营业务内容','控股股东名称'];
 
 function switchTab(tab) {
+  // Remove anti-flash style so pageDB becomes visible again when switching back
+  var _af = document.getElementById('antiFlashStyle');
+  if (_af && _af.parentNode) _af.parentNode.removeChild(_af);
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
   var pageId = {db:'pageDB', calc:'pageCalc', fav:'pageFav', note:'pageNote'}[tab];
