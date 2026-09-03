@@ -302,8 +302,7 @@ function loadStockMap(cb){
       }
     }
   }catch(e){}
-  fetch('stock_index.json?_dc='+Date.now(),{cache:'no-store'})
-    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  _fetchStockIndexFallback()
     .then(function(data){
       STOCK_MAP=data.stocks||{}; PINYIN_IDX=data.pinyin||{};
       STOCK_MAP._loaded=true;
@@ -335,6 +334,35 @@ function _refreshStockIndex(){
       }
     })
     .catch(function(){});
+}
+
+// ===== GitHub API fallback for stock_index.json (same pattern as main app) =====
+function _fetchStockIndexFallback(){
+  var url='./stock_index.json?_t='+Date.now();
+  return fetch(url,{cache:'no-store'}).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).catch(function(e1){
+    // Pages/assets fetch failed - try GitHub API (public repo, no token needed)
+    console.log('[index] direct fetch failed ('+e1.message+'), trying API fallback...');
+    var apiUrl='https://api.github.com/repos/gyhok368519/stock-valuation/contents/stock_index.json';
+    var headers={'Accept':'application/vnd.github.v3+json'};
+    return fetch(apiUrl,{headers:headers}).then(function(r){
+      if(!r.ok) throw new Error('API HTTP '+r.status);
+      return r.json();
+    }).then(function(data){
+      if(!data.content) throw new Error('No content in API response');
+      return JSON.parse(_safeAtob(data.content));
+    });
+  });
+}
+
+// Safe base64 decode for UTF-8 content (mirror of main app)
+function _safeAtob(b64){
+  var raw=atob(b64.replace(/\n/g,''));
+  var buf=new Uint8Array(raw.length);
+  for(var i=0;i<raw.length;i++) buf[i]=raw.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(buf);
 }
 function searchStock(input){
   input=(input||'').trim();
