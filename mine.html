@@ -18,6 +18,7 @@
   --yellow: #b26a00; --yellow-bg: #fef7e0;
   --blue: #1a73e8; --blue-bg: #e8f0fe; --gray: #5f6368; --gray-light: #dadce0;
   --text: #202124; --text2: #5f6368; --text3: #bbb; --radius: 12px;
+  --border: #dadce0;
   --shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 [data-theme="dark"] {
@@ -26,6 +27,7 @@
   --yellow: #fbbf24; --yellow-bg: #2d2a14;
   --blue: #5b9cf5; --blue-bg: #1e2a4a; --gray: #9ca3af; --gray-light: #2d2d44;
   --text: #e5e7eb; --text2: #9ca3af; --text3: #7a7a9a; --radius: 12px;
+  --border: #2d2d44;
   --shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -35,15 +37,21 @@ body {
   -webkit-tap-highlight-color: transparent;
   -webkit-overflow-scrolling: touch;
 }
-.header {
-  background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
-  color: #fff; padding: 20px 16px 16px; text-align: center;
-  position: relative;
+/* ===== Topbar (统一与roe/moat一致) ===== */
+.topbar { display:flex; align-items:center; justify-content:center; position:relative; padding:12px 16px 16px; }
+.topbar .back-btn { position:absolute; left:0; top:12px; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text2); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:all .2s; text-decoration:none; }
+.topbar .back-btn:hover { border-color:var(--blue); color:var(--blue); }
+.topbar h1 { font-size:22px; font-weight:600; color:var(--blue); letter-spacing:.5px; }
+.topbar .sub { font-size:12px; color:var(--text3); margin-top:2px; text-align:center; }
+.theme-toggle {
+  position:absolute; right:0; top:12px;
+  width:38px; height:38px; border-radius:50%; border:1px solid var(--border);
+  background:var(--card); color:var(--text2); cursor:pointer; font-size:17px;
+  display:flex; align-items:center; justify-content:center; transition:all .2s;
 }
-[data-theme="dark"] .header { background: linear-gradient(135deg, #1a1a2e 0%, #2d2d5e 100%); }
-.header .back-btn { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; }
-.header h1 { font-size: 20px; font-weight: 600; }
-.header p { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+.theme-toggle:hover { border-color:var(--blue); color:var(--blue); }
+.theme-icon { display:inline-block; vertical-align:middle; width:18px; height:18px; }
+.theme-icon svg { width:100%; height:100%; }
 .container { max-width: 480px; margin: 0 auto; padding: 12px 12px 24px; }
 
 /* ===== Input card ===== */
@@ -129,10 +137,7 @@ body {
 .history-item .h-del { color: var(--text3); font-size: 16px; padding: 0 4px; flex-shrink: 0; }
 .empty-hint { text-align: center; color: var(--text3); font-size: 13px; padding: 16px; }
 
-/* ===== Theme toggle & footer ===== */
-.theme-btn { position:absolute; top:12px; right:12px; z-index:100; width:38px; height:38px; border-radius:50%; border:1px solid var(--gray-light); background:var(--card); color:var(--text2); font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; }
-.theme-btn .theme-icon { display:inline-block; width:18px; height:18px; line-height:0; }
-.theme-btn .theme-icon svg { width:100%; height:100%; }
+/* ===== Footer ===== */
 .footer-note { text-align: center; color: var(--text3); font-size: 12px; padding: 8px 0 40px; line-height: 1.6; }
 [data-theme="dark"] .form-row .input-wrap { background: #12121f; }
 [data-theme="dark"] .history-item { background: #1a1a2e; }
@@ -142,11 +147,12 @@ body {
 </head>
 <body>
 
-<div class="header">
+<div class="topbar">
   <a href="PB_PE_ROE_calc.html?tab=note" class="back-btn" title="返回">&larr;</a>
-  <h1>高分红排雷工具</h1>
-  <p style="display:none;">7 项指标排查被动高息陷阱 · 数据仅供研究参考</p>
-  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题"><span id="themeIcon" class="theme-icon"></span></button>
+  <div>
+    <h1>高分红排雷</h1>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换深色模式"><span id="themeIcon" class="theme-icon"></span></button>
 </div>
 
 <div class="container">
@@ -243,7 +249,7 @@ function _updateThemeIcon(){
   var dark = document.documentElement.getAttribute('data-theme') === 'dark';
   var el = document.getElementById('themeIcon');
   if (el) el.innerHTML = _themeIconSVG(dark);
-  var btn = document.getElementById('themeBtn');
+  var btn = document.getElementById('themeToggle');
   if (btn) btn.title = dark ? '切换浅色模式' : '切换深色模式';
 }
 (function initTheme() {
