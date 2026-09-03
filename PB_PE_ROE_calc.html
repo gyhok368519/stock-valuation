@@ -5227,7 +5227,11 @@ function _applyUpdate(remoteVer) {
   Promise.all(tasks).then(function() {
     console.log('Caches cleared & SW unregistered, reloading...');
     setTimeout(function() {
-      location.href = location.pathname + '?v=' + remoteVer + '&_t=' + Date.now();
+      // Preserve current tab param so user returns to the same page after update
+      var curTab = (location.search.match(/[?&]tab=(\w+)/) || [])[1];
+      var url = location.pathname + '?v=' + remoteVer + '&_t=' + Date.now();
+      if (curTab && curTab !== 'db') url += '&tab=' + curTab;
+      location.href = url;
     }, 300);
   });
 }
@@ -5303,13 +5307,20 @@ function manualCheckUpdate() {
       setTimeout(function() { if (statusEl) statusEl.textContent = '\uD83D\uDD04'; }, 3000);
     });
 }
-// ===== Read URL param to switch tab (return from roe.html/mine.html) =====
+// ===== Read URL param to switch tab (return from roe.html/mine.html/moat.html) =====
+// Execute synchronously to avoid flash of default page (pageDB)
 (function(){
   var m = location.search.match(/[?&]tab=(\w+)/);
   if (m && m[1]) {
     var validTabs = {db:1,calc:1,fav:1,note:1};
     if (validTabs[m[1]]) {
-      document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ switchTab(m[1]); }, 50); });
+      // Remove default active from pageDB before it renders
+      var defaultPage = document.getElementById('pageDB');
+      if (defaultPage && m[1] !== 'db') defaultPage.classList.remove('active');
+      // Also remove default active from the db tab-item
+      var defaultTab = document.querySelector('.tab-item[data-tab="db"]');
+      if (defaultTab && m[1] !== 'db') defaultTab.classList.remove('active');
+      document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ switchTab(m[1]); }, 0); });
     }
   }
 })();
