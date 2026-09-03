@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.50';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.51';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -348,7 +348,7 @@ body {
 
 /* Info button & menu */
 .info-btn {
-  position: absolute; top: 18px; right: 14px; z-index: 10;
+  position: absolute; top: 50%; right: 14px; z-index: 10; transform: translateY(-50%);
   width: 32px; height: 32px; border-radius: 50%; background: var(--btn-overlay);
   border: none; color: var(--text-inv); font-size: 18px; font-weight: 700;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
