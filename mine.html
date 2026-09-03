@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -130,7 +130,7 @@ body {
 .empty-hint { text-align: center; color: var(--text3); font-size: 13px; padding: 16px; }
 
 /* ===== Theme toggle & footer ===== */
-.theme-btn { position: fixed; top: 12px; right: 12px; z-index: 100; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.theme-btn { position:absolute; top:12px; right:12px; z-index:100; width:38px; height:38px; border-radius:50%; border:1px solid var(--gray-light); background:var(--card); color:var(--text2); font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; }
 .theme-btn .theme-icon { display:inline-block; width:18px; height:18px; line-height:0; }
 .theme-btn .theme-icon svg { width:100%; height:100%; }
 .footer-note { text-align: center; color: var(--text3); font-size: 12px; padding: 8px 0 40px; line-height: 1.6; }
@@ -146,8 +146,8 @@ body {
   <a href="PB_PE_ROE_calc.html?tab=note" class="back-btn" title="返回">&larr;</a>
   <h1>高分红排雷工具</h1>
   <p style="display:none;">7 项指标排查被动高息陷阱 · 数据仅供研究参考</p>
+  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题"><span id="themeIcon" class="theme-icon"></span></button>
 </div>
-<button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题"><span id="themeIcon" class="theme-icon"></span></button>
 
 <div class="container">
 
