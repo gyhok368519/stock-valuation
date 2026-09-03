@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.53';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='5.9.54';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
 <style>
 :root {
   /* 基础背景 */
@@ -688,6 +688,9 @@ body {
     </div>
   </div>
 </div>
+
+<!-- ========== Anti-flash: hide default page before render if tab param present ========== -->
+<script>(function(){var m=location.search.match(/[?&]tab=(\w+)/);if(m&&m[1]&&m[1]!=='db'){var s=document.createElement('style');s.textContent='#pageDB{display:none!important}';document.head.appendChild(s);}})();</script>
 
 <!-- ========== PAGE 1: Database ========== -->
 <div class="page active" id="pageDB">
