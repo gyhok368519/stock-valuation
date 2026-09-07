@@ -398,36 +398,47 @@ function fetchSpreadSeries(){
   return chain.then(function(){ return out; }); /* 旧→新 */
 }
 
-/* 3. 蛋卷指数估值（无CORS，走同源代理：./dj-proxy/index_eva → danjuanfunds.com/djapi/index_eva/dj）
-   - 浏览器PWA：SW拦截 ./dj-proxy/ 转发（与 emweb-proxy 同模式）
+/* 3. 蛋卷指数估值（无CORS头，浏览器无法直连；走同源代理：./dj-proxy/index_eva/dj → danjuanfunds.com/djapi/index_eva/dj）
+   - 浏览器PWA：SW拦截 ./dj-proxy/ 转发（SW fetch无CORS限制，服务端风格代理）
    - Android APK：Java shouldInterceptRequest 拦截转发
-   - 直连 fallback：部分环境蛋卷裸请求也可能直接通（若无CORS拦截） */
+   - 代理状态持久化：_djProxyOk 存 localStorage，代理失败的环境直接走降级提示，不再每次先撞一遍 */
 var DJ_DIRECT='https://danjuanfunds.com/djapi/index_eva/dj';
-var _djProxyOk=null; /* null=未测 true=代理可用 false=代理失败改直连 */
+var _DJ_PROXY_KEY='_dj_proxy_ok'; /* '1'=代理可用 '0'=代理不可用 未存=未测 */
+function _djProxyState(){
+  try{ var v=localStorage.getItem(_DJ_PROXY_KEY); return v==='1'?true:(v==='0'?false:null); }catch(e){ return null; }
+}
+function _djProxySet(ok){
+  try{ localStorage.setItem(_DJ_PROXY_KEY, ok?'1':'0'); }catch(e){}
+}
 function fetchDanjuan(){
   var proxyUrl='./dj-proxy/index_eva/dj';
   /* Android App：走 Java 拦截的 proxy URL */
   if(typeof _isAndroidApp!=='undefined'&&_isAndroidApp){
     return fetch(proxyUrl).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
   }
-  /* 浏览器：先代理（SW），失败则直接请求蛋卷（无SW或代理不可用时） */
+  /* 浏览器：代理（SW）优先；已知代理不可用的环境直接抛出明确错误（蛋卷无CORS头，直连必被浏览器拦截） */
   var tryProxy=function(){
     return fetch(proxyUrl).then(function(r){
       if(!r.ok) throw new Error('proxy HTTP '+r.status);
       return r.json();
     }).then(function(j){
-      _djProxyOk=true;
+      _djProxySet(true);
       return j;
     });
   };
-  var tryDirect=function(){
+  var knownBad=_djProxyState()===false;
+  if(knownBad){
+    return Promise.reject(new Error('SW代理不可用且蛋卷无CORS头（此前已探测）'));
+  }
+  return tryProxy().catch(function(err){
+    /* 代理失败：蛋卷直连在浏览器端会被CORS拦截（实测蛋卷不返回Access-Control-Allow-Origin），
+       仍尝试一次直连兜底（万一部分环境不强制CORS），但状态记录为不可用 */
+    _djProxySet(false);
     return fetch(DJ_DIRECT,{mode:'cors',cache:'no-store'}).then(function(r){
       if(!r.ok) throw new Error('direct HTTP '+r.status);
       return r.json();
     });
-  };
-  if(_djProxyOk===false) return tryDirect();
-  return tryProxy().catch(function(){ _djProxyOk=false; return tryDirect(); });
+  });
 }
 
 /* ========== 美林时钟计算 ========== */
