@@ -399,13 +399,66 @@ function fetchSpreadSeries(){
 }
 
 /* 3. 蛋卷指数估值（无CORS头，浏览器无法直连；走同源代理：./dj-proxy/index_eva/dj → danjuanfunds.com/djapi/index_eva/dj）
-   - 浏览器PWA：SW拦截 ./dj-proxy/ 转发（SW fetch无CORS限制，服务端风格代理）
+   - 浏览器PWA：SW拦截 ./dj-proxy/ 转发
    - Android APK：Java shouldInterceptRequest 拦截转发
-   - 代理状态持久化：_djProxyOk 存 localStorage，代理失败的环境直接走降级提示，不再每次先撞一遍 */
+   - ⚠实测：蛋卷不返回 Access-Control-Allow-Origin，SW内 fetch 同样受 CORS 管控 → 纯浏览器环境代理也失效，
+     仅 APK（Java拦截）可用；失败不影响 ERP（ERP有独立数据源，见 _fetchTxPE）
+   - 代理状态持久化：localStorage 存探测结果，失败环境不再每次先撞一遍 */
 var DJ_DIRECT='https://danjuanfunds.com/djapi/index_eva/dj';
 var _DJ_PROXY_KEY='_dj_proxy_ok'; /* '1'=代理可用 '0'=代理不可用 未存=未测 */
 function _djProxyState(){
   try{ var v=localStorage.getItem(_DJ_PROXY_KEY); return v==='1'?true:(v==='0'?false:null); }catch(e){ return null; }
+}
+function _djProxySet(ok){
+  try{ localStorage.setItem(_DJ_PROXY_KEY, ok?'1':'0'); }catch(e){}
+}
+function fetchDanjuan(){
+  var proxyUrl='./dj-proxy/index_eva/dj';
+  /* Android App：走 Java 拦截的 proxy URL */
+  if(typeof _isAndroidApp!=='undefined'&&_isAndroidApp){
+    return fetch(proxyUrl).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+  }
+  /* 浏览器：代理（SW）优先；已知代理不可用的环境直接失败（蛋卷无CORS头，直连必被拦截） */
+  var tryProxy=function(){
+    return fetch(proxyUrl).then(function(r){
+      if(!r.ok) throw new Error('proxy HTTP '+r.status);
+      return r.json();
+    }).then(function(j){
+      _djProxySet(true);
+      return j;
+    });
+  };
+  if(_djProxyState()===false){
+    return Promise.reject(new Error('SW代理不可用且蛋卷无CORS头'));
+  }
+  return tryProxy().catch(function(err){
+    _djProxySet(false);
+    /* 直连兑底：万一部分环境不强制CORS */
+    return fetch(DJ_DIRECT,{mode:'cors',cache:'no-store'}).then(function(r){
+      if(!r.ok) throw new Error('direct HTTP '+r.status);
+      return r.json();
+    });
+  });
+}
+
+/* 3b. 沪深300 PE-TTM（腾讯行情，Access-Control-Allow-Origin:* 浏览器可直连，蛋卷失败时的独立数据源）
+   返回 {pe, date} 或 null；字段39=PE-TTM（指数行情），字段30=时间yyyyMMdd，GBK编码需手动解码 */
+function _fetchTxPE(){
+  var url='https://qt.gtimg.cn/q=sh000300&_t='+Date.now();
+  return fetch(url,{cache:'no-store'}).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.arrayBuffer();
+  }).then(function(buf){
+    var txt;
+    try{ txt=new TextDecoder('gbk').decode(buf); }catch(e){ txt=new TextDecoder('utf-8').decode(buf); }
+    var m=txt.match(/v_sh000300="([^"]+)"/);
+    if(!m) throw new Error('no quote');
+    var f=m[1].split('~');
+    var pe=parseFloat(f[39]);
+    var date=f[30]?f[30].substring(0,8):'';
+    if(!pe||pe<=0||isNaN(pe)) throw new Error('PE invalid: '+f[39]);
+    return {pe:pe, date:date};
+  });
 }
 function _djProxySet(ok){
   try{ localStorage.setItem(_DJ_PROXY_KEY, ok?'1':'0'); }catch(e){}
@@ -674,18 +727,21 @@ function renderValuationCard(items, y10, p){
   html+='<div class="trend-note">数据源：蛋卷基金指数估值（每日更新）。eva_type 为蛋卷官方判定（low/mid/high）。指数估值分位越低，安全边际越高。</div></div>';
   return html;
 }
-/* ERP 卡 */
-function renderERPCard(items, y10, p){
+/* ERP 卡：ERP = 1/沪深300PE − 10Y国债收益率
+   数据源优先级：蛋卷（APK/代理可用时，带分位信息）→ 腾讯行情（CORS直连，纯浏览器兑底） */
+function renderERPCard(items, y10, txPE, p){
   var hs300=findIdx(items||[],'SH000300');
-  var erp=hs300?calcERP(hs300.pe,y10):null;
+  var pe=(hs300&&hs300.pe)?hs300.pe:(txPE?txPE.pe:null);
+  var peSrc=hs300?'蛋卷':(txPE?'腾讯行情':'—');
+  var erp=pe?calcERP(pe,y10):null;
   var z=erpZone(erp,p);
   var html='<div class="card"><div class="card-title">股债性价比 ERP（沪深300）</div>';
   if(erp===null){
-    html+='<div class="trend-note">数据不足：'+(hs300?'缺少10Y国债收益率':'缺少沪深300估值')+'，无法计算ERP。</div></div>';
+    html+='<div class="trend-note">数据不足：'+(pe?'缺少10Y国债收益率':'缺少沪深300PE（蛋卷与腾讯行情均失败）')+'，无法计算ERP。</div></div>';
     return html;
   }
   html+='<div class="erp-hero"><span class="num" style="color:'+z.color+'">'+_fmt(erp,2)+'%</span><span class="lbl">股权风险溢价</span></div>'
-    +'<div class="erp-calc">= 1/沪深300PE(' +_fmt(hs300.pe,2)+') − 10Y国债(' +_fmt(y10,2)+'%)</div>'
+    +'<div class="erp-calc">= 1/沪深300PE('+_fmt(pe,2)+'，'+peSrc+') − 10Y国债('+_fmt(y10,2)+'%)</div>'
     +'<div class="trend-note" style="text-align:center;color:'+z.color+'">'+z.label+'</div>';
   /* 刻度条：0~6% 三段（债优/均衡/股优） */
   var w1=(p.erpLow/6*100).toFixed(1), w2=((p.erpHigh-p.erpLow)/6*100).toFixed(1), w3=((6-p.erpHigh)/6*100).toFixed(1);
@@ -791,7 +847,7 @@ function renderAll(){
   html+=renderPhaseCard(clk);
   html+=renderClockCard(clk,p);
   html+=renderSpreadTrend(d.spreads,p);
-  html+=renderERPCard(d.items,d.latest.y10,p);
+  html+=renderERPCard(d.items,d.latest.y10,d.txPE,p);
   html+=renderValuationCard(d.items,d.latest.y10,p);
   html+=renderOverviewCard(d,clk,d.items,d.latest.y10);
   html+=renderCalibCard(p);
@@ -800,7 +856,7 @@ function renderAll(){
     +'<div class="calc-list">'
     +'<div><span class="fname">宏观指标</span> 东方财富数据中心（PMI/CPI/PPI/M2/GDP，官方发布口径，月度/季度）</div>'
     +'<div><span class="fname">国债收益率</span> 中国货币网（中债国债到期收益率曲线，交易日日度）</div>'
-    +'<div><span class="fname">指数估值</span> 蛋卷基金指数估值（近10年PE/PB分位，每日更新）</div>'
+    +'<div><span class="fname">指数估值</span> 蛋卷基金指数估值（近10年PE/PB分位，每日更新）'+(typeof _isAndroidApp!=='undefined'&&_isAndroidApp?'':'；纯浏览器环境蛋卷无CORS头不可达时，指数估值表不可用，ERP 自动切换腾讯行情沪深300PE')+'</div>'
     +'<div><span class="fname">说明</span> 宏观数据存在发布滞后（PMI当月月末、CPI/PPI次月9日、GDP季后、M2次月10-15日）；美林时钟为经验框架，不构成投资建议。</div>'
     +'</div></div></details>';
   document.getElementById('result').innerHTML=html;
@@ -816,12 +872,13 @@ function loadData(){
     fetchM2().catch(function(){ return null; }),
     fetchGDP().catch(function(){ return null; }),
     fetchSpreadSeries().catch(function(){ return []; }),
-    fetchDanjuan().catch(function(){ return null; })
+    fetchDanjuan().catch(function(){ return null; }),
+    _fetchTxPE().catch(function(){ return null; })
   ];
   var results;
   Promise.all(tasks).then(function(rs){
     results=rs;
-    var pmi=rs[0],cpi=rs[1],ppi=rs[2],m2=rs[3],gdp=rs[4],spreads=rs[5],dj=rs[6];
+    var pmi=rs[0],cpi=rs[1],ppi=rs[2],m2=rs[3],gdp=rs[4],spreads=rs[5],dj=rs[6],txPE=rs[7];
     /* 最新值提取 */
     var latest={
       pmi:pmi&&pmi[0]?pmi[0].v:null, pmiDate:pmi&&pmi[0]?pmi[0].date:'',
@@ -836,7 +893,7 @@ function loadData(){
     } else { latest.y10=null; latest.y2=null; latest.spread=null; latest.spreadDate=''; }
     var items=(dj&&dj.data&&dj.data.items)?dj.data.items:null;
 
-    /* 失败统计 */
+    /* 失败统计（指数估值=蛋卷+腾讯双源，两源均失败才计入） */
     var fails=[];
     if(!pmi) fails.push('PMI');
     if(!cpi) fails.push('CPI');
@@ -844,10 +901,10 @@ function loadData(){
     if(!m2) fails.push('M2');
     if(!gdp) fails.push('GDP');
     if(!spreads||!spreads.length) fails.push('国债利差');
-    if(!items) fails.push('指数估值');
-    if(fails.length===7){ setStatus('全部数据源拉取失败，请检查网络后刷新重试','error'); return; }
+    if(!items&&!txPE) fails.push('指数估值');
+    if(fails.length===8){ setStatus('全部数据源拉取失败，请检查网络后刷新重试','error'); return; }
 
-    CURRENT={params:getParams(), data:{pmi:pmi,cpi:cpi,ppi:ppi,m2:m2,gdp:gdp,spreads:spreads,items:items,latest:latest}};
+    CURRENT={params:getParams(), data:{pmi:pmi,cpi:cpi,ppi:ppi,m2:m2,gdp:gdp,spreads:spreads,items:items,txPE:txPE,latest:latest}};
     renderAll();
     if(fails.length){ setStatus('已加载，但 '+fails.join('、')+' 拉取失败','error'); }
     else { setStatus('数据加载完成 ✓','success'); setTimeout(function(){setStatus('');},2500); }
