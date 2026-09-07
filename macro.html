@@ -316,12 +316,16 @@ var DEF_PARAMS={
   ppiHot:3, ppiCold:0,          /* PPI同比 */
   cpiHot:2.5, cpiCold:1,        /* CPI同比 */
   percLow:30, percHigh:70,      /* 指数估值分位 % */
-  erpHigh:3, erpLow:1           /* ERP % */
+  erpHigh:5, erpLow:3           /* ERP % */
 };
 function getParams(){
   try{
     var s=JSON.parse(localStorage.getItem(PARAM_KEY)||'null');
-    if(s&&typeof s==='object') return Object.assign({},DEF_PARAMS,s);
+    if(s&&typeof s==='object'){
+      /* 旧默认 ERP 阈值(3/1)自动迁移到新口径(5/3)，不覆盖用户自定义值 */
+      if(s.erpHigh===3&&s.erpLow===1){ s.erpHigh=5; s.erpLow=3; }
+      return Object.assign({},DEF_PARAMS,s);
+    }
   }catch(e){}
   return Object.assign({},DEF_PARAMS);
 }
@@ -586,7 +590,7 @@ function levelOfPerc(perc, p){
   var cls  = v<p.percLow ? 'low' : v<=p.percHigh ? 'mid' : 'high';
   return {cls:cls, fill:fill, w:Math.max(2,Math.min(v,100))};
 }
-/* ERP = 1/沪深300PE − 10Y国债收益率（%），>3 股优 / 1-3 均衡 / <1 债优 */
+/* ERP = 1/沪深300PE − 10Y国债收益率（%），≥5 股优 / 3-5 均衡 / <3 债优 */
 function calcERP(hs300pe, y10){
   if(!hs300pe||hs300pe<=0||y10===null||y10===undefined||isNaN(y10)) return null;
   return +(1/hs300pe*100-y10).toFixed(2);
@@ -763,7 +767,7 @@ function renderERPCard(items, y10, txPE, p){
     +'<span style="left:'+(p.erpHigh/R*100).toFixed(2)+'%">'+p.erpHigh+'%</span>'
     +'<span style="left:100%">'+R+'%</span>'
     +'</div>'
-    +'<div class="trend-note">ERP（Equity Risk Premium）= 股票盈利收益率（1/PE）− 无风险利率（10Y国债）。ERP越高，股票相对债券越便宜。经验阈值：&gt;'+p.erpHigh+'% 股票占优，&lt;'+p.erpLow+'% 债券占优。10Y国债当期：'+_fmt(y10,2)+'%（中国货币网）。</div></div>';
+    +'<div class="trend-note">ERP（Equity Risk Premium）= 股票盈利收益率（1/PE）− 无风险利率（10Y国债）。ERP越高，股票相对债券越便宜。经验阈值：≥'+p.erpHigh+'% 股票占优，&lt;'+p.erpLow+'% 债券占优。10Y国债当期：'+_fmt(y10,2)+'%（中国货币网）。</div></div>';
   return html;
 }
 /* 市场概览卡 */
@@ -809,7 +813,7 @@ function renderCalibCard(p){
     +'<div class="param-item"><label>ERP股优≥%</label><input id="pErpHigh" type="number" step="0.5" value="'+p.erpHigh+'"></div>'
     +'<div class="param-item"><label>ERP债优&lt;%</label><input id="pErpLow" type="number" step="0.5" value="'+p.erpLow+'"></div>'
     +'</div>'
-    +'<div class="param-hint">· 默认阈值：PMI 52/49、GDP 4.5/4、M2 9/7、利差 0.45/0.3、PPI 3/0、CPI 2.5/1、分位 30/70、ERP 3/1。<br>· 判定规则：增长分≥+2或≤−2、通胀分≥+1或≤−1 触发象限切换；介于其间为过渡阶段。</div>'
+    +'<div class="param-hint">· 默认阈值：PMI 52/49、GDP 4.5/4、M2 9/7、利差 0.45/0.3、PPI 3/0、CPI 2.5/1、分位 30/70、ERP 5/3。<br>· 判定规则：增长分≥+2或≤−2、通胀分≥+1或≤−1 触发象限切换；介于其间为过渡阶段。</div>'
     +'<div class="calib-actions"><button class="primary" onclick="applyCalib()">重新评估</button><button onclick="resetCalib()">恢复默认阈值</button></div>'
     +'</div></div>';
 }
