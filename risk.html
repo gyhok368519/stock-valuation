@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>资金风险体检</title>
+<title>风险预警</title>
 <style>
 /* ========== 暗色主题（默认，与 roe/moat 一致） ========== */
 :root {
@@ -202,7 +202,7 @@ details.fold .fold-body { padding-top:8px; }
 <body><div class="container">
   <div class="topbar">
     <a href="PB_PE_ROE_calc.html?tab=note" class="back-btn" title="返回">&larr;</a>
-    <div><h1>资金风险体检</h1></div>
+    <div><h1>风险预警</h1></div>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换深色模式"><span id="themeIcon" class="theme-icon"></span></button>
   </div>
   <div class="input-area">
@@ -756,15 +756,18 @@ function _trendHtml(ctx){
 }
 function _barSeries(years,vals,label,cap,floor,scale){
   scale=scale||1;
-  var max=Math.max.apply(null, vals.map(function(v){return v===null?0:Math.abs(v);}).concat([1]));
-  var capV=cap||max;
+  var maxAbs=Math.max.apply(null, vals.map(function(v){return v===null?0:Math.abs(v);}).concat([1]));
+  var capV=cap||maxAbs;
   var html='';
   years.forEach(function(y,i){
     var v=vals[i];
     if(v===null){ html+='<div class="trend-bar-item"><div class="trend-bar-val">-</div><div class="trend-bar" style="height:2px;background:var(--border)"></div><div class="trend-bar-label">'+y+'</div></div>'; return; }
-    var h=Math.max(2,Math.abs(v)/capV*80);
+    /* 柱高封顶80px：按占比取 min(v/capV, 1)，超出封顶值的用满柱表示 */
+    var h=Math.max(2,Math.min(Math.abs(v)/capV,1)*80);
     var color=v>=floor?'var(--green)':(v>0?'var(--yellow)':'var(--red)');
-    html+='<div class="trend-bar-item"><div class="trend-bar-val">'+_fmt(v,2)+'</div>'
+    var overflow=cap?Math.abs(v)>cap:null;
+    var valTxt=_fmt(v/scale,2)+(overflow?'<span style="color:var(--red)" title="超出刻度上限'+_fmt(cap,1)+'"> ⚠</span>':'');
+    html+='<div class="trend-bar-item"><div class="trend-bar-val">'+valTxt+'</div>'
       +'<div class="trend-bar" style="height:'+h+'px;background:'+color+'"></div>'
       +'<div class="trend-bar-label">'+y+'</div></div>';
   });
