@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>资金风险体检</title>
+<style>
+/* ========== 暗色主题（默认，与 roe/moat 一致） ========== */
+:root {
+  --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --text2:#8b949e; --text3:#6e7681;
+  --blue:#58a6ff; --green:#3fb950; --red:#f85149; --yellow:#d29922; --purple:#bc8cff; --orange:#db6d28;
+  --input-bg:#0d1117; --tag-bg:rgba(88,166,255,.06); --dupont-border:rgba(88,166,255,.2);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"SF Mono","Cascadia Code","Consolas",monospace;
+  --radius:8px;
+  --shadow:0 0 0 1px rgba(48,54,61,.5);
+}
+/* 亮色主题 */
+:root.light {
+  --bg:#ffffff; --card:#f6f8fa; --border:#d0d7de; --text:#1f2328; --text2:#656d76; --text3:#8c959f;
+  --blue:#0969da; --green:#1a7f37; --red:#cf222e; --yellow:#9a6700; --purple:#8250df; --orange:#bc4c00;
+  --input-bg:#ffffff; --tag-bg:rgba(9,105,218,.06); --dupont-border:rgba(9,105,218,.2);
+  --shadow:0 0 0 1px rgba(208,215,222,.5);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; }
+body {
+  background:var(--bg); color:var(--text); font-family:var(--font); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding:0 0 40px;
+  transition:background .2s, color .2s;
+}
+.container { max-width:880px; margin:0 auto; padding:12px 16px; }
+
+/* 顶栏 + 主题切换 */
+.topbar { display:flex; align-items:center; justify-content:center; position:relative; padding:12px 0 16px; }
+.topbar .back-btn { position:absolute; left:0; top:12px; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text2); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:all .2s; text-decoration:none; }
+.topbar .back-btn:hover { border-color:var(--blue); color:var(--blue); }
+.topbar h1 { font-size:22px; font-weight:600; color:var(--blue); letter-spacing:.5px; }
+.theme-toggle {
+  position:absolute; right:0; top:12px;
+  width:38px; height:38px; border-radius:50%; border:1px solid var(--border);
+  background:var(--card); color:var(--text2); cursor:pointer; font-size:17px;
+  display:flex; align-items:center; justify-content:center; transition:all .2s;
+}
+.theme-toggle:hover { border-color:var(--blue); color:var(--blue); }
+.theme-icon { display:inline-block; vertical-align:middle; width:18px; height:18px; }
+.theme-icon svg { width:100%; height:100%; }
+
+/* 搜索区 */
+.input-area { display:flex; align-items:center; margin-bottom:12px; position:relative; }
+.input-area label { font-size:14px; color:var(--text2); white-space:nowrap; flex-shrink:0; width:72px; text-align:left; }
+.input-area input {
+  flex:1; min-width:0; height:42px; background:var(--input-bg); border:1px solid var(--border); border-radius:var(--radius);
+  color:var(--text); font-size:15px; padding:0 14px; outline:none; transition:border-color .2s;
+}
+.input-area input:focus { border-color:var(--blue); }
+.input-area input::placeholder { color:var(--text3); font-size:13px; }
+.input-area button {
+  flex-shrink:0; height:42px; padding:0 16px; margin-left:8px; background:var(--blue); color:#fff; border:none; border-radius:var(--radius);
+  font-size:15px; font-weight:600; cursor:pointer; transition:opacity .2s; white-space:nowrap;
+}
+.input-area button:hover { opacity:.88; }
+.input-area button:disabled { opacity:.5; cursor:not-allowed; }
+.status { text-align:center; font-size:13px; color:var(--text2); min-height:20px; margin-bottom:10px; }
+.status.error { color:var(--red); }
+.status.loading { color:var(--yellow); }
+.status.success { color:var(--green); }
+
+.card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; margin-bottom:12px;
+}
+.card-title { font-size:13px; color:var(--text2); margin-bottom:10px; font-weight:600; letter-spacing:.3px; }
+.stock-name { font-size:20px; font-weight:600; color:var(--text); }
+.stock-code { font-size:13px; color:var(--text3); margin-left:6px; }
+.stock-meta { font-size:12px; color:var(--text3); margin-top:2px; }
+
+/* 总览判定 */
+.verdict { text-align:center; padding:14px 0 4px; }
+.verdict .v-icon { width:46px; height:46px; margin:0 auto 8px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.verdict .v-label { font-size:23px; font-weight:700; letter-spacing:1px; }
+.verdict .v-desc { font-size:12px; color:var(--text2); margin-top:5px; line-height:1.7; }
+.verdict-low .v-icon, .verdict-low .v-label { color:var(--green); }
+.verdict-low .v-icon { background:rgba(63,185,80,.14); }
+.verdict-mid .v-icon, .verdict-mid .v-label { color:var(--yellow); }
+.verdict-mid .v-icon { background:rgba(210,153,34,.14); }
+.verdict-high .v-icon, .verdict-high .v-label { color:var(--red); }
+.verdict-high .v-icon { background:rgba(248,81,73,.14); }
+.verdict-na .v-icon, .verdict-na .v-label { color:var(--text2); }
+.verdict-na .v-icon { background:rgba(127,127,127,.12); }
+
+/* 风险九宫格总览 */
+.grid9 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
+.g9-item { background:var(--tag-bg); border:1px solid var(--dupont-border); border-radius:6px; padding:10px 6px; text-align:center; cursor:pointer; transition:border-color .2s; }
+.g9-item:hover { border-color:var(--blue); }
+.g9-item .name { font-size:11px; color:var(--text2); margin-bottom:2px; }
+.g9-item .val { font-size:16px; font-weight:700; font-family:var(--mono); }
+.g9-item .sub { font-size:10px; color:var(--text3); margin-top:2px; }
+.g9-item.g9-ok .val { color:var(--green); }
+.g9-item.g9-warn .val { color:var(--yellow); }
+.g9-item.g9-bad .val { color:var(--red); }
+.g9-item.g9-na .val { color:var(--text3); }
+
+/* 分组明细表 */
+.group-card { }
+.group-title { font-size:13px; color:var(--text2); margin-bottom:8px; font-weight:600; }
+.risk-table { width:100%; border-collapse:collapse; font-size:13px; }
+.risk-table th, .risk-table td { padding:7px 8px; text-align:center; border-bottom:1px solid var(--border); }
+.risk-table th { color:var(--text3); font-weight:500; font-size:12px; }
+.risk-table td { color:var(--text); }
+.risk-table tr:last-child td { border-bottom:none; }
+.risk-table .metric { text-align:left; color:var(--text2); }
+.risk-table .val { font-family:var(--mono); font-weight:600; }
+.risk-table .ok { color:var(--green); }
+.risk-table .warn { color:var(--yellow); }
+.risk-table .bad { color:var(--red); }
+.risk-table .na { color:var(--text3); }
+.risk-table .remark { font-size:11px; color:var(--text3); text-align:left; }
+
+/* 趋势条形图 */
+.trend-bar-container { display:flex; align-items:flex-end; gap:5px; height:96px; margin-top:10px; }
+.trend-bar-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; }
+.trend-bar { width:100%; max-width:44px; min-height:2px; border-radius:3px 3px 0 0; transition:height .4s ease; }
+.trend-bar-label { font-size:10px; color:var(--text3); }
+.trend-bar-val { font-size:10px; color:var(--text2); font-family:var(--mono); }
+
+/* 折叠明细 */
+details.fold { margin-top:8px; }
+details.fold summary { cursor:pointer; font-size:12px; color:var(--text3); font-weight:600; list-style:none; user-select:none; }
+details.fold summary::-webkit-details-marker { display:none; }
+details.fold summary::before { content:'\25B8 '; }
+details.fold[open] summary::before { content:'\25BE '; }
+details.fold .fold-body { padding-top:8px; }
+
+/* 计算过程行 */
+.calc-list { font-size:12px; color:var(--text2); padding:2px 0; line-height:1.75; }
+.calc-list .fname { color:var(--text3); }
+.calc-list .fval { font-family:var(--mono); color:var(--text); font-weight:600; }
+.calc-list .fmain { font-family:var(--mono); color:var(--blue); font-weight:700; }
+
+/* 参数校准 */
+.calib-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
+.calib-toggle .hint { font-size:11px; color:var(--text3); }
+.calib-arrow { font-size:11px; color:var(--text3); transition:transform .2s; display:inline-block; }
+.calib-arrow.open { transform:rotate(90deg); }
+.calib-body { display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+.calib-body.open { display:block; }
+.param-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; }
+.param-item { display:flex; align-items:center; }
+.param-item label { font-size:13px; color:var(--text2); white-space:nowrap; flex-shrink:0; }
+.param-item input {
+  flex:1; min-width:0; height:36px; background:var(--input-bg); border:1px solid var(--border); border-radius:6px;
+  color:var(--text); font-size:14px; padding:0 10px; outline:none; transition:border-color .2s; margin-left:8px;
+  font-family:var(--mono);
+}
+.param-item input:focus { border-color:var(--blue); }
+.param-hint { font-size:11px; color:var(--text3); margin-top:10px; line-height:1.7; }
+.calib-actions { display:flex; gap:10px; margin-top:12px; }
+.calib-actions button { flex:1; height:38px; border-radius:var(--radius); border:1px solid var(--border); background:var(--card); color:var(--text); font-size:14px; cursor:pointer; transition:all .2s; }
+.calib-actions button.primary { background:var(--blue); color:#fff; border-color:var(--blue); font-weight:600; }
+.calib-actions button:hover { opacity:.88; }
+
+/* 标签 */
+.tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600; margin-right:4px; }
+.tag-good { background:rgba(63,185,80,.15); color:var(--green); }
+.tag-info { background:rgba(88,166,255,.15); color:var(--blue); }
+.tag-warn { background:rgba(210,153,34,.15); color:var(--yellow); }
+.tag-bad { background:rgba(248,81,73,.15); color:var(--red); }
+
+/* 历史记录 */
+.history-item {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px 14px; margin-bottom:8px; position:relative; overflow:hidden; cursor:pointer;
+  transition:border-color .2s;
+}
+.history-item:hover { border-color:var(--blue); }
+.history-item .h-row { display:flex; align-items:center; justify-content:space-between; }
+.history-item .h-name { font-size:15px; font-weight:600; color:var(--text); }
+.history-item .h-code { font-size:12px; color:var(--text3); margin-left:5px; }
+.history-item .h-score { font-size:18px; font-weight:700; font-family:var(--mono); }
+.history-item .h-meta { font-size:12px; color:var(--text3); margin-top:3px; }
+.history-item .h-judge { font-size:12px; margin-top:4px; }
+.history-delete {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
+  width:50px; height:28px; background:var(--red); color:#fff; border:none; border-radius:14px;
+  font-size:13px; cursor:pointer; transition:transform .25s, opacity .25s; display:flex; align-items:center; justify-content:center; opacity:0; z-index:5; pointer-events:none;
+}
+.history-item.swiping .history-delete { transform:translate(-50%,-50%) scale(1); opacity:.45; }
+.history-item .h-content { transition:transform .15s; position:relative; z-index:2; }
+.history-item.released .h-content { transition:transform .3s; }
+
+@media(max-width:600px) {
+  .container { padding:10px 12px; }
+  .topbar h1 { font-size:19px; }
+  .grid9 { gap:6px; }
+  .g9-item .val { font-size:15px; }
+  .stock-name { font-size:18px; }
+  .param-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body><div class="container">
+  <div class="topbar">
+    <a href="PB_PE_ROE_calc.html?tab=note" class="back-btn" title="返回">&larr;</a>
+    <div><h1>资金风险体检</h1></div>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换深色模式"><span id="themeIcon" class="theme-icon"></span></button>
+  </div>
+  <div class="input-area">
+    <label for="searchInput">股票代码</label>
+    <input type="text" id="searchInput" placeholder="代码（如600025）或简称（如HNSD/华能水电）" autocomplete="off"
+      onkeydown="if(event.key==='Enter')doSearch()" onblur="hideSuggest()">
+    <button onclick="doSearch()">体检</button>
+    <ul id="suggestList" style="display:none;position:absolute;top:44px;left:72px;right:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 12px rgba(0,0,0,0.15);list-style:none;z-index:50;max-height:240px;overflow-y:auto;margin:0;padding:0"></ul>
+  </div>
+  <div class="status" id="status"></div>
+  <div id="result"></div>
+  <div id="historySection"></div>
+</div>
+<script>
+/* ========== 主题切换（与 roe/moat 一致） ========== */
+function _themeIconSVG(isDark) {
+  var fg = isDark ? '#ffffff' : '#161b22';
+  var fill = isDark ? '#ffffff' : '#f6f8fa';
+  return '<span class="theme-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<line x1="12" y1="1.5" x2="12" y2="4" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="12" y1="20" x2="12" y2="22.5" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="1.5" y1="12" x2="4" y2="12" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="20" y1="12" x2="22.5" y2="12" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="4.1" y1="4.1" x2="5.9" y2="5.9" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="18.1" y1="18.1" x2="19.9" y2="19.9" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="4.1" y1="19.9" x2="5.9" y2="18.1" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="18.1" y1="5.9" x2="19.9" y2="4.1" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<circle cx="12" cy="12" r="5.5" stroke="' + fg + '" stroke-width="1.6" fill="none"/>' +
+    '<path d="M10.5 7.2a5.5 5.5 0 0 1 0 9.6a4.2 4.2 0 0 0 0-9.6z" fill="' + fill + '"/>' +
+    '</svg></span>';
+}
+function _updateThemeIcon(){
+  var isLight = document.documentElement.classList.contains('light');
+  var el = document.getElementById('themeIcon');
+  if (el) el.innerHTML = _themeIconSVG(!isLight);
+  document.getElementById('themeToggle').title = isLight ? '切换深色模式' : '切换浅色模式';
+}
+function toggleTheme(){
+  var root=document.documentElement;
+  root.classList.toggle('light');
+  var isLight=root.classList.contains('light');
+  _updateThemeIcon();
+  try{ localStorage.setItem('risk_theme', isLight?'light':'dark'); }catch(e){}
+}
+(function initTheme(){
+  try{
+    var t=localStorage.getItem('risk_theme');
+    if(t==='light'){ document.documentElement.classList.add('light'); }
+    _updateThemeIcon();
+  }catch(e){ _updateThemeIcon(); }
+})();
+
+/* ========== 工具 ========== */
+function _esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function _fmt(n,dec){ if(n===null||n===undefined||isNaN(n)) return '-'; return (+n).toFixed(dec); }
+function _fmtPct(n,dec){ if(n===null||n===undefined||isNaN(n)) return '-'; return (+n).toFixed(dec)+'%'; }
+function _fmtBig(n){
+  if(n===null||n===undefined||isNaN(n)) return '-';
+  var a=Math.abs(n);
+  if(a>=1e12) return (n/1e12).toFixed(2)+'万亿';
+  if(a>=1e8) return (n/1e8).toFixed(2)+'亿';
+  if(a>=1e4) return (n/1e4).toFixed(2)+'万';
+  return _fmt(n,2);
+}
+function setStatus(msg,type){ var el=document.getElementById('status'); el.className=type||''; el.innerHTML=msg; }
+function clearResult(){ document.getElementById('result').innerHTML=''; }
+function F(o, names){
+  if(!o) return null;
+  for(var i=0;i<names.length;i++){
+    var v=o[names[i]];
+    if(v!==null&&v!==undefined&&v!==''){ var n=+v; if(!isNaN(n)) return n; }
+  }
+  return null;
+}
+function num(v){ return (v===null||v===undefined||isNaN(+v))?0:+v; }
+
+/* ========== stock_index.json（与 moat 一致） ========== */
+var STOCK_MAP={}; var PINYIN_IDX={};
+var _SI_CACHE_KEY='_stock_idx_cache';
+function loadStockMap(cb){
+  if(STOCK_MAP._loaded){ cb&&cb(); return; }
+  try{
+    var cached=localStorage.getItem(_SI_CACHE_KEY);
+    if(cached){
+      var d=JSON.parse(cached);
+      if(d&&d.stocks){
+        STOCK_MAP=d.stocks; PINYIN_IDX=d.pinyin||{};
+        STOCK_MAP._loaded=true; cb&&cb();
+        _refreshStockIndex();
+        return;
+      }
+    }
+  }catch(e){}
+  _fetchStockIndexFallback()
+    .then(function(data){
+      STOCK_MAP=data.stocks||{}; PINYIN_IDX=data.pinyin||{};
+      STOCK_MAP._loaded=true;
+      try{ localStorage.setItem(_SI_CACHE_KEY,JSON.stringify(data)); }catch(e){}
+      cb&&cb();
+    })
+    .catch(function(e){
+      try{
+        var c2=localStorage.getItem(_SI_CACHE_KEY);
+        if(c2){
+          var d2=JSON.parse(c2);
+          if(d2&&d2.stocks){
+            STOCK_MAP=d2.stocks; PINYIN_IDX=d2.pinyin||{};
+            STOCK_MAP._loaded=true; cb&&cb(); return;
+          }
+        }
+      }catch(e2){}
+      cb&&cb(new Error(e.message));
+    });
+}
+function _refreshStockIndex(){
+  fetch('stock_index.json?_dc='+Date.now(),{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){
+      if(data&&data.stocks){
+        STOCK_MAP=data.stocks; PINYIN_IDX=data.pinyin||{};
+        STOCK_MAP._loaded=true;
+        try{ localStorage.setItem(_SI_CACHE_KEY,JSON.stringify(data)); }catch(e){}
+      }
+    })
+    .catch(function(){});
+}
+function _fetchStockIndexFallback(){
+  var url='./stock_index.json?_t='+Date.now();
+  return fetch(url,{cache:'no-store'}).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).catch(function(e1){
+    console.log('[index] direct fetch failed ('+e1.message+'), trying API fallback...');
+    var apiUrl='https://api.github.com/repos/gyhok368519/stock-valuation/contents/stock_index.json';
+    var headers={'Accept':'application/vnd.github.v3+json'};
+    return fetch(apiUrl,{headers:headers}).then(function(r){
+      if(!r.ok) throw new Error('API HTTP '+r.status);
+      return r.json();
+    }).then(function(data){
+      if(!data.content) throw new Error('No content in API response');
+      return JSON.parse(_safeAtob(data.content));
+    });
+  });
+}
+function _safeAtob(b64){
+  var raw=atob(b64.replace(/\n/g,''));
+  var buf=new Uint8Array(raw.length);
+  for(var i=0;i<raw.length;i++) buf[i]=raw.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(buf);
+}
+function searchStock(input){
+  input=(input||'').trim();
+  if(!input) return null;
+  if(/^\d{6}$/.test(input)){
+    var name=STOCK_MAP[input]||'';
+    var market = input[0]==='6' ? 1 : 0;
+    return {code:input, name:name, market:market};
+  }
+  var q=input.toLowerCase();
+  for(var code in PINYIN_IDX){
+    var p=PINYIN_IDX[code];
+    if(p.i===q || p.f===q) return {code:code, name:STOCK_MAP[code]||'', market:(code[0]==='6'?1:0)};
+  }
+  var fuzzy=[];
+  for(var code2 in PINYIN_IDX){
+    var p2=PINYIN_IDX[code2];
+    if(p2.i.indexOf(q)===0 || p2.f.indexOf(q)===0){
+      fuzzy.push({code:code2, name:STOCK_MAP[code2]||'', market:(code2[0]==='6'?1:0)});
+      if(fuzzy.length>=5) break;
+    }
+  }
+  if(fuzzy.length===0){
+    for(var code3 in STOCK_MAP){
+      if(code3==='_loaded') continue;
+      if(typeof STOCK_MAP[code3]==='string' && STOCK_MAP[code3].indexOf(input)>=0){
+        fuzzy.push({code:code3, name:STOCK_MAP[code3], market:(code3[0]==='6'?1:0)});
+        if(fuzzy.length>=5) break;
+      }
+    }
+  }
+  return fuzzy.length ? fuzzy : null;
+}
+function showSuggest(list){
+  var ul=document.getElementById('suggestList');
+  if(!list || list.length===0){ ul.style.display='none'; ul.innerHTML=''; return; }
+  ul.innerHTML=list.map(function(it,i){
+    return '<li data-idx="'+i+'" style="padding:8px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--border);color:var(--text)" onmouseenter="this.style.background=\'var(--tag-bg)\'" onmouseleave="this.style.background=\'\'">'
+      +'<span style="color:var(--blue);font-weight:600">'+it.code+'</span>'
+      +'<span style="color:var(--text3);font-size:12px;margin-left:8px">'+_esc(it.name||'')+'</span></li>';
+  }).join('');
+  ul.style.display='block';
+  ul.querySelectorAll('li').forEach(function(li,i){
+    li.onclick=function(){ pickSuggest(list[i]); };
+  });
+}
+function pickSuggest(item){
+  document.getElementById('searchInput').value=item.code;
+  document.getElementById('suggestList').style.display='none';
+  doSearch();
+}
+function hideSuggest(){ setTimeout(function(){ document.getElementById('suggestList').style.display='none'; }, 200); }
+/* ========== 数据抓取（东财 securities API，与 moat 一致） ========== */
+var DC_API='https://datacenter.eastmoney.com/securities/api/data/get';
+function _secuSfx(code){ return (code[0]==='6') ? '.SH' : (code[0]==='8'||code[0]==='4') ? '.BJ' : '.SZ'; }
+function _dcUrl(type,sty,filter,ps){
+  return DC_API+'?type='+type+'&sty='+sty+'&filter='+encodeURIComponent(filter)
+    +'&p=1&ps='+(ps||12)+'&sr=-1&st=REPORT_DATE&source=HSF10&client=PC';
+}
+function _dcJson(url){
+  return fetch(url,{cache:'no-store'}).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(d){
+    if(d && d.success===false) throw new Error(d.message||'接口返回失败');
+    var rows=d && d.result && d.result.data ? d.result.data : null;
+    if(!rows || !rows.length) throw new Error('无数据');
+    return rows;
+  });
+}
+function fetchIncome(code){
+  return _dcJson(_dcUrl('RPT_F10_FINANCE_GINCOME','APP_F10_GINCOME','(SECUCODE="'+code+_secuSfx(code)+'")',28));
+}
+function fetchBalance(code){
+  return _dcJson(_dcUrl('RPT_F10_FINANCE_GBALANCE','F10_FINANCE_GBALANCE','(SECUCODE="'+code+_secuSfx(code)+'")',28));
+}
+function fetchCashflow(code){
+  return _dcJson(_dcUrl('RPT_F10_FINANCE_GCASHFLOW','APP_F10_GCASHFLOW','(SECUCODE="'+code+_secuSfx(code)+'")',28));
+}
+function fetchStockName(code){
+  var secid=(code[0]==='6'?'1.':'0.')+code;
+  return fetch('https://push2.eastmoney.com/api/qt/stock/get?secid='+secid+'&fields=f57,f58,f43,f84',{cache:'no-store'})
+    .then(function(r){return r.json();}).then(function(d){
+      if(!d||!d.data) throw new Error('行情数据异常');
+      return { name:d.data.f58||'', price:d.data.f43!=null?(+d.data.f43)/100:0, totalShares:d.data.f84||0 };
+    }).catch(function(){
+      return { name:'', price:0, totalShares:0 };
+    });
+}
+
+/* ========== 数据处理 ========== */
+function cleanRows(rows){ return (rows||[]).filter(function(r){ return r && r.REPORT_DATE; }); }
+function pickLatestAnnual(rows){
+  var rs=cleanRows(rows);
+  for(var i=0;i<rs.length;i++){ if(/-12-31/.test(rs[i].REPORT_DATE)) return rs[i]; }
+  return rs[0]||null;
+}
+function findRowByDate(rows,dateStr){
+  var rs=cleanRows(rows);
+  for(var i=0;i<rs.length;i++){ if(rs[i].REPORT_DATE.indexOf(dateStr)===0) return rs[i]; }
+  return null;
+}
+function annualSeries(rows, field){
+  var out=[], seen={};
+  cleanRows(rows).forEach(function(r){
+    if(!/-12-31/.test(r.REPORT_DATE)) return;
+    var y=r.REPORT_DATE.substring(0,4);
+    if(seen[y]) return; seen[y]=1;
+    var v=r[field];
+    if(v!==null&&v!==undefined&&v!=='') out.push({year:y, val:+v});
+  });
+  return out; /* 最新在前 */
+}
+/* 最近5个年报（不含最新年，用于同比） */
+function prevAnnual(rows, cur){
+  var rs=cleanRows(rows);
+  var curY=(cur.REPORT_DATE||'').substring(0,4);
+  for(var i=0;i<rs.length;i++){
+    if(/-12-31/.test(rs[i].REPORT_DATE) && rs[i].REPORT_DATE.substring(0,4)!==curY) return rs[i];
+  }
+  return null;
+}
+
+/* ========== 阈值配置（常用标准，用户可校准） ========== */
+var PARAM_KEY='risk_params';
+var DEF_PARAMS={
+  ocfRatio:0.8,   /* 净现比 */
+  fcfDebt:0.1,    /* FCF/有息负债 */
+  cashRatio:0.2,  /* 现金比率 */
+  arDays:120,     /* 应收周转天数 */
+  invDays:90,     /* 存货周转天数 */
+  tatDecline:30,  /* 总资产周转率下降% */
+  stDebtRatio:50, /* 短期债务/总债务 % */
+  icr:1.5,        /* 利息保障倍数 */
+  costRise:200    /* 融资成本上升 bps */
+};
+function getParams(){
+  try{
+    var s=JSON.parse(localStorage.getItem(PARAM_KEY)||'null');
+    if(s&&typeof s==='object') return Object.assign({},DEF_PARAMS,s);
+  }catch(e){}
+  return Object.assign({},DEF_PARAMS);
+}
+function setParams(p){ try{ localStorage.setItem(PARAM_KEY,JSON.stringify(p)); }catch(e){} }
+
+/* ========== 计算层 ========== */
+/* 有息负债 = 短借 + 一年内到期 + 长借 + 应付债券 + 短融 */
+function calcDebt(bs){
+  var parts=[];
+  var add=function(label,v,always){
+    if(v!==null&&v!==undefined&&!isNaN(+v)&&(always||+v!==0)) parts.push({label:label,val:+v});
+    return num(v);
+  };
+  var d=0;
+  d+=add('短期借款', bs.SHORT_LOAN, true);
+  d+=add('一年内到期非流动负债', bs.NCL_1_YEAR, true);
+  d+=add('长期借款', bs.LONG_LOAN, true);
+  d+=add('应付债券', bs.BOND_PAYABLE, true);
+  d+=add('短期融资券', bs.SHORT_BOND_PAYABLE, true);
+  return { debt:d, parts:parts };
+}
+/* 是否金融类（银行/保险/券商），特征：有息负债结构异常或货币资金口径不同 */
+function isFinancial(bs, inc){
+  if(!bs) return false;
+  var loan=num(bs.SHORT_LOAN)+num(bs.LONG_LOAN)+num(bs.BOND_PAYABLE)+num(bs.SHORT_BOND_PAYABLE)+num(bs.NCL_1_YEAR);
+  var mon=num(bs.MONETARYFUNDS);
+  var ass=num(bs.TOTAL_ASSETS);
+  /* 银行/券商特征：货币资金占资产比例极高且无传统应收/存货 */
+  if(ass>0 && mon/ass>0.15) return true;
+  return false;
+}
+
+/* ========== 指标计算（返回 {value, status, remark} 或 {na:true}） ========== */
+function calcAll(ctx, p){
+  var inc=ctx.inc, bs=ctx.bs, cf=ctx.cf, bsPrev=ctx.bsPrev, incPrev=ctx.incPrev, cfPrev=ctx.cfPrev;
+  var out={ groups:[], score:0, total:0, items:[], debt: calcDebt(bs) };
+
+  /* ---- 现金流质量与覆盖能力 ---- */
+  var g1={ key:'cash', title:'现金流质量与覆盖能力', items:[] };
+
+  /* 1. 净现比 = 经营现金流/归母净利润 */
+  var ocf=F(cf,['NETCASH_OPERATE']), np=F(inc,['PARENT_NETPROFIT']);
+  if(ocf!==null && np!==null && np>0){
+    var v1=ocf/np;
+    g1.items.push({id:'ocfRatio', name:'净现比', value:v1, disp:_fmt(v1,2),
+      level: v1>=p.ocfRatio ? 'ok' : (v1>=p.ocfRatio*0.7 ? 'warn' : 'bad'),
+      threshold: '< '+p.ocfRatio, note:'经营现金流净额 ÷ 归母净利润'});
+  } else { g1.items.push({id:'ocfRatio', name:'净现比', na:true, note:'利润非正或数据缺失'}); }
+
+  /* 2. FCF/有息负债 */
+  var capex=num(cf['CONSTRUCT_LONG_ASSET']), debt=calcDebt(bs);
+  var fcf=ocf!==null ? ocf-capex : null;
+  if(fcf!==null && debt.debt>0){
+    var v2=fcf/debt.debt;
+    g1.items.push({id:'fcfDebt', name:'FCF/有息负债', value:v2, unit:_fmtPct(v2,1),
+      level: v2>=p.fcfDebt ? 'ok' : (v2>=0 ? 'warn' : 'bad'),
+      threshold: '< '+p.fcfDebt, note:'(经营现金流−资本开支) ÷ 有息负债'});
+  } else { g1.items.push({id:'fcfDebt', name:'FCF/有息负债', na:true, value:'无有息负债', note:'有息负债为0（良好）'}); }
+
+  /* 3. 现金比率 */
+  var cash=num(bs['MONETARYFUNDS']), cliab=num(bs['TOTAL_CURRENT_LIAB']);
+  if(cliab>0){
+    var v3=cash/cliab;
+    g1.items.push({id:'cashRatio', name:'现金比率', value:v3, unit:_fmtPct(v3,1),
+      level: v3>=p.cashRatio ? 'ok' : 'bad', threshold: '< '+p.cashRatio, note:'货币资金 ÷ 流动负债'});
+  } else { g1.items.push({id:'cashRatio', name:'现金比率', na:true, value:'无流动负债', note:'流动负债为0'}); }
+  out.groups.push(g1);
+
+  /* ---- 运营效率与资产周转 ---- */
+  var g2={ key:'运营', title:'运营效率与资产周转', items:[] };
+
+  /* 4. 应收周转天数 */
+  var ar=num(bs['NOTE_RECE'])+num(bs['ACCOUNTS_RECE']), rev=F(inc,['TOTAL_OPERATE_INCOME']);
+  if(rev>0 && ar>0){
+    var v4=ar/rev*365;
+    g2.items.push({id:'arDays', name:'应收周转天数', value:v4, unit:_fmt(v4,0)+'天',
+      level: v4<=p.arDays ? 'ok' : 'warn', threshold: '> '+p.arDays+'天', note:'(应收票据+账款) ÷ 营收 ×365'});
+  } else { g2.items.push({id:'arDays', name:'应收周转天数', na:true, value:'—', note:'应收为0（良好）'}); }
+
+  /* 5. 存货周转天数 */
+  var inv=num(bs['INVENTORY']), cost=F(inc,['TOTAL_OPERATE_COST']);
+  if(cost>0 && inv>0){
+    var v5=inv/cost*365;
+    g2.items.push({id:'invDays', name:'存货周转天数', value:v5, unit:_fmt(v5,0)+'天',
+      level: v5<=p.invDays ? 'ok' : 'warn', p:p, threshold: '> '+p.invDays+'天', note:'存货 ÷ 营业成本 ×365'});
+  } else if(inv===0){ g2.items.push({id:'invDays', name:'存货周转天数', na:true, value:'0', note:'无存货（轻资产）'}); }
+  else { g2.items.push({id:'invDays', name:'存货周转天数', na:true, value:'—', note:'数据缺失'}); }
+
+  /* 6. 总资产周转率（同比降幅） */
+  var ta=num(bs['TOTAL_ASSETS']), taPrev=bsPrev?num(bsPrev['TOTAL_ASSETS']):ta;
+  var revPrev=incPrev?F(incPrev,['TOTAL_OPERATE_INCOME']):null;
+  if(rev>0 && ta>0 && revPrev!==null && taPrev>0){
+    var at=rev/ta, atPrev=revPrev/taPrev;
+    var decline=(1-at/atPrev)*100;
+    g2.items.push({id:'arTurnover', name:'总资产周转率', value:at, unit:_fmt(at,3)+'次',
+      level: decline<=p.arTurnover ? 'ok' : 'warn',
+      threshold: '下降 > '+p.arTurnover+'%', note:'同比 '+(decline>0?'下降':'上升')+' '+_fmt(Math.abs(decline),1)+'%'});
+  } else { g2.items.push({id:'atTurnover', name:'总资产周转率', na:true, value:'—', note:'缺少同比数据'}); }
+  out.groups.push(g2);
+
+  /* ---- 资本结构与再融资能力 ---- */
+  var g3={ key:'资本', title:'资本结构与再融资能力', items:[] };
+
+  /* 7. 短期债务/总债务 */
+  var st=num(bs['SHORT_LOAN'])+num(bs['SHORT_BOND_PAYABLE'])+num(bs['NCL_1_YEAR']);
+  if(debt.debt>0){
+    var v7=st/debt.debt*100;
+    g3.items.push({id:'stDebtRatio', name:'短期债务/总债务', value:v7, unit:_fmtPct(v7,1),
+      level: v7<=p.stDebtRatio ? 'ok' : 'warn', p:p, threshold: '> '+p.stDebtRatio+'%', note:'短借+短融+一年内到期 占总有息负债'});
+  } else { g3.items.push({id:'stDebtRatio', name:'短期债务/总债务', na:true, value:'无息债', note:'有息负债为0'}); }
+
+  /* 8. 利息保障倍数 = (利润总额+利息费用+折旧摊销)/利息费用 */
+  var tp=F(inc,['TOTAL_PROFIT']), ie=F(inc,['FE_INTEREST_EXPENSE']);
+  var dep=cf ? (num(cf['FA_IR_DEPR'])+num(cf['IR_DEPR'])+num(cf['IA_AMORTIZE'])+num(cf['LPE_AMORTIZE'])+num(cf['USERIGHT_ASSET_AMORTIZE'])+num(cf['DEFER_INCOME_AMORTIZE'])+num(cf['OILGAS_BIOLOGY_DEPR'])) : 0;
+  if(ie>0){
+    var icrVal=(num(tp)+ie+dep)/ie;
+    g3.items.push({id:'icr', name:'利息保障倍数', value:icrVal, unit:_fmt(icrVal,1)+'倍',
+      level: icrVal>=p.icr ? 'ok' : (icrVal>=1?'warn':'bad'), p:p, threshold:'< '+p.icr+'倍', note:'(利润总额+利息+折旧摊销) ÷ 利息费用'});
+  } else { g3.items.push({id:'icr', name:'利息保障倍数', na:true, value:'无利息', note:'无有息负债利息（良好）'}); }
+
+  /* 9. 融资成本变动（bps） */
+  var debtPrev=bsPrev?calcDebt(bsPrev).debt:debt.debt;
+  var iePrev=incPrev?F(incPrev,['FE_INTEREST_EXPENSE']):null;
+  if(ie!==null && iePrev!==null && debt.debt>0 && debtPrev>0){
+    var rCur=ie/debt.debt, rPrev=iePrev/debtPrev;
+    var bps=(rCur-rPrev)*10000;
+    g3.items.push({id:'debtCost', name:'融资成本变动', value:bps, unit:(bps>=0?'+':'')+_fmt(bps,0)+'bps',
+      level: bps<=p.costRise ? 'ok' : 'warn', p:p, threshold:'> '+p.costRise+'bps', note:'利息费用/有息负债，同比'});
+  } else { g3.items.push({id:'debtCost', name:'融资成本变动', na:true, value:'—', note:'缺少同比数据'}); }
+  out.groups.push(g3);
+
+  /* 汇总评分 */
+  out.total=9; out.score=0;
+  out.groups.forEach(function(g){ g.items.forEach(function(it){
+    if(it.level==='bad') out.score+=2;
+    else if(it.level==='warn') out.score+=1;
+  }); });
+  return out;
+}
+/* ========== 渲染 ========== */
+var CURRENT=null;
+function levelColor(lv){ return lv==='ok'?'var(--green)':lv==='warn'?'var(--yellow)':lv==='bad'?'var(--red)':'var(--text3)'; }
+function levelTag(lv){ return lv==='ok'?'tag-good':lv==='warn'?'tag-warn':lv==='bad'?'tag-bad':'tag-info'; }
+function levelLabel(lv){ return lv==='ok'?'健康':lv==='warn'?'关注':lv==='bad'?'高危':'—'; }
+
+/* 总览判定：0-1 健康 / 2-4 关注 / 5+ 高危 */
+function verdictOf(score){
+  if(score===null||isNaN(score)) return {key:'na',label:'无法判定',tag:'tag-warn',cls:'verdict-na'};
+  if(score<=1) return {key:'low',label:'风险较低',tag:'tag-good',cls:'verdict-low',desc:'资金风险总体较低，现金流、运营效率与资本结构较健康。'};
+  if(score<=4) return {key:'mid',label:'风险关注',tag:'tag-warn',cls:'verdict-mid',desc:'存在部分预警项，建议结合财报明细进一步核查。'};
+  return {key:'high',label:'风险较高',tag:'tag-bad',cls:'verdict-high',desc:'多项指标亮红灯，资金链或财务健康需高度警惕。'};
+}
+function _shieldIcon(key){
+  var c = key==='low'?'var(--green)':key==='mid'?'var(--yellow)':key==='high'?'var(--red)':'var(--text2)';
+  var inner = key==='low'
+    ? '<path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M8.8 12l2.2 2.2 4.2-4.4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    : key==='mid'
+    ? '<path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M9 12h6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+    : key==='high'
+    ? '<path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5v5.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/>'
+    : '<path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/>';
+  return '<svg viewBox="0 0 24 24" style="color:'+c+'">'+inner+'</svg>';
+}
+
+function renderMain(ctx, calc, p){
+  var code=ctx.code, name=ctx.name;
+  var v=verdictOf(calc.score);
+  var html='';
+  var reportDate=(ctx.bs&&ctx.bs.REPORT_DATE||'').substring(0,10);
+  var totalItems=0, warnCount=0, badCount=0;
+  calc.groups.forEach(function(g){ g.items.forEach(function(it){
+    if(it.level==='bad') badCount++;
+    else if(it.level==='warn') warnCount++;
+    totalItems++;
+  }); });
+
+  /* 头卡 */
+  html+='<div class="card '+(v?v.cls:'')+'">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+    +'<div><span class="stock-name">'+_esc(name)+'</span><span class="stock-code">'+_esc(code)+'</span>'
+    +'<div class="stock-meta">报告期 '+_esc(reportDate)+' | 风险评分 '+calc.score+'/'+(calc.total*2)+'（'+badCount+'项高危，'+warnCount+'项关注）</div></div>'
+    +'<span class="tag '+(v?v.tag:'tag-warn')+'">'+(v?v.label:'待定')+'</span>'
+    +'</div>'
+    +'<div class="verdict">'
+    +'<div class="v-icon">'+_shieldIcon(v?v.key:'na')+'</div>'
+    +'<div class="v-label">'+(v?v.label:'无法判定')+'</div>'
+    +'<div class="v-desc">'+(v?v.desc:'数据不足，无法完成体检。')+'</div>'
+    +'</div>'
+    +'</div>';
+
+  /* 风险九宫格总览 */
+  html+='<div class="card"><div class="card-title">九项指标总览（点击可查看说明）</div><div class="grid9">';
+  calc.groups.forEach(function(g){
+    g.items.forEach(function(it){
+      var cls=it.na?'g9-na':(it.level==='ok'?'g9-ok':it.level==='warn'?'g9-warn':'g9-bad');
+      var valDisp = it.na ? (it.value||'—') : (it.unit||_fmt(it.value,2));
+      html+='<div class="g9-item '+cls+'" onclick="scrollToMetric(\''+it.id+'\')">'
+        +'<div class="name">'+_esc(it.name)+'</div>'
+        +'<div class="val">'+_esc(valDisp)+'</div>'
+        +'<div class="sub">'+_esc(it.note||'')+'</div></div>';
+    });
+  });
+  html+='</div></div>';
+
+  /* 分组明细 */
+  calc.groups.forEach(function(g){
+    html+='<div class="card group-card"><div class="group-title">'+_esc(g.title)+'</div><table class="risk-table"><thead><tr>'
+      +'<th style="text-align:left">指标</th><th>数值</th><th>预警阈值</th><th>状态</th><th style="text-align:left">说明</th></tr></thead><tbody>';
+    g.items.forEach(function(it){
+      var valHtml, statusHtml;
+      if(it.na){
+        valHtml='<span class="na">'+(it.value||'—')+'</span>';
+        statusHtml='<span class="na">—</span>';
+      } else {
+        valHtml='<span class="'+it.level+'">'+_esc(it.unit||_fmt(it.value,2))+'</span>';
+        statusHtml='<span class="tag '+levelTag(it.level)+'">'+levelLabel(it.level)+'</span>';
+      }
+      html+='<tr>'
+        +'<td class="metric" id="m_'+it.id+'">'+_esc(it.name)+'</td>'
+        +'<td class="val">'+valHtml+'</td>'
+        +'<td class="val" style="color:var(--text3)">'+_esc(it.threshold||'—')+'</td>'
+        +'<td>'+statusHtml+'</td>'
+        +'<td class="remark">'+_esc(it.note||'')+'</td>'
+        +'</tr>';
+    });
+    html+='</tbody></table></div>';
+  });
+
+  /* 趋势（净现比/现金比率/总资产周转率 近5年） */
+  html+='<div class="card"><div class="card-title">关键指标近5年趋势（年报）</div>'+_trendHtml(ctx)+'</div>';
+
+  /* 计算过程折叠 */
+  html+='<details class="fold"><summary>计算明细与口径说明</summary><div class="fold-body">'+_calcDetailHtml(ctx,calc,p)+'</div></details>';
+
+  /* 参数校准 */
+  html+=_renderCalibHtml(ctx,calc,p);
+
+  document.getElementById('result').innerHTML=html;
+}
+function scrollToMetric(id){
+  var el=document.getElementById('m_'+id);
+  if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.background='rgba(88,166,255,.15)'; setTimeout(function(){el.style.background='';},1500); }
+}
+function _trendHtml(ctx){
+  var rows=ctx.incomeRows, bsRows=ctx.balanceRows, cfRows=ctx.cashflowRows;
+  var years=[]; var seen={};
+  cleanRows(rows).forEach(function(r){ if(/-12-31/.test(r.REPORT_DATE)&&!seen[r.REPORT_DATE.substring(0,4)]){seen[r.REPORT_DATE.substring(0,4)]=1; years.push(r.REPORT_DATE.substring(0,4));} });
+  years=years.slice(0,5).reverse(); /* 旧→新 */
+  if(!years.length) return '<div class="trend-note">暂无可用的年报数据。</div>';
+  var netArr=[], cashArr=[];
+  years.forEach(function(y){
+    var inc=findRowByDate(rows,y+'-12-31');
+    var cf=findRowByDate(cfRows,y+'-12-31');
+    var np=inc?F(inc,['PARENT_NETPROFIT']):null, ocf=cf?F(cf,['NETCASH_OPERATE']):null;
+    netArr.push(np!==null&&np>0&&ocf!==null?ocf/np:null);
+    cashArr.push(cf?cf.NETCASH_OPERATE:null);
+  });
+  var bars1=_barSeries(years,netArr,'净现比',1.5,0.8);
+  var bars2=_barSeries(years,cashArr,'经营现金流(亿)',null,null,1e8);
+  return '<div class="trend-bar-container">'+bars1+'</div><div class="trend-note" style="margin-top:4px">净现比 = 经营现金流净额 ÷ 归母净利润（≥0.8 健康）</div>'
+    +'<div class="trend-bar-container" style="margin-top:14px">'+bars2+'</div><div class="trend-note" style="margin-top:4px">经营现金流净额（亿元）</div>';
+}
+function _barSeries(years,vals,label,cap,floor,scale){
+  scale=scale||1;
+  var max=Math.max.apply(null, vals.map(function(v){return v===null?0:Math.abs(v);}).concat([1]));
+  var capV=cap||max;
+  var html='';
+  years.forEach(function(y,i){
+    var v=vals[i];
+    if(v===null){ html+='<div class="trend-bar-item"><div class="trend-bar-val">-</div><div class="trend-bar" style="height:2px;background:var(--border)"></div><div class="trend-bar-label">'+y+'</div></div>'; return; }
+    var h=Math.max(2,Math.abs(v)/capV*80);
+    var color=v>=floor?'var(--green)':(v>0?'var(--yellow)':'var(--red)');
+    html+='<div class="trend-bar-item"><div class="trend-bar-val">'+_fmt(v,2)+'</div>'
+      +'<div class="trend-bar" style="height:'+h+'px;background:'+color+'"></div>'
+      +'<div class="trend-bar-label">'+y+'</div></div>';
+  });
+  return html;
+}
+function findByDate(rows,dateStr){
+  var rs=cleanRows(rows||[]);
+  for(var i=0;i<rs.length;i++){ if(rs[i].REPORT_DATE.indexOf(dateStr)===0) return rs[i]; }
+  return null;
+}
+function _calcDetailHtml(ctx, calc, p){
+  var inc=ctx.inc, bs=ctx.bs, cf=ctx.cf;
+  var rows=[];
+  rows.push('<div class="calc-list"><span class="fname">报告期</span> '+(bs?bs.REPORT_DATE.substring(0,10):'-')+'　'
+    +(cf?'经营现金流净额 '+_fmtBig(cf.NETCASH_OPERATE):'')+'　'
+    +(bs?'货币资金 '+_fmtBig(bs.MONETARYFUNDS):'')+'</div>');
+  rows.push('<div class="calc-list"><span class="fname">有息负债</span> '+(calc.debt?calc.debt.debt!==0?_fmtBig(calc.debt.debt)+'（'+calc.debt.parts.map(function(x){return x.label+' '+_fmtBig(x.val);}).join(' + ')+'）':'0':'—')+'</div>');
+  rows.push('<div class="calc-list"><span class="fname">口径说明</span> 净现比与FCF基于年报归母净利润口径；融资成本=利息费用/有息负债，两期对比换算bps；金融类公司货币资金口径特殊，部分指标可能不适用。</div>');
+  return rows.join('');
+}
+function _renderCalibHtml(ctx,calc,p){
+  return '<div class="card"><div class="calib-toggle" onclick="toggleCalib()">'
+    +'<div><div class="card-title" style="margin-bottom:2px;">参数校准</div><div class="hint">调整预警阈值后重新评估（默认值：净现比0.8 / FCF覆盖率0.1 / 现金比率0.2 / 应收120天 / 存货90天 / 周转率降30% / 短债占比50% / 利息保障1.5倍 / 融资成本200bps）</div></div>'
+    +'<span class="calib-arrow" id="calibArrow">&#9654;</span></div>'
+    +'<div class="calib-body" id="calibBody">'
+    +'<div class="param-grid">'
+    +'<div class="param-item"><label>净现比&lt;</label><input id="pOcf" type="number" step="0.05" value="'+p.ocfRatio.toFixed(2)+'"></div>'
+    +'<div class="param-item"><label>FCF/有息负债&lt;</label><input id="pFcf" type="number" step="0.01" value="'+p.fcfDebt.toFixed(2)+'"></div>'
+    +'<div class="param-item"><label>现金比率&lt;</label><input id="pCash" type="number" step="0.01" value="'+p.cashRatio.toFixed(2)+'"></div>'
+    +'<div class="param-item"><label>应收周转&gt;</label><input id="pAr" type="number" step="5" value="'+p.arDays+'"></div>'
+    +'<div class="param-item"><label>存货周转&gt;</label><input id="pInv" type="number" step="5" value="'+p.invDays+'"></div>'
+    +'<div class="param-item"><label>周转率降&gt;%</label><input id="pTat" type="number" step="5" value="'+p.tatDecline+'"></div>'
+    +'<div class="param-item"><label>短债占比&gt;%</label><input id="pSt" type="number" step="5" value="'+p.stDebtRatio+'"></div>'
+    +'<div class="param-item"><label>利息保障&lt;</label><input id="pIcr" type="number" step="0.1" value="'+p.icr.toFixed(1)+'"></div>'
+    +'<div class="param-item"><label>融资成本&gt;bps</label><input id="pCost" type="number" step="50" value="'+p.costRise+'"></div>'
+    +'</div>'
+    +'<div class="param-hint">· 阈值修改后点“重新评估”立即生效，并保存到本地。<br>· 常用标准：净现比≥0.8、现金比率≥0.2、利息保障≥1.5、短期债务≤50%。</div>'
+    +'<div class="calib-actions"><button class="primary" onclick="applyCalib()">重新评估</button><button onclick="resetCalib()">恢复默认阈值</button></div>'
++'</div></div>';
+}
+function toggleCalib(){
+  var body=document.getElementById('calibBody');
+  var arrow=document.getElementById('calibArrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+function _readCalibInputs(){
+  var gv=function(id){ var el=document.getElementById(id); return el?el.value:''; };
+  var p=getParams();
+  var v=function(id,def){ var n=parseFloat(gv(id)); return isNaN(n)?def:n; };
+  p.ocfRatio=v('pOcf',DEF_PARAMS.ocfRatio);
+  p.fcfDebt=v('pFcf',DEF_PARAMS.fcfDebt);
+  p.cashRatio=v('pCash',DEF_PARAMS.cashRatio);
+  p.arDays=v('pAr',DEF_PARAMS.arDays);
+  p.invDays=v('pInv',DEF_PARAMS.invDays);
+  p.tatDecline=v('pTat',DEF_PARAMS.tatDecline);
+  p.stDebtRatio=v('pSt',DEF_PARAMS.stDebtRatio);
+  p.icr=v('pIcr',DEF_PARAMS.icr);
+  p.costRise=v('pCost',DEF_PARAMS.costRise);
+  return p;
+}
+function applyCalib(){
+  var p=_readCalibInputs();
+  setParams(p);
+  CURRENT.params=p;
+  recalcCurrent();
+  setStatus('已按校准阈值重算 ✓','success');
+  setTimeout(function(){setStatus('');},1500);
+}
+function resetCalib(){
+  setParams(Object.assign({},DEF_PARAMS));
+  CURRENT.params=Object.assign({},DEF_PARAMS);
+  recalcCurrent();
+  setStatus('已恢复默认阈值 ✓','success');
+  setTimeout(function(){setStatus('');},1500);
+}
+function recalcCurrent(){
+  var ctx=CURRENT.ctx, p=CURRENT.params;
+  var calc=calcAll(ctx,p);
+  CURRENT.calc=calc;
+  renderMain(ctx,calc,p);
+  if(CURRENT.calibOpen){ document.getElementById('calibBody').classList.add('open'); document.getElementById('calibArrow').classList.add('open'); }
+  saveHistory(ctx.code,ctx.name,calc);
+}
+function toggleCalibOpen(){ CURRENT.calibOpen=true; }
+/* ========== 历史记录 ========== */
+var HISTORY_KEY='risk_history';
+function getHistory(){ try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');}catch(e){return[];} }
+function saveHistory(code,name,calc){
+  var v=verdictOf(calc.score);
+  var hist=getHistory();
+  hist=hist.filter(function(h){return h.code!==code;});
+  var badCount=0,warnCount=0;
+  calc.groups.forEach(function(g){ g.items.forEach(function(it){ if(it.level==='bad')badCount++; else if(it.level==='warn')warnCount++; }); });
+  hist.unshift({code:code,name:name,score:calc.score,bad:badCount,warn:warnCount,
+    level:v?v.label:'待定',tag:v?v.tag:'tag-warn',time:new Date().toLocaleString('zh-CN')});
+  if(hist.length>20) hist=hist.slice(0,20);
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));}catch(e){}
+  renderHistory();
+}
+function deleteHistory(idx){
+  var hist=getHistory(); hist.splice(idx,1);
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));}catch(e){}
+  renderHistory();
+}
+function renderHistory(){
+  var hist=getHistory();
+  var el=document.getElementById('historySection');
+  if(!hist.length){el.innerHTML='';return;}
+  var html='<div class="card"><div class="card-title">历史体检记录</div>';
+  hist.forEach(function(h,i){
+    var color=h.score<=1?'var(--green)':(h.score<=4?'var(--yellow)':'var(--red)');
+    html+='<div class="history-item" data-idx="'+i+'">'
+      +'<div class="h-content" onclick="loadHistory('+i+')">'
+      +'<div class="h-row"><div><span class="h-name">'+_esc(h.name)+'</span><span class="h-code">'+_esc(h.code)+'</span></div>'
+      +'<div class="h-score" style="color:'+color+'">'+h.score+'分</div></div>'
+      +'<div class="h-meta">'+h.bad+'项高危 / '+h.warn+'项关注 | '+_esc(h.time)+'</div>'
+      +'<div class="h-judge"><span class="tag '+h.tag+'">'+_esc(h.level)+'</span></div>'
+      +'</div><button class="history-delete">删除</button></div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+  bindSwipe();
+}
+function loadHistory(idx){
+  var hist=getHistory(); if(!hist[idx]) return;
+  document.getElementById('searchInput').value=hist[idx].code;
+  doSearch();
+}
+function bindSwipe(){
+  var items=document.querySelectorAll('.history-item');
+  var THRESHOLD=80;
+  items.forEach(function(item){
+    var startX=0, startX2=0, swiping=false, moved=false;
+    var hc=item.querySelector('.h-content'); if(!hc) return;
+    var idx=parseInt(item.getAttribute('data-idx'));
+    hc.addEventListener('touchstart',function(e){
+      startX=e.touches[0].clientX; swiping=true; moved=false;
+      item.classList.remove('released'); item.classList.add('swiping');
+    },{passive:true});
+    hc.addEventListener('touchmove',function(e){
+      if(!swiping) return;
+      var dx=e.touches[0].clientX-startX;
+      if(Math.abs(dx)>5) moved=true;
+      hc.style.transform='translateX('+(dx*0.6)+'px)';
+      if(Math.abs(dx)>10) item.classList.add('swiping');
+    },{passive:true});
+    hc.addEventListener('touchend',function(e){
+      if(!swiping) return;
+      swiping=false;
+      var dx=e.changedTouches[0].clientX-startX;
+      item.classList.remove('swiping'); item.classList.add('released');
+      if(Math.abs(dx)>THRESHOLD && moved){
+        hc.style.transform='translateX('+(dx>0?300:-300)+'px)';
+        hc.style.opacity='0';
+        setTimeout(function(){ deleteHistory(idx); },250);
+      } else { hc.style.transform=''; }
+    },{passive:true});
+    hc.addEventListener('mousedown',function(e){
+      startX2=e.clientX; swiping=true; moved=false;
+      item.classList.remove('released'); item.classList.add('swiping');
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove',function(e){
+      if(!swiping) return;
+      var dx=e.clientX-startX2;
+      if(Math.abs(dx)>5) moved=true;
+      hc.style.transform='translateX('+(dx*0.6)+'px)';
+    });
+    document.addEventListener('mouseup',function(e){
+      if(!swiping) return;
+      swiping=false;
+      var dx=e.clientX-startX2;
+      item.classList.remove('swiping'); item.classList.add('released');
+      if(Math.abs(dx)>THRESHOLD && moved){
+        hc.style.transform='translateX('+(dx>0?300:-300)+'px)';
+        hc.style.opacity='0';
+        setTimeout(function(){ deleteHistory(idx); },250);
+      } else { hc.style.transform=''; }
+    });
+  });
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('.history-item')){
+      items.forEach(function(it){
+        var h=it.querySelector('.h-content');
+        if(h){ h.style.transform=''; }
+        it.classList.remove('swiping');
+      });
+    }
+  });
+}
+
+/* ========== 主流程 ========== */
+function doSearch(){
+  var input=document.getElementById('searchInput').value.trim();
+  if(!input){setStatus('请输入股票代码或简称','error');return;}
+  clearResult();
+  if(/^\d{6}$/.test(input)){
+    _doFetch(input,'');
+    return;
+  }
+  setStatus('正在加载股票映射表...','loading');
+  loadStockMap(function(err){
+    if(err && !Object.keys(STOCK_MAP).length){
+      setStatus('股票映射表加载失败，请输入6位数字代码','error');return;
+    }
+    var result=searchStock(input);
+    if(!result){setStatus('未找到匹配的股票，请检查输入','error');return;}
+    if(Array.isArray(result)){
+      if(result.length===1){ result=result[0]; }
+      else { showSuggest(result); setStatus('找到 '+result.length+' 个匹配，请点击选择','loading'); return; }
+    }
+    _doFetch(result.code, result.name||'');
+  });
+}
+function _doFetch(code, stockName){
+  var btn=document.querySelector('.input-area button');
+  btn.disabled=true;
+  setStatus('正在抓取 '+(stockName||code)+' 财务数据...','loading');
+  var p=getParams();
+  var tasks=[fetchIncome(code),fetchBalance(code),fetchCashflow(code),fetchStockName(code)];
+  Promise.allSettled(tasks).then(function(results){
+btn.disabled=false;
+    if(results[0].status!=='fulfilled' || results[1].status!=='fulfilled' || results[2].status!=='fulfilled'){
+      /* 金融类（银行/保险/券商）资产负债表与现金流量表结构不同，专门提示 */
+      if(results[0].status==='fulfilled' && results[1].status!=='fulfilled' && results[2].status!=='fulfilled'){
+        setStatus('该股为银行/保险/券商等金融类公司，资产负债表与现金流量表结构与通用公司不同，本体检暂不支持','error');
+        return;
+      }
+      var msgs=[0,1,2].map(function(i){return results[i].status==='fulfilled'?'':(results[i].reason&&results[i].reason.message||'失败');}).filter(Boolean);
+      setStatus('财务数据获取失败：'+msgs.join('；'),'error');
+      return;
+    }
+    var incomeRows=results[0].value;
+    var balanceRows=results[1].value;
+    var cashflowRows=results[2].value;
+    var quote=results[3].status==='fulfilled'?results[3].value:{name:'',price:0,totalShares:0};
+
+    var inc=pickLatestAnnual(incomeRows);
+    var bs=pickLatestAnnual(balanceRows);
+    var cf=pickLatestAnnual(cashflowRows);
+    if(!inc || !bs || !cf){ setStatus('缺少有效的年报数据','error'); return; }
+    var bsPrev=prevAnnual(balanceRows,bs);
+    var incPrev=prevAnnual(incomeRows,inc);
+    var cfPrev=prevAnnual(cashflowRows,cf);
+    var name=stockName || quote.name || inc.SECURITY_NAME_ABBR || code;
+
+    var ctx={code:code,name:name,inc:inc,bs:bs,cf:cf,incPrev:incPrev,bsPrev:bsPrev,cfPrev:cfPrev,
+      incomeRows:incomeRows,balanceRows:balanceRows,cashflowRows:cashflowRows};
+
+    var calc=calcAll(ctx,p);
+    if(calc.error){ setStatus('计算失败：'+calc.error,'error'); return; }
+    CURRENT={ctx:ctx,calc:calc,params:p,calibOpen:false};
+    setStatus('体检完成 ✓','success');
+    setTimeout(function(){setStatus('');},2000);
+    renderMain(ctx,calc,p);
+    saveHistory(code,name,calc);
+  });
+}
+document.getElementById('searchInput').addEventListener('input',function(){
+  var v=this.value.trim();
+  if(!v){ document.getElementById('suggestList').style.display='none'; return; }
+  loadStockMap(function(err){
+    var cv=document.getElementById('searchInput').value.trim();
+    if(!cv){ document.getElementById('suggestList').style.display='none'; return; }
+    if(err && !Object.keys(STOCK_MAP).length){ document.getElementById('suggestList').style.display='none'; return; }
+    var list=searchStock(cv);
+    if(list && !Array.isArray(list)) list=[list];
+    if(list && list.length>0) showSuggest(list);
+    else document.getElementById('suggestList').style.display='none';
+  });
+});
+loadStockMap();
+renderHistory();
+
+/* 版本检查 */
+(function checkVer() {
+  var key='_risk_ver_last_check';
+  var now=Date.now();
+  var last=parseInt(localStorage.getItem(key)||'0',10);
+  if(now-last<10000) return;
+  localStorage.setItem(key,String(now));
+  setTimeout(function(){
+    fetch('version.json?_update='+Date.now(),{cache:'no-store'})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var remoteVer=(d&&d.v)?String(d.v).trim():'';
+        var localVer=localStorage.getItem('_risk_ver')||'';
+        if(remoteVer && remoteVer!==localVer){
+          localStorage.setItem('_risk_ver',remoteVer);
+          location.reload();
+        }
+      })
+      .catch(function(){});
+  },2000);
+})();
+</script>
+</body>
+</html>
