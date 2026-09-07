@@ -1,10 +1,11 @@
-﻿const CACHE_NAME = 'pb-calc-v230';
+﻿const CACHE_NAME = 'pb-calc-v231';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './roe.html',
   './mine.html',
   './moat.html',
   './risk.html',
+  './macro.html',
   './stock_index.json',
   './manifest.json',
   './icon-512.jpg',
@@ -77,8 +78,43 @@ function swr(request) {
 // Allowed emweb proxy paths (whitelist)
 var EMWEB_ALLOWED = ['BonusFinancing/PageAjax', 'CompanySurvey/PageAjax', 'ShareholderResearch/PageAjax'];
 
+// Allowed danjuan proxy paths (whitelist)
+var DJ_ALLOWED = ['index_eva/dj'];
+
 self.addEventListener('fetch', e => {
   var url = e.request.url;
+
+  // Proxy danjuan index-evaluation API: only same-origin + whitelisted paths + GET only
+  if (url.indexOf('/dj-proxy/') !== -1 && new URL(url).origin === self.location.origin) {
+    if (e.request.method !== 'GET') return;
+    var djIdx = url.indexOf('/dj-proxy/');
+    var djAfter = url.substring(djIdx + '/dj-proxy/'.length);
+    var djQueryIdx = djAfter.indexOf('?');
+    var djPath = djQueryIdx >= 0 ? djAfter.substring(0, djQueryIdx) : djAfter;
+    var djAllowed = false;
+    for (var di = 0; di < DJ_ALLOWED.length; di++) {
+      if (djPath === DJ_ALLOWED[di]) { djAllowed = true; break; }
+    }
+    if (!djAllowed) return;
+    var djQuery = djQueryIdx >= 0 ? djAfter.substring(djQueryIdx + 1) : '';
+    var djRealUrl = 'https://danjuanfunds.com/djapi/' + djPath + (djQuery ? '?' + djQuery : '');
+    e.respondWith(
+      fetch(djRealUrl, { mode: 'cors', credentials: 'omit' })
+        .then(function(resp) {
+          var headers = new Headers();
+          headers.set('Content-Type', 'application/json; charset=utf-8');
+          headers.set('Access-Control-Allow-Origin', self.location.origin);
+          return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers: headers });
+        })
+        .catch(function(err) {
+          return new Response(JSON.stringify({error: err.message}), {
+            status: 502,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': self.location.origin }
+          });
+        })
+    );
+    return;
+  }
 
   // Proxy emweb API: only same-origin + whitelisted paths + GET only
   if (url.indexOf('/emweb-proxy/') !== -1 && new URL(url).origin === self.location.origin) {
