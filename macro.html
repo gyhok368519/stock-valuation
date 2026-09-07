@@ -154,15 +154,18 @@ body {
 .v-table .group-row td { font-family:var(--font); color:var(--text3); font-size:11px; font-weight:600; text-align:left; padding-top:12px; border-bottom:none; }
 
 /* ERP 卡片 */
-.erp-hero { display:flex; align-items:baseline; justify-content:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.erp-hero { display:flex; align-items:baseline; justify-content:center; margin-top:8px; flex-wrap:wrap; }
 .erp-hero .num { font-size:36px; font-weight:700; font-family:var(--mono); }
-.erp-hero .lbl { font-size:13px; color:var(--text2); }
+.erp-hero .lbl { font-size:13px; color:var(--text2); margin-left:10px; }
 .erp-calc { font-size:12px; color:var(--text2); text-align:center; margin-top:6px; font-family:var(--mono); }
 .erp-scale { display:flex; margin-top:14px; border-radius:6px; overflow:hidden; height:16px; font-size:10px; color:#fff; font-weight:600; }
 .erp-scale .seg { display:flex; align-items:center; justify-content:center; }
 .erp-marker { position:relative; height:14px; margin-top:2px; }
 .erp-marker .pin { position:absolute; top:0; width:2px; height:10px; background:var(--text); transform:translateX(-1px); border-radius:1px; }
-.erp-zone { display:flex; justify-content:space-between; font-size:10px; color:var(--text3); margin-top:3px; font-family:var(--mono); }
+.erp-zone { position:relative; height:14px; margin-top:3px; font-size:10px; color:var(--text3); font-family:var(--mono); }
+.erp-zone span { position:absolute; top:0; transform:translateX(-50%); white-space:nowrap; }
+.erp-zone span:first-child { transform:none; }
+.erp-zone span:last-child { transform:translateX(-100%); }
 
 /* 趋势条形图（利差近月） */
 .trend-bar-container { display:flex; align-items:flex-end; gap:5px; height:78px; margin-top:10px; }
@@ -743,16 +746,23 @@ function renderERPCard(items, y10, txPE, p){
   html+='<div class="erp-hero"><span class="num" style="color:'+z.color+'">'+_fmt(erp,2)+'%</span><span class="lbl">股权风险溢价</span></div>'
     +'<div class="erp-calc">= 1/沪深300PE('+_fmt(pe,2)+'，'+peSrc+') − 10Y国债('+_fmt(y10,2)+'%)</div>'
     +'<div class="trend-note" style="text-align:center;color:'+z.color+'">'+z.label+'</div>';
-  /* 刻度条：0~6% 三段（债优/均衡/股优） */
-  var w1=(p.erpLow/6*100).toFixed(1), w2=((p.erpHigh-p.erpLow)/6*100).toFixed(1), w3=((6-p.erpHigh)/6*100).toFixed(1);
-  var pos=Math.max(0,Math.min(erp,6))/6*100;
+  /* 刻度条：0~R 三段（债优/均衡/股优），R=max(6, 股优阈值+1) 保证股优段始终可见（避免阈值为刻度上限时段宽归零） */
+  var R=Math.max(6, p.erpHigh+1);
+  var w1=(p.erpLow/R*100).toFixed(1), w2=((p.erpHigh-p.erpLow)/R*100).toFixed(1), w3=((R-p.erpHigh)/R*100).toFixed(1);
+  var pos=Math.max(0,Math.min(erp,R))/R*100;
   html+='<div class="erp-scale">'
     +'<div class="seg" style="width:'+w1+'%;background:rgba(248,81,73,.55)">债优</div>'
     +'<div class="seg" style="width:'+w2+'%;background:rgba(210,153,34,.55)">均衡</div>'
     +'<div class="seg" style="width:'+w3+'%;background:rgba(63,185,80,.55)">股优</div>'
     +'</div>'
     +'<div class="erp-marker"><div class="pin" style="left:'+pos+'%"></div></div>'
-    +'<div class="erp-zone"><span>0%</span><span>'+p.erpLow+'%</span><span>'+p.erpHigh+'%</span><span>6%</span></div>'
+    /* 刻度标签按真实阈值比例绝对定位（space-between 会与非均匀色段错位） */
+    +'<div class="erp-zone">'
+    +'<span style="left:0">0%</span>'
+    +(p.erpLow>0?'<span style="left:'+(p.erpLow/R*100).toFixed(2)+'%">'+p.erpLow+'%</span>':'')
+    +'<span style="left:'+(p.erpHigh/R*100).toFixed(2)+'%">'+p.erpHigh+'%</span>'
+    +'<span style="left:100%">'+R+'%</span>'
+    +'</div>'
     +'<div class="trend-note">ERP（Equity Risk Premium）= 股票盈利收益率（1/PE）− 无风险利率（10Y国债）。ERP越高，股票相对债券越便宜。经验阈值：&gt;'+p.erpHigh+'% 股票占优，&lt;'+p.erpLow+'% 债券占优。10Y国债当期：'+_fmt(y10,2)+'%（中国货币网）。</div></div>';
   return html;
 }
