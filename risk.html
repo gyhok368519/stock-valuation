@@ -155,6 +155,7 @@ details.fold .fold-body { padding-top:8px; }
   font-family:var(--mono);
 }
 .param-item input:focus { border-color:var(--blue); }
+.param-item .calib-sub { font-size:11px; color:var(--text3); margin-left:8px; white-space:nowrap; flex-shrink:0; }
 .param-hint { font-size:11px; color:var(--text3); margin-top:10px; line-height:1.7; }
 .calib-actions { display:flex; gap:10px; margin-top:12px; }
 .calib-actions button { flex:1; height:38px; border-radius:var(--radius); border:1px solid var(--border); background:var(--card); color:var(--text); font-size:14px; cursor:pointer; transition:all .2s; }
@@ -805,7 +806,7 @@ function _renderCalibHtml(ctx,calc,p){
   return '<div class="card"><div class="calib-toggle" onclick="toggleCalib()">'
     +'<div><div class="card-title" style="margin-bottom:2px;">参数校准</div><div class="hint">调整预警阈值后重新评估（默认值：净现比0.8 / FCF覆盖率0.1 / 现金比率0.3 / 应收120天 / 存货90天 / 周转率降10% / 短债占比40~60% / 利息保障3~1.5倍 / 融资成本200bps）</div></div>'
     +'<span class="calib-arrow" id="calibArrow">&#9654;</span></div>'
-    +'<div class="calib-body" id="calibBody">'
++'<div class="calib-body" id="calibBody">'
     +'<div class="param-grid">'
     +'<div class="param-item"><label>净现比&lt;</label><input id="pOcf" type="number" step="0.05" value="'+p.ocfRatio.toFixed(2)+'"></div>'
     +'<div class="param-item"><label>FCF/有息负债&lt;</label><input id="pFcf" type="number" step="0.01" value="'+p.fcfDebt.toFixed(2)+'"></div>'
@@ -813,13 +814,11 @@ function _renderCalibHtml(ctx,calc,p){
     +'<div class="param-item"><label>应收周转&gt;</label><input id="pAr" type="number" step="5" value="'+p.arDays+'"></div>'
     +'<div class="param-item"><label>存货周转&gt;</label><input id="pInv" type="number" step="5" value="'+p.invDays+'"></div>'
     +'<div class="param-item"><label>周转率降&gt;%</label><input id="pTat" type="number" step="5" value="'+p.tatDecline+'"></div>'
-+'<div class="param-item"><label>短债占比&gt;%</label><input id="pSt" type="number" step="5" value="'+p.stDebtRatio+'"></div>'
-    +'<div class="param-item"><label>短债占比&gt;&gt;%</label><input id="pStBad" type="number" step="5" value="'+p.stDebtBad+'"></div>'
-    +'<div class="param-item"><label>利息保障&lt;</label><input id="pIcr" type="number" step="0.1" value="'+p.icr.toFixed(1)+'"></div>'
-    +'<div class="param-item"><label>利息保障&lt;&lt;</label><input id="pIcrWarn" type="number" step="0.1" value="'+p.icrWarn.toFixed(1)+'"></div>'
++'<div class="param-item"><label>短债占比≤%</label><input id="pSt" type="number" step="5" value="'+p.stDebtRatio+'"><span class="calib-sub">≤'+p.stDebtRatio+'%健康 / &gt;'+p.stDebtRatio+'%关注 / &gt;'+DEF_PARAMS.stDebtBad+'%高危</span></div>'
+    +'<div class="param-item"><label>利息保障≥</label><input id="pIcr" type="number" step="0.1" value="'+p.icr.toFixed(1)+'"><span class="calib-sub">≥'+p.icr.toFixed(1)+'倍健康 / &lt;'+p.icr.toFixed(1)+'关注 / &lt;'+DEF_PARAMS.icrWarn.toFixed(1)+'高危</span></div>'
     +'<div class="param-item"><label>融资成本&gt;bps</label><input id="pCost" type="number" step="50" value="'+p.costRise+'"></div>'
     +'</div>'
-    +'<div class="param-hint">· 阈值修改后点“重新评估”立即生效，并保存到本地。<br>· 常用标准：净现比≥0.8、现金比率≥0.3、利息保障≥3、短期债务≤40%（40%~60%关注，>60%高危）。</div>'
+    +'<div class="param-hint">· 阈值修改后点“重新评估”立即生效，并保存到本地。<br>· 短债占比>'+DEF_PARAMS.stDebtBad+'%、利息保障&lt;'+DEF_PARAMS.icrWarn.toFixed(1)+'倍为固定高危档，不可调。<br>· 常用标准：净现比≥0.8、现金比率≥0.3、利息保障≥3、短期债务≤40%（40%~60%关注，>60%高危）。</div>'
     +'<div class="calib-actions"><button class="primary" onclick="applyCalib()">重新评估</button><button onclick="resetCalib()">恢复默认阈值</button></div>'
 +'</div></div>';
 }
@@ -838,11 +837,11 @@ function _readCalibInputs(){
   p.cashRatio=v('pCash',DEF_PARAMS.cashRatio);
   p.arDays=v('pAr',DEF_PARAMS.arDays);
   p.invDays=v('pInv',DEF_PARAMS.invDays);
-  p.tatDecline=v('pTat',DEF_PARAMS.tatDecline);
-p.stDebtRatio=v('pSt',DEF_PARAMS.stDebtRatio);
-  p.stDebtBad=v('pStBad',DEF_PARAMS.stDebtBad);
+p.tatDecline=v('pTat',DEF_PARAMS.tatDecline);
+  p.stDebtRatio=v('pSt',DEF_PARAMS.stDebtRatio);
+  p.stDebtBad=DEF_PARAMS.stDebtBad;
   p.icr=v('pIcr',DEF_PARAMS.icr);
-  p.icrWarn=v('pIcrWarn',DEF_PARAMS.icrWarn);
+  p.icrWarn=DEF_PARAMS.icrWarn;
   p.costRise=v('pCost',DEF_PARAMS.costRise);
   return p;
 }
