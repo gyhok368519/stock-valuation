@@ -480,18 +480,29 @@ var PARAM_KEY='risk_params';
 var DEF_PARAMS={
   ocfRatio:0.8,   /* 净现比 */
   fcfDebt:0.1,    /* FCF/有息负债 */
-  cashRatio:0.2,  /* 现金比率 */
+cashRatio:0.3,  /* 现金比率 */
   arDays:120,     /* 应收周转天数 */
   invDays:90,     /* 存货周转天数 */
-  tatDecline:30,  /* 总资产周转率下降% */
-  stDebtRatio:50, /* 短期债务/总债务 % */
-  icr:1.5,        /* 利息保障倍数 */
+  tatDecline:10,  /* 总资产周转率下降% */
+  stDebtRatio:40, /* 短期债务/总债务 健康上限% */
+  stDebtBad:60,   /* 短期债务/总债务 高危起点% */
+  icr:3,          /* 利息保障倍数 健康下限 */
+  icrWarn:1.5,    /* 利息保障倍数 关注下限 */
   costRise:200    /* 融资成本上升 bps */
 };
 function getParams(){
   try{
     var s=JSON.parse(localStorage.getItem(PARAM_KEY)||'null');
-    if(s&&typeof s==='object') return Object.assign({},DEF_PARAMS,s);
+    if(s&&typeof s==='object'){
+      /* 旧默认阈值(现金比率0.2/周转率降30%/短债50%/利息保障1.5)自动迁移到新口径，不覆盖用户自定义值 */
+      if(s.cashRatio===0.2) s.cashRatio=0.3;
+      if(s.tatDecline===30) s.tatDecline=10;
+      if(s.stDebtRatio===50){ s.stDebtRatio=40; s.stDebtBad=60; }
+      if(s.icr===1.5) s.icr=3;
+      if(s.icrWarn===undefined) s.icrWarn=DEF_PARAMS.icrWarn;
+      if(s.stDebtBad===undefined) s.stDebtBad=DEF_PARAMS.stDebtBad;
+      return Object.assign({},DEF_PARAMS,s);
+    }
   }catch(e){}
   return Object.assign({},DEF_PARAMS);
 }
@@ -587,8 +598,8 @@ function calcAll(ctx, p){
     var at=rev/ta, atPrev=revPrev/taPrev;
     var decline=(1-at/atPrev)*100;
     g2.items.push({id:'arTurnover', name:'总资产周转率', value:at, unit:_fmt(at,3)+'次',
-      level: decline<=p.arTurnover ? 'ok' : 'warn',
-      threshold: '下降 > '+p.arTurnover+'%', note:'同比 '+(decline>0?'下降':'上升')+' '+_fmt(Math.abs(decline),1)+'%'});
+level: decline<=p.tatDecline ? 'ok' : 'warn',
+      threshold: '下降 > '+p.tatDecline+'%', note:'同比 '+(decline>0?'下降':'上升')+' '+_fmt(Math.abs(decline),1)+'%'});
   } else { g2.items.push({id:'atTurnover', name:'总资产周转率', na:true, value:'—', note:'缺少同比数据'}); }
   out.groups.push(g2);
 
@@ -599,8 +610,9 @@ function calcAll(ctx, p){
   var st=num(bs['SHORT_LOAN'])+num(bs['SHORT_BOND_PAYABLE'])+num(bs['NCL_1_YEAR']);
   if(debt.debt>0){
     var v7=st/debt.debt*100;
-    g3.items.push({id:'stDebtRatio', name:'短期债务/总债务', value:v7, unit:_fmtPct(v7,1),
-      level: v7<=p.stDebtRatio ? 'ok' : 'warn', p:p, threshold: '> '+p.stDebtRatio+'%', note:'短借+短融+一年内到期 占总有息负债'});
+g3.items.push({id:'stDebtRatio', name:'短期债务/总债务', value:v7, unit:_fmtPct(v7,1),
+      level: v7<=p.stDebtRatio ? 'ok' : (v7<=p.stDebtBad ? 'warn' : 'bad'),
+      threshold: '> '+p.stDebtBad+'%', note:'短借+短融+一年内到期 占总有息负债'});
   } else { g3.items.push({id:'stDebtRatio', name:'短期债务/总债务', na:true, value:'无息债', note:'有息负债为0'}); }
 
   /* 8. 利息保障倍数 = (利润总额+利息费用+折旧摊销)/利息费用 */
@@ -608,8 +620,8 @@ function calcAll(ctx, p){
   var dep=cf ? (num(cf['FA_IR_DEPR'])+num(cf['IR_DEPR'])+num(cf['IA_AMORTIZE'])+num(cf['LPE_AMORTIZE'])+num(cf['USERIGHT_ASSET_AMORTIZE'])+num(cf['DEFER_INCOME_AMORTIZE'])+num(cf['OILGAS_BIOLOGY_DEPR'])) : 0;
   if(ie>0){
     var icrVal=(num(tp)+ie+dep)/ie;
-    g3.items.push({id:'icr', name:'利息保障倍数', value:icrVal, unit:_fmt(icrVal,1)+'倍',
-      level: icrVal>=p.icr ? 'ok' : (icrVal>=1?'warn':'bad'), p:p, threshold:'< '+p.icr+'倍', note:'(利润总额+利息+折旧摊销) ÷ 利息费用'});
+g3.items.push({id:'icr', name:'利息保障倍数', value:icrVal, unit:_fmt(icrVal,1)+'倍',
+      level: icrVal>=p.icr ? 'ok' : (icrVal>=p.icrWarn ? 'warn' : 'bad'), threshold:'< '+p.icr+'倍', note:'(利润总额+利息+折旧摊销) ÷ 利息费用'});
   } else { g3.items.push({id:'icr', name:'利息保障倍数', na:true, value:'无利息', note:'无有息负债利息（良好）'}); }
 
   /* 9. 融资成本变动（bps） */
@@ -790,7 +802,7 @@ function _calcDetailHtml(ctx, calc, p){
 }
 function _renderCalibHtml(ctx,calc,p){
   return '<div class="card"><div class="calib-toggle" onclick="toggleCalib()">'
-    +'<div><div class="card-title" style="margin-bottom:2px;">参数校准</div><div class="hint">调整预警阈值后重新评估（默认值：净现比0.8 / FCF覆盖率0.1 / 现金比率0.2 / 应收120天 / 存货90天 / 周转率降30% / 短债占比50% / 利息保障1.5倍 / 融资成本200bps）</div></div>'
+    +'<div><div class="card-title" style="margin-bottom:2px;">参数校准</div><div class="hint">调整预警阈值后重新评估（默认值：净现比0.8 / FCF覆盖率0.1 / 现金比率0.3 / 应收120天 / 存货90天 / 周转率降10% / 短债占比40~60% / 利息保障3~1.5倍 / 融资成本200bps）</div></div>'
     +'<span class="calib-arrow" id="calibArrow">&#9654;</span></div>'
     +'<div class="calib-body" id="calibBody">'
     +'<div class="param-grid">'
@@ -800,11 +812,13 @@ function _renderCalibHtml(ctx,calc,p){
     +'<div class="param-item"><label>应收周转&gt;</label><input id="pAr" type="number" step="5" value="'+p.arDays+'"></div>'
     +'<div class="param-item"><label>存货周转&gt;</label><input id="pInv" type="number" step="5" value="'+p.invDays+'"></div>'
     +'<div class="param-item"><label>周转率降&gt;%</label><input id="pTat" type="number" step="5" value="'+p.tatDecline+'"></div>'
-    +'<div class="param-item"><label>短债占比&gt;%</label><input id="pSt" type="number" step="5" value="'+p.stDebtRatio+'"></div>'
++'<div class="param-item"><label>短债占比&gt;%</label><input id="pSt" type="number" step="5" value="'+p.stDebtRatio+'"></div>'
+    +'<div class="param-item"><label>短债占比&gt;&gt;%</label><input id="pStBad" type="number" step="5" value="'+p.stDebtBad+'"></div>'
     +'<div class="param-item"><label>利息保障&lt;</label><input id="pIcr" type="number" step="0.1" value="'+p.icr.toFixed(1)+'"></div>'
+    +'<div class="param-item"><label>利息保障&lt;&lt;</label><input id="pIcrWarn" type="number" step="0.1" value="'+p.icrWarn.toFixed(1)+'"></div>'
     +'<div class="param-item"><label>融资成本&gt;bps</label><input id="pCost" type="number" step="50" value="'+p.costRise+'"></div>'
     +'</div>'
-    +'<div class="param-hint">· 阈值修改后点“重新评估”立即生效，并保存到本地。<br>· 常用标准：净现比≥0.8、现金比率≥0.2、利息保障≥1.5、短期债务≤50%。</div>'
+    +'<div class="param-hint">· 阈值修改后点“重新评估”立即生效，并保存到本地。<br>· 常用标准：净现比≥0.8、现金比率≥0.3、利息保障≥3、短期债务≤40%（40%~60%关注，>60%高危）。</div>'
     +'<div class="calib-actions"><button class="primary" onclick="applyCalib()">重新评估</button><button onclick="resetCalib()">恢复默认阈值</button></div>'
 +'</div></div>';
 }
@@ -824,8 +838,10 @@ function _readCalibInputs(){
   p.arDays=v('pAr',DEF_PARAMS.arDays);
   p.invDays=v('pInv',DEF_PARAMS.invDays);
   p.tatDecline=v('pTat',DEF_PARAMS.tatDecline);
-  p.stDebtRatio=v('pSt',DEF_PARAMS.stDebtRatio);
+p.stDebtRatio=v('pSt',DEF_PARAMS.stDebtRatio);
+  p.stDebtBad=v('pStBad',DEF_PARAMS.stDebtBad);
   p.icr=v('pIcr',DEF_PARAMS.icr);
+  p.icrWarn=v('pIcrWarn',DEF_PARAMS.icrWarn);
   p.costRise=v('pCost',DEF_PARAMS.costRise);
   return p;
 }
