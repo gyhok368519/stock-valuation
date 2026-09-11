@@ -559,7 +559,7 @@ function calcAll(ctx, p){
   var fcf=ocf!==null ? ocf-capex : null;
   if(fcf!==null && debt.debt>0){
     var v2=fcf/debt.debt;
-    g1.items.push({id:'fcfDebt', name:'FCF/有息负债', value:v2, unit:_fmtPct(v2,1),
+    g1.items.push({id:'fcfDebt', name:'FCF/有息负债', value:v2, unit:(v2*100).toFixed(1)+'%',
       level: v2>=p.fcfDebt ? 'ok' : (v2>=0 ? 'warn' : 'bad'),
       threshold: '< '+p.fcfDebt, note:'(经营现金流−资本开支) ÷ 有息负债'});
   } else { g1.items.push({id:'fcfDebt', name:'FCF/有息负债', na:true, value:'无有息负债', note:'有息负债为0（良好）'}); }
@@ -568,7 +568,7 @@ function calcAll(ctx, p){
   var cash=num(bs['MONETARYFUNDS']), cliab=num(bs['TOTAL_CURRENT_LIAB']);
   if(cliab>0){
     var v3=cash/cliab;
-    g1.items.push({id:'cashRatio', name:'现金比率', value:v3, unit:_fmtPct(v3,1),
+    g1.items.push({id:'cashRatio', name:'现金比率', value:v3, unit:(v3*100).toFixed(1)+'%',
       level: v3>=p.cashRatio ? 'ok' : 'bad', threshold: '< '+p.cashRatio, note:'货币资金 ÷ 流动负债'});
   } else { g1.items.push({id:'cashRatio', name:'现金比率', na:true, value:'无流动负债', note:'流动负债为0'}); }
   out.groups.push(g1);
