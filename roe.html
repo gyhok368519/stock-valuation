@@ -195,12 +195,14 @@ function toggleTheme(){
   root.classList.toggle('light');
   var isLight=root.classList.contains('light');
   _updateThemeIcon();
-  try{ localStorage.setItem('roe_theme', isLight?'light':'dark'); }catch(e){}
+  try{ localStorage.setItem('pb_calc_theme', isLight?'light':'dark'); }catch(e){}
 }
 (function initTheme(){
   try{
-    var t=localStorage.getItem('roe_theme');
+    var t=localStorage.getItem('pb_calc_theme');
     if(t==='light'){ document.documentElement.classList.add('light'); }
+    else if(t==='dark'){ document.documentElement.classList.remove('light'); }
+    else if(window.matchMedia('(prefers-color-scheme: light)').matches){ document.documentElement.classList.add('light'); }
     _updateThemeIcon();
   }catch(e){ _updateThemeIcon(); }
 })();
