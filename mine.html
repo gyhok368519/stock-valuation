@@ -252,15 +252,15 @@ function _updateThemeIcon(){
   if (btn) btn.title = dark ? '切换浅色模式' : '切换深色模式';
 }
 (function initTheme() {
-  var saved = localStorage.getItem('mine_theme');
+  var saved = localStorage.getItem('pb_calc_theme');
   _isDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
   if (_isDark) document.documentElement.setAttribute('data-theme', 'dark');
   _updateThemeIcon();
 })();
 function toggleTheme() {
   var dark = document.documentElement.getAttribute('data-theme') === 'dark';
-  if (dark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('mine_theme', 'light'); }
-  else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('mine_theme', 'dark'); }
+  if (dark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('pb_calc_theme', 'light'); }
+  else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('pb_calc_theme', 'dark'); }
   _updateThemeIcon();
 }
 
