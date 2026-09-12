@@ -247,12 +247,14 @@ function toggleTheme(){
   root.classList.toggle('light');
   var isLight=root.classList.contains('light');
   _updateThemeIcon();
-  try{ localStorage.setItem('risk_theme', isLight?'light':'dark'); }catch(e){}
+  try{ localStorage.setItem('pb_calc_theme', isLight?'light':'dark'); }catch(e){}
 }
 (function initTheme(){
   try{
-    var t=localStorage.getItem('risk_theme');
+    var t=localStorage.getItem('pb_calc_theme');
     if(t==='light'){ document.documentElement.classList.add('light'); }
+    else if(t==='dark'){ document.documentElement.classList.remove('light'); }
+    else if(window.matchMedia('(prefers-color-scheme: light)').matches){ document.documentElement.classList.add('light'); }
     _updateThemeIcon();
   }catch(e){ _updateThemeIcon(); }
 })();
@@ -450,6 +452,72 @@ function pickLatestAnnual(rows){
   var rs=cleanRows(rows);
   for(var i=0;i<rs.length;i++){ if(/-12-31/.test(rs[i].REPORT_DATE)) return rs[i]; }
   return rs[0]||null;
+}
+function latestRow(rows){
+  var rs=cleanRows(rows);
+  return rs[0]||null;
+}
+function rowByDate(rows, dateStr){
+  var rs=cleanRows(rows);
+  for(var i=0;i<rs.length;i++){ if(rs[i].REPORT_DATE.substring(0,10)===dateStr) return rs[i]; }
+  return null;
+}
+function annualOfYear(rows, y){
+  var rs=cleanRows(rows);
+  for(var i=0;i<rs.length;i++){ if(/-12-31/.test(rs[i].REPORT_DATE) && rs[i].REPORT_DATE.substring(0,4)===y) return rs[i]; }
+  return null;
+}
+/* 期间累计字段的 TTM 值：最新累计 + 上年全年 − 上年同期（最新期为年报则直接取累计） */
+function ttmVal(rows, cur, field){
+  if(!cur) return null;
+  if(/-12-31/.test(cur.REPORT_DATE)) return cur[field]!==null&&cur[field]!==undefined&&cur[field]!=='' ? +cur[field] : null;
+  var y=cur.REPORT_DATE.substring(0,4);
+  var py=String(+y-1);
+  var curV=cur[field];
+  if(curV===null||curV===undefined||curV==='') return null;
+  var prevAnn=annualOfYear(rows, py);
+  var prevSame=rowByDate(rows, py+cur.REPORT_DATE.substring(4,10));
+  if(!prevAnn || !prevSame) return +curV;
+  var pa=prevAnn[field], ps=prevSame[field];
+  if(pa===null||pa===undefined||pa===''||ps===null||ps===undefined||ps==='') return +curV;
+  return +curV + +pa - +ps;
+}
+/* 合成 TTM 利润表行（期间指标年化）；cur 缺省为最新一期 */
+function ttmIncomeRow(rows, cur){
+  cur=cur||latestRow(rows);
+  if(!cur) return null;
+  var out={ REPORT_DATE:cur.REPORT_DATE, REPORT_TYPE:cur.REPORT_TYPE||'', _ttm:true };
+  ['TOTAL_OPERATE_INCOME','TOTAL_OPERATE_COST','OPERATE_PROFIT','TOTAL_PROFIT','INCOME_TAX','PARENT_NETPROFIT','FE_INTEREST_EXPENSE'].forEach(function(f){
+    var v=ttmVal(rows, cur, f);
+    if(v!==null) out[f]=v;
+  });
+  return out;
+}
+/* 合成 TTM 现金流量表行；curYear 缺省为最新一期 */
+function ttmCashflowRow(rows, cur){
+  cur=cur||latestRow(rows);
+  if(!cur) return null;
+  var out={ REPORT_DATE:cur.REPORT_DATE, REPORT_TYPE:cur.REPORT_TYPE||'', _ttm:true };
+  ['NETCASH_OPERATE','CONSTRUCT_LONG_ASSET'].forEach(function(f){
+    var v=ttmVal(rows, cur, f);
+    if(v!==null) out[f]=v;
+  });
+  /* 折旧摊销类字段季报常为空：最新期无值则回退到最近有值的报告期（多为上年年报/中报），并保留 _depFallback 标记 */
+  var depKeys=['FA_IR_DEPR','IR_DEPR','IA_AMORTIZE','LPE_AMORTIZE','USERIGHT_ASSET_AMORTIZE','DEFER_INCOME_AMORTIZE','OILGAS_BIOLOGY_DEPR'];
+  var curHas=false;
+  depKeys.forEach(function(k){ if(cur[k]!==null&&cur[k]!==undefined&&cur[k]!=='') curHas=true; });
+  if(curHas){
+    depKeys.forEach(function(k){ var v=ttmVal(rows, cur, k); if(v!==null) out[k]=v; });
+  } else {
+    var rs=cleanRows(rows), got=null;
+    for(var i=0;i<rs.length;i++){ if(/-12-31/.test(rs[i].REPORT_DATE)){ got=rs[i]; break; } }
+    if(!got){ for(var j=0;j<rs.length;j++){ if(/-06-30/.test(rs[j].REPORT_DATE)){ got=rs[j]; break; } } }
+    if(got){
+      depKeys.forEach(function(k){ if(got[k]!==null&&got[k]!==undefined&&got[k]!=='') out[k]=+got[k]; });
+      out._depFallback=true;
+    }
+  }
+  return out;
 }
 function findRowByDate(rows,dateStr){
   var rs=cleanRows(rows);
@@ -675,6 +743,10 @@ function renderMain(ctx, calc, p){
   var v=verdictOf(calc.score);
   var html='';
   var reportDate=(ctx.bs&&ctx.bs.REPORT_DATE||'').substring(0,10);
+  var periodDisp=reportDate;
+  if(ctx.bs && !(/-12-31/.test(ctx.bs.REPORT_DATE||''))){
+    periodDisp=reportDate+'（'+(ctx.bs.REPORT_TYPE||'最新')+'，期间指标TTM年化）';
+  }
   var totalItems=0, warnCount=0, badCount=0;
   calc.groups.forEach(function(g){ g.items.forEach(function(it){
     if(it.level==='bad') badCount++;
@@ -686,7 +758,7 @@ function renderMain(ctx, calc, p){
   html+='<div class="card '+(v?v.cls:'')+'">'
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
     +'<div><span class="stock-name">'+_esc(name)+'</span><span class="stock-code">'+_esc(code)+'</span>'
-    +'<div class="stock-meta">报告期 '+_esc(reportDate)+' | 风险评分 '+calc.score+'/'+(calc.total*2)+'（'+badCount+'项高危，'+warnCount+'项关注）</div></div>'
+    +'<div class="stock-meta">报告期 '+_esc(periodDisp)+' | 风险评分 '+calc.score+'/'+(calc.total*2)+'（'+badCount+'项高危，'+warnCount+'项关注）</div></div>'
     +'<span class="tag '+(v?v.tag:'tag-warn')+'">'+(v?v.label:'待定')+'</span>'
     +'</div>'
     +'<div class="verdict">'
@@ -799,7 +871,7 @@ function _calcDetailHtml(ctx, calc, p){
     +(cf?'经营现金流净额 '+_fmtBig(cf.NETCASH_OPERATE):'')+'　'
     +(bs?'货币资金 '+_fmtBig(bs.MONETARYFUNDS):'')+'</div>');
   rows.push('<div class="calc-list"><span class="fname">有息负债</span> '+(calc.debt?calc.debt.debt!==0?_fmtBig(calc.debt.debt)+'（'+calc.debt.parts.map(function(x){return x.label+' '+_fmtBig(x.val);}).join(' + ')+'）':'0':'—')+'</div>');
-  rows.push('<div class="calc-list"><span class="fname">口径说明</span> 净现比与FCF基于年报归母净利润口径；融资成本=利息费用/有息负债，两期对比换算bps；金融类公司货币资金口径特殊，部分指标可能不适用。</div>');
+  rows.push('<div class="calc-list"><span class="fname">口径说明</span> '+(bs&&!/-12-31/.test(bs.REPORT_DATE||'')?'最新报告期为'+_esc(bs.REPORT_TYPE||'')+'：利润表/现金流量表期间指标按 TTM（滚动12个月）年化，资产负债表用最新时点；':'')+'净现比与FCF基于归母净利润口径；融资成本=利息费用/有息负债，两期对比换算bps；金融类公司货币资金口径特殊，部分指标可能不适用。</div>');
   return rows.join('');
 }
 function _renderCalibHtml(ctx,calc,p){
@@ -1022,13 +1094,22 @@ btn.disabled=false;
     var cashflowRows=results[2].value;
     var quote=results[3].status==='fulfilled'?results[3].value:{name:'',price:0,totalShares:0};
 
-    var inc=pickLatestAnnual(incomeRows);
-    var bs=pickLatestAnnual(balanceRows);
-    var cf=pickLatestAnnual(cashflowRows);
-    if(!inc || !bs || !cf){ setStatus('缺少有效的年报数据','error'); return; }
-    var bsPrev=prevAnnual(balanceRows,bs);
-    var incPrev=prevAnnual(incomeRows,inc);
-    var cfPrev=prevAnnual(cashflowRows,cf);
+var inc=ttmIncomeRow(incomeRows);        /* 利润表 TTM 年化 */
+    var bs=latestRow(balanceRows);           /* 资产负债表：最新时点 */
+    var cf=ttmCashflowRow(cashflowRows);     /* 现金流量表 TTM 年化 */
+    if(!inc || !bs || !cf){ setStatus('缺少有效的财务数据','error'); return; }
+    /* 同比基准：优先取上年同期报告期（同月同日），缺失则回退上年年报 */
+    function samePeriodPrev(rows, cur){
+      if(!cur) return null;
+      var py=String(+cur.REPORT_DATE.substring(0,4)-1);
+      var same=rowByDate(rows, py+cur.REPORT_DATE.substring(4,10));
+      if(same) return same;
+      return prevAnnual(rows, cur);
+    }
+    var bsPrev=samePeriodPrev(balanceRows, bs);
+    var incPrevRow=samePeriodPrev(incomeRows, inc);
+    var incPrev=incPrevRow ? ttmIncomeRow(incomeRows, incPrevRow) : null;
+    var cfPrev=null;
     var name=stockName || quote.name || inc.SECURITY_NAME_ABBR || code;
 
     var ctx={code:code,name:name,inc:inc,bs:bs,cf:cf,incPrev:incPrev,bsPrev:bsPrev,cfPrev:cfPrev,
