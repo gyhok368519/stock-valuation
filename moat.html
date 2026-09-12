@@ -249,12 +249,14 @@ function toggleTheme(){
   root.classList.toggle('light');
   var isLight=root.classList.contains('light');
   _updateThemeIcon();
-  try{ localStorage.setItem('moat_theme', isLight?'light':'dark'); }catch(e){}
+  try{ localStorage.setItem('pb_calc_theme', isLight?'light':'dark'); }catch(e){}
 }
 (function initTheme(){
   try{
-    var t=localStorage.getItem('moat_theme');
+    var t=localStorage.getItem('pb_calc_theme');
     if(t==='light'){ document.documentElement.classList.add('light'); }
+    else if(t==='dark'){ document.documentElement.classList.remove('light'); }
+    else if(window.matchMedia('(prefers-color-scheme: light)').matches){ document.documentElement.classList.add('light'); }
     _updateThemeIcon();
   }catch(e){ _updateThemeIcon(); }
 })();
@@ -497,6 +499,46 @@ function pickLatestAnnual(rows){
   for(var i=0;i<rs.length;i++){ if(/-12-31/.test(rs[i].REPORT_DATE)) return rs[i]; }
   return rs[0]||null;
 }
+function latestRow(rows){
+  var rs=cleanRows(rows);
+  return rs[0]||null;
+}
+function rowByDate(rows, dateStr){
+  var rs=cleanRows(rows);
+  for(var i=0;i<rs.length;i++){ if(rs[i].REPORT_DATE.substring(0,10)===dateStr) return rs[i]; }
+  return null;
+}
+function annualOfYear(rows, y){
+  var rs=cleanRows(rows);
+  for(var i=0;i<rs.length;i++){ if(/-12-31/.test(rs[i].REPORT_DATE) && rs[i].REPORT_DATE.substring(0,4)===y) return rs[i]; }
+  return null;
+}
+/* 期间累计字段的 TTM 值：最新累计 + 上年全年 − 上年同期（最新期为年报则直接取累计） */
+function ttmVal(rows, cur, field){
+  if(!cur) return null;
+  if(/-12-31/.test(cur.REPORT_DATE)) return cur[field]!==null&&cur[field]!==undefined&&cur[field]!=='' ? +cur[field] : null;
+  var y=cur.REPORT_DATE.substring(0,4);
+  var py=String(+y-1);
+  var curV=cur[field];
+  if(curV===null||curV===undefined||curV==='') return null;
+  var prevAnn=annualOfYear(rows, py);
+  var prevSame=rowByDate(rows, py+cur.REPORT_DATE.substring(4,10));
+  if(!prevAnn || !prevSame) return +curV;
+  var pa=prevAnn[field], ps=prevSame[field];
+  if(pa===null||pa===undefined||pa===''||ps===null||ps===undefined||ps==='') return +curV;
+  return +curV + +pa - +ps;
+}
+/* 合成 TTM 利润表行（期间指标年化；用于 ROIC/WACC 计算） */
+function ttmIncomeRow(rows){
+  var cur=latestRow(rows);
+  if(!cur) return null;
+  var out={ REPORT_DATE:cur.REPORT_DATE, REPORT_TYPE:cur.REPORT_TYPE||'', _ttm:true };
+  ['TOTAL_OPERATE_INCOME','TOTAL_OPERATE_COST','OPERATE_PROFIT','TOTAL_PROFIT','INCOME_TAX','PARENT_NETPROFIT','FE_INTEREST_EXPENSE'].forEach(function(f){
+    var v=ttmVal(rows, cur, f);
+    if(v!==null) out[f]=v;
+  });
+  return out;
+}
 function annualSeries(rows, field){
   var out=[], seen={};
   cleanRows(rows).forEach(function(r){
@@ -680,13 +722,16 @@ function renderMain(ctx, calc, p){
   var html='';
   var reportDate=(main.REPORT_DATE||'').substring(0,10);
   var roicNote='';
-  if(main.REPORT_TYPE&&main.REPORT_TYPE!=='年报') roicNote='（未年化）';
+  var periodLabel=(main.REPORT_TYPE||'年报');
+  var isTTM = !(/-12-31/.test(main.REPORT_DATE||''));
+  if(isTTM) roicNote='（TTM年化）';
+  var periodDisp=reportDate+(isTTM?'（'+periodLabel+'，TTM年化）':'（'+periodLabel+'）');
 
   /* 头卡：判定 */
   html+='<div class="card '+(v?v.cls:'')+'">'
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
     +'<div><span class="stock-name">'+_esc(name)+'</span><span class="stock-code">'+_esc(code)+'</span>'
-    +'<div class="stock-meta">报告期 '+_esc(reportDate)+'（'+_esc(main.REPORT_TYPE||'年报')+'）| 实时价 '+_fmt(ctx.price,2)+' 元 | 总市值 '+_fmtBig(ctx.mktcap)+'</div></div>'
+    +'<div class="stock-meta">报告期 '+_esc(periodDisp)+' | 实时价 '+_fmt(ctx.price,2)+' 元 | 总市值 '+_fmtBig(ctx.mktcap)+'</div></div>'
     +'<span class="tag '+(v?v.tag:'tag-warn')+'">'+(v?v.label:'待定')+'</span>'
     +'</div>'
     +'<div class="verdict">'
@@ -711,7 +756,7 @@ function renderMain(ctx, calc, p){
     +'</div>';
 
   /* 计算过程（两层） */
-  html+='<div class="calc-block"><div class="btitle">ROIC 计算过程'+(calc.roicSrc==='manual'?'（手算）':'（接口值）')+'</div>'
+  html+='<div class="calc-block"><div class="btitle">ROIC 计算过程'+(calc.roicSrc==='manual'?'（手算'+(isTTM?'，TTM年化':'')+'）':'（接口值）')+'</div>'
     +_roicCalcHtml(ctx, calc, p)
     +'</div>';
   html+='<div class="calc-block"><div class="btitle">WACC 计算过程</div>'
@@ -744,6 +789,7 @@ function renderMain(ctx, calc, p){
     +'<span class="fname">手算 ROIC</span> = <span class="fval">'+(calc.man&&calc.man.roic!=null?_fmtPct(calc.man.roic*100,2):'-')+'</span>'
     +'（NOPAT '+_fmtBig(calc.man?calc.man.nopat:0)+' ÷ IC '+_fmtBig(calc.man?calc.man.ic:0)+'）'
     +'<br><span class="fname">东财官方 ROIC</span> = <span class="fval">'+(calc.roicApi!=null?_fmtPct(calc.roicApi*100,2):'-')+'</span>'
+    +((ctx.main&&!(/-12-31/.test(ctx.main.REPORT_DATE||'')))?'<br><span style="color:var(--text3)">注：最新报告期为'+_esc(ctx.main.REPORT_TYPE||'')+'，东财官方 ROIC 为当期口径（未年化）；手算值为 TTM 年化。</span>':'')
     +'<br><span style="color:var(--text3)">东财 IC 口径偏严格（扣除超额现金及在建工程等），绝对值与手算略有差异属正常；趋势与判定结论一致即可。'
     +(calc.roicSrc==='api'?'<br>当前采用东财官方值（手算缺少字段，见下方明细）。':'')
     +'</span></div></div></details>';
@@ -1116,9 +1162,9 @@ function _doFetch(code, stockName){
     var quote=results[4].status==='fulfilled'?results[4].value:{name:'',price:0,mktcap:0};
     if(!ks){ setStatus('K线数据获取失败（β回归不可用）','error'); return; }
 
-    var main=pickLatestAnnual(mainRows);
-    var income=pickLatestAnnual(incomeRows);
-    var bs=pickLatestAnnual(balanceRows);
+    var main=latestRow(mainRows);           /* 主指标取最新报告期（含官方ROIC/税率） */
+    var income=ttmIncomeRow(incomeRows);   /* 利润表 TTM 年化 */
+    var bs=latestRow(balanceRows);         /* 资产负债表：最新时点 */
     var bsPrev=null;
     if(bs){
       var curD=bs.REPORT_DATE.substring(0,10);
