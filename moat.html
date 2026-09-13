@@ -612,6 +612,16 @@ function calcRoicManual(inc, bs, bsPrev, p){
     interestExp:F(inc,['FE_INTEREST_EXPENSE'])
   };
 }
+/* 东财官方 ROIC 年化：季报/中报为累计值未年化，按报告期折算 */
+function annualizeApi(val, reportDate){
+  if(val==null) return null;
+  var md = reportDate ? reportDate.substring(5,10) : '';
+  var factor = 1;
+  if(md==='03-31') factor=4;
+  else if(md==='06-30') factor=2;
+  else if(md==='09-30') factor=4/3;
+  return val * factor;
+}
 /* Rd = 利息费用/期初期末平均有息负债；无法计算时回退 3.5% */
 function calcRd(inc, debtCur, debtPrev){
   var ie=F(inc,['FE_INTEREST_EXPENSE']);
@@ -660,10 +670,11 @@ function calcWaccAll(ctx, p, override){
 
   /* ROIC */
   var man=calcRoicManual(inc, bs, bsPrev, p);
-  var roicApi = main.ROIC!=null && main.ROIC!=='' ? +main.ROIC/100 : null;
+  var roicApiRaw = main.ROIC!=null && main.ROIC!=='' ? +main.ROIC/100 : null;
+  var roicApi = roicApiRaw!=null ? annualizeApi(roicApiRaw, main.REPORT_DATE) : null;
   var roicVal = (override&&override.roic!=null) ? override.roic/100 : (man.roic!=null?man.roic:roicApi);
   out.roicSrc = (override&&override.roic!=null) ? 'manual' : (man.roic!=null?'manual':'api');
-  out.roic=roicVal; out.roicApi=roicApi; out.man=man;
+  out.roic=roicVal; out.roicApi=roicApi; out.roicApiRaw=roicApiRaw; out.man=man;
 
   /* 有息负债 D（独立于手算ROIC成败，手算失败时直接从资产负债表算） */
   var debtCur = (man && man.debt!=null) ? man.debt : (bs?calcDebt(bs,p).debt:0);
@@ -788,8 +799,9 @@ function renderMain(ctx, calc, p){
   html+='<details class="fold" style="margin-top:0"><summary>ROIC 交叉验证</summary><div class="fold-body"><div class="calc-list">'
     +'<span class="fname">手算 ROIC</span> = <span class="fval">'+(calc.man&&calc.man.roic!=null?_fmtPct(calc.man.roic*100,2):'-')+'</span>'
     +'（NOPAT '+_fmtBig(calc.man?calc.man.nopat:0)+' ÷ IC '+_fmtBig(calc.man?calc.man.ic:0)+'）'
-    +'<br><span class="fname">东财官方 ROIC</span> = <span class="fval">'+(calc.roicApi!=null?_fmtPct(calc.roicApi*100,2):'-')+'</span>'
-    +((ctx.main&&!(/-12-31/.test(ctx.main.REPORT_DATE||'')))?'<br><span style="color:var(--text3)">注：最新报告期为'+_esc(ctx.main.REPORT_TYPE||'')+'，东财官方 ROIC 为当期口径（未年化）；手算值为 TTM 年化。</span>':'')
+    +'<br><span class="fname">东财官方 ROIC</span> = <span class="fval">'+(calc.roicApiRaw!=null?_fmtPct(calc.roicApiRaw*100,2):'-')+'</span>'
+    +((ctx.main&&!(/-12-31/.test(ctx.main.REPORT_DATE||''))&&calc.roicApiRaw!=null&&calc.roicApi!==calc.roicApiRaw)?'<span class="fval" style="margin-left:6px">→ 年化 <span style="color:var(--blue)">'+_fmtPct(calc.roicApi*100,2)+'</span></span>':'')
+    +((ctx.main&&!(/-12-31/.test(ctx.main.REPORT_DATE||'')))?'<br><span style="color:var(--text3)">注：最新报告期为'+_esc(ctx.main.REPORT_TYPE||'')+'，东财官方 ROIC 为当期累计值（未年化），已按报告期折算（Q1×4 / 中报×2 / Q3×4/3）；手算值为 TTM 年化。</span>':'')
     +'<br><span style="color:var(--text3)">东财 IC 口径偏严格（扣除超额现金及在建工程等），绝对值与手算略有差异属正常；趋势与判定结论一致即可。'
     +(calc.roicSrc==='api'?'<br>当前采用东财官方值（手算缺少字段，见下方明细）。':'')
     +'</span></div></div></details>';
@@ -851,7 +863,9 @@ function _roicCalcHtml(ctx, calc, p){
   rows.push('<div class="calc-list" style="font-size:11px;color:var(--text3)">有息负债明细：'+(det||'0')+'（超额现金 = min(货币资金 '+_fmtYi(man.cash)+'亿, 有息负债)）</div>');
   rows.push('<div class="calc-list"><span class="fname">ROIC</span> = NOPAT ÷ IC = '+_fmtYi(man.nopat)+'亿 ÷ '+_fmtYi(man.ic)+'亿 = <span class="fmain">'+(man.roic!=null?_fmtPct(man.roic*100,2):'-')+'</span></div>');
   if(calc.roicApi!=null && calc.roicSrc==='manual'){
-    rows.push('<div class="calc-list" style="font-size:11px;color:var(--text3)">参考：东财官方 ROIC（口径更严）= '+_fmtPct(calc.roicApi*100,2)+'</div>');
+    var annTag = calc.roicApiRaw!=null && calc.roicApi!==calc.roicApiRaw ? '（年化后）' : '';
+    var rawTag = calc.roicApiRaw!=null && calc.roicApi!==calc.roicApiRaw ? '（原始 '+_fmtPct(calc.roicApiRaw*100,2)+'）' : '';
+    rows.push('<div class="calc-list" style="font-size:11px;color:var(--text3)">参考：东财官方 ROIC'+annTag+' = '+_fmtPct(calc.roicApi*100,2)+rawTag+'</div>');
   }
   return rows.join('');
 }
