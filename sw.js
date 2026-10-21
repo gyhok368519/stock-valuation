@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pb-calc-v239';
+const CACHE_NAME = 'pb-calc-v240';
 const ASSETS = [
   './PB_PE_ROE_calc.html',
   './roe.html',
@@ -84,6 +84,12 @@ var DJ_ALLOWED = ['index_eva/dj'];
 
 self.addEventListener('fetch', e => {
   var url = e.request.url;
+
+  // Lockup radar proxy: bypass SW entirely — let request fall through to WebView network
+  // layer, where Java shouldInterceptRequest intercepts /lockup-radar/ and connects
+  // directly to api.github.com. (If SW handled it, it would fetch the literal path from
+  // GitHub Pages and get 404.)
+  if (url.indexOf('lockup-radar') !== -1) return;
 
   // Proxy danjuan index-evaluation API: only same-origin + whitelisted paths + GET only
   if (url.indexOf('/dj-proxy/') !== -1 && new URL(url).origin === self.location.origin) {
