@@ -258,12 +258,17 @@ function jsonp(url, timeout) {
     (document.head || document.getElementsByTagName('head')[0]).appendChild(script);
   });
 }
-function retry(fn, times) {
+function retry(fn, times, delayMs) {
   return fn().catch(function(err) {
-    if (times > 1) return retry(fn, times - 1);
+    if (times > 1) {
+      /* 重试退避：等待后再试，避免瞬时被拒后立即再撞一次 */
+      return new Promise(function(res) { setTimeout(res, delayMs || 800); })
+        .then(function() { return retry(fn, times - 1, (delayMs || 800) * 2); });
+    }
     throw err;
   });
 }
+function delay(ms) { return new Promise(function(res) { setTimeout(res, ms); }); }
 
 /* ========== 数据接口（东方财富，JSONP） ========== */
 var EM_UT = '7eea3edcaed734bea9cbfc24409ed989';
@@ -294,28 +299,39 @@ function fetchAll() {
   if (_busy) return Promise.resolve(null);
   _busy = true;
   function settle(p) { return p.then(function(v) { return { ok: true, v: v }; }, function(e) { return { ok: false, e: e }; }); }
-  var reqs = {
-    idx:    retry(function() { return jsonp(urlUlist()); }, 2),
-    dist:   retry(function() { return jsonp(urlDist()); }, 2),
+  /* 分批错峰：核心三件先行，其余延迟 600ms 后再发，降低对接口的瞬时并发压力 */
+  var batch1 = {
+    idx:    retry(function() { return jsonp(urlUlist()); }, 3),
+    dist:   retry(function() { return jsonp(urlDist()); }, 3),
+    kSH:    retry(function() { return jsonp(urlKline('1.000001', 260)); }, 3)
+  };
+  var batch2 = {
     ztp:    retry(function() { return jsonp(urlZT()); }, 2),
     dtp:    retry(function() { return jsonp(urlDT()); }, 2),
-    kSH:    retry(function() { return jsonp(urlKline('1.000001', 260)); }, 2),
     kSZz:   retry(function() { return jsonp(urlKline('0.399106', 130)); }, 2),
     kSzc:   retry(function() { return jsonp(urlKline('0.399001', 61)); }, 2),
     kCyb:   retry(function() { return jsonp(urlKline('0.399006', 61)); }, 2),
     ffl:    retry(function() { return jsonp(urlFflow()); }, 2),
     sec:    retry(function() { return jsonp(urlSec()); }, 2)
   };
-  var keys = [];
-  for (var k in reqs) keys.push(k);
-  var pros = [];
-  for (var i = 0; i < keys.length; i++) pros.push(settle(reqs[keys[i]]));
-  return Promise.all(pros).then(function(results) {
+  var keys1 = [], keys2 = [];
+  for (var k1 in batch1) keys1.push(k1);
+  for (var k2 in batch2) keys2.push(k2);
+  var pros1 = [];
+  for (var i = 0; i < keys1.length; i++) pros1.push(settle(batch1[keys1[i]]));
+  var pros2 = delay(600).then(function() {
+    var ps = [];
+    for (var i = 0; i < keys2.length; i++) ps.push(settle(batch2[keys2[i]]));
+    return Promise.all(ps);
+  });
+  return Promise.all([Promise.all(pros1), pros2]).then(function(batches) {
     _busy = false;
     var out = {}, fails = [];
+    var results = batches[0].concat(batches[1]);
+    var keys = keys1.concat(keys2);
     for (var i = 0; i < keys.length; i++) {
-      if (results[i].ok) out[keys[i]] = results[i].v;
-      else fails.push(keys[i] + ':' + (results[i].e && results[i].e.message || '失败'));
+      if (results[i] && results[i].ok) out[keys[i]] = results[i].v;
+      else fails.push(keys[i] + ':' + (results[i] && results[i].e && results[i].e.message || '失败'));
     }
     /* 核心三件：指数行情 / 涨跌分布 / 上证K线 */
     if (!out.idx || !out.dist || !out.kSH) {
@@ -823,9 +839,9 @@ function boot() {
         render(d, Date.now());
         cachePut(d);
       }).catch(function(err) {
-        setStatus('加载失败：' + (err && err.message ? err.message : '网络异常'), 'err');
+        setStatus('加载失败：' + (err && err.message ? err.message : '网络异常') + '，多为网络波动或接口临时限流，稍等片刻点「刷新」重试', 'err');
         document.getElementById('content').innerHTML =
-          '<div class="loading"><div>市场数据拉取失败<br><small style="color:var(--text3);">' + esc(err && err.message || '') + '</small><br><br>' +
+          '<div class="loading"><div>市场数据拉取失败<br><small style="color:var(--text3);">' + esc(err && err.message || '') + '<br>多为网络波动或行情接口临时限流（通常几分钟后恢复）<br>稍等片刻后点击下方按钮重试</small><br><br>' +
           '<button onclick="manualRefresh()" style="height:38px;padding:0 20px;border-radius:8px;border:1px solid var(--blue);background:var(--blue);color:#fff;font-size:13px;cursor:pointer;">重试</button></div></div>';
       });
     }
