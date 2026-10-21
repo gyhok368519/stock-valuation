@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>解禁预警雷达</title>
+<style>
+/* ========== 主题（与 roe/moat/risk/macro 一致） ========== */
+:root {
+  --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#c9d1d9; --text2:#8b949e; --text3:#6e7681;
+  --blue:#58a6ff; --green:#3fb950; --red:#f85149; --yellow:#d29922;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --radius:8px;
+}
+:root.light {
+  --bg:#ffffff; --card:#f6f8fa; --border:#d0d7de; --text:#1f2328; --text2:#656d76; --text3:#8c959f;
+  --blue:#0969da; --green:#1a7f37; --red:#cf222e; --yellow:#9a6700;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; }
+body { background:var(--bg); color:var(--text); font-family:var(--font); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; overflow:hidden; }
+
+.topbar { display:flex; align-items:center; justify-content:center; position:relative; padding:10px 12px; flex:none; }
+.topbar .back-btn { position:absolute; left:0; top:10px; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text2); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:all .2s; text-decoration:none; }
+.topbar .back-btn:hover { border-color:var(--blue); color:var(--blue); }
+.topbar h1 { font-size:20px; font-weight:600; color:var(--blue); letter-spacing:.5px; }
+
+/* 状态条：数据日期 + 刷新 */
+.bar { display:flex; align-items:center; gap:8px; flex:none; padding:0 12px 10px; }
+.bar .info { flex:1; min-width:0; font-size:12px; color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bar .info .fresh { color:var(--green); }
+.bar .info .stale { color:var(--yellow); }
+.bar .info .err { color:var(--red); }
+.bar button { height:32px; padding:0 14px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:12px; cursor:pointer; flex:none; }
+.bar button:active { border-color:var(--blue); color:var(--blue); }
+
+/* 雷达容器：占满剩余视口，内部滚动 */
+.frame-wrap { flex:1; min-height:0; position:relative; border-top:1px solid var(--border); }
+iframe { position:absolute; inset:0; width:100%; height:100%; border:none; background:#070b12; }
+
+/* 错误占位（无缓存且网络失败时） */
+.errbox { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; text-align:center; padding:20px; }
+.errbox.show { display:flex; }
+.errbox .e-icon { font-size:40px; }
+.errbox .e-msg { font-size:14px; color:var(--text2); line-height:1.7; max-width:420px; }
+.errbox button { height:40px; padding:0 22px; border-radius:8px; border:1px solid var(--blue); background:var(--blue); color:#fff; font-size:14px; cursor:pointer; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="PB_PE_ROE_calc.html?tab=note" class="back-btn" title="返回">&larr;</a>
+    <div><h1>解禁预警雷达</h1></div>
+  </div>
+  <div class="bar">
+    <div class="info" id="info">正在加载雷达数据...</div>
+    <button id="btnRefresh" onclick="manualRefresh()">刷新</button>
+  </div>
+  <div class="frame-wrap">
+    <iframe id="radar" title="解禁预警雷达"></iframe>
+    <div class="errbox" id="errbox">
+      <div class="e-icon">&#x1F4E1;</div>
+      <div class="e-msg" id="errmsg"></div>
+      <button onclick="manualRefresh()">重试</button>
+    </div>
+  </div>
+<script>
+/* ========== 环境检测（与主 HTML 一致） ========== */
+var _isAndroidApp = (function(){
+  try {
+    if (typeof window.JSInterface !== 'undefined') return true;
+    if (navigator.userAgent.indexOf('StockValuation') >= 0) return true;
+    if (localStorage.getItem('_android_app') === '1') return true;
+  } catch(e) {}
+  return false;
+})();
+
+/* 雷达仓库（公开仓库，匿名可读，无需 token） */
+var REPO_API = 'https://api.github.com/repos/gyhok368519/gyhok368519-lookup-radio/contents/index.html';
+var PROXY_URL = './lockup-radar/';   /* APK 端由 Java shouldInterceptRequest 拦截直连 api.github.com */
+
+var IDB_NAME = 'pb_calc_lockup';
+var IDB_STORE = 'radar';
+var CACHE_KEY = 'radar_html';
+var _rendered = false;   /* 当前是否已有内容在显示 */
+var _busy = false;
+
+/* ========== IndexedDB 简易封装 ========== */
+function idb() {
+  return new Promise(function(res, rej) {
+    var r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = function() { r.result.createObjectStore(IDB_STORE); };
+    r.onsuccess = function() { res(r.result); };
+    r.onerror = function() { rej(r.error); };
+  });
+}
+function cacheGet() {
+  return idb().then(function(db) {
+    return new Promise(function(res) {
+      try {
+        var tx = db.transaction(IDB_STORE, 'readonly');
+        var rq = tx.objectStore(IDB_STORE).get(CACHE_KEY);
+        rq.onsuccess = function() { res(rq.result || null); };
+        rq.onerror = function() { res(null); };
+      } catch(e) { res(null); }
+    });
+  }).catch(function() { return null; });
+}
+function cachePut(html) {
+  return idb().then(function(db) {
+    return new Promise(function(res) {
+      try {
+        var tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put({ html: html, ts: Date.now() }, CACHE_KEY);
+        tx.oncomplete = function() { res(true); };
+        tx.onerror = function() { res(false); };
+      } catch(e) { res(false); }
+    });
+  }).catch(function() { return false; });
+}
+
+/* ========== 工具 ========== */
+function setStatus(msg, cls) {
+  var el = document.getElementById('info');
+  el.innerHTML = msg;
+  el.className = 'info' + (cls ? ' ' + cls : '');
+}
+/* Safe base64 decode（UTF-8，与主 HTML _safeAtob 一致） */
+function _safeAtob(b64) {
+  var raw = atob(b64.replace(/\n/g, ''));
+  var buf = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(buf);
+}
+/* 从雷达 HTML 里提取基准日/窗口（页面文案形如 基准日 2026-10-21 / 2026-10-21 ~ 2027-01-19） */
+function extractMeta(html) {
+  var base = '', end = '';
+  var m1 = html.match(/基准日[^0-9]{0,8}(\d{4}-\d{2}-\d{2})/);
+  if (m1) base = m1[1];
+  var m2 = html.match(/(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})/);
+  if (m2) { if (!base) base = m2[1]; end = m2[2]; }
+  return { base: base, end: end };
+}
+function fmtInfo(html, cls) {
+  var meta = extractMeta(html);
+  var parts = [];
+  if (meta.base) parts.push('基准日 <b>' + meta.base + '</b>');
+  if (meta.end) parts.push('窗口至 ' + meta.end);
+  setStatus(parts.join(' · ') || '雷达已加载', cls);
+}
+
+/* ========== 渲染 ========== */
+function render(html) {
+  var frame = document.getElementById('radar');
+  frame.srcdoc = html;
+  document.getElementById('errbox').classList.remove('show');
+  _rendered = true;
+}
+
+/* ========== 数据获取 ========== */
+function fetchFresh() {
+  if (_busy) return Promise.resolve(null);
+  _busy = true;
+  var p;
+  if (_isAndroidApp) {
+    /* APK：Java 拦截 ./lockup-radar/ 直连 api.github.com，返回 HTML 文本 */
+    p = fetch(PROXY_URL, { cache: 'no-store' }).then(function(r) {
+      if (!r.ok) throw new Error('proxy HTTP ' + r.status);
+      return r.text();
+    });
+  } else {
+    /* 浏览器：GitHub Contents API 匿名读公开仓库（CORS 放行），base64 解码 */
+    p = fetch(REPO_API + '?_t=' + Date.now(), {
+      headers: { 'Accept': 'application/vnd.github.v3+json' },
+      cache: 'no-store'
+    }).then(function(r) {
+      if (!r.ok) throw new Error('API HTTP ' + r.status);
+      return r.json();
+    }).then(function(data) {
+      if (!data.content) throw new Error('API 无内容');
+      return _safeAtob(data.content);
+    });
+  }
+  return p.then(function(html) {
+    if (!html || html.indexOf('<') < 0) throw new Error('内容异常');
+    _busy = false;
+    return html;
+  }).catch(function(err) {
+    _busy = false;
+    throw err;
+  });
+}
+
+function showErr(msg) {
+  var box = document.getElementById('errbox');
+  document.getElementById('errmsg').innerHTML = msg;
+  box.classList.add('show');
+}
+
+/* ========== 主流程：缓存秒开 + 后台刷新（SWR 思路） ========== */
+function boot() {
+  cacheGet().then(function(cached) {
+    if (cached && cached.html) {
+      render(cached.html);
+      var ago = Math.round((Date.now() - (cached.ts || 0)) / 86400000);
+      fmtInfo(cached.html, 'stale');
+      setStatus(document.getElementById('info').innerHTML +
+        ' · ' + (ago <= 0 ? '今日缓存' : ago + ' 天前缓存') + '，正在后台刷新...', 'stale');
+      /* 后台刷新：成功则静默换新 */
+      fetchFresh().then(function(html) {
+        if (html && html !== cached.html) {
+          render(html);
+          fmtInfo(html, 'fresh');
+          setStatus(document.getElementById('info').innerHTML + ' · 已更新', 'fresh');
+        } else {
+          fmtInfo(html || cached.html, 'fresh');
+          setStatus(document.getElementById('info').innerHTML + ' · 已是最新', 'fresh');
+        }
+        cachePut(html || cached.html);
+      }).catch(function() {
+        setStatus(document.getElementById('info').innerHTML + ' · 刷新失败，显示缓存', 'stale');
+      });
+    } else {
+      /* 无缓存：必须等网络 */
+      setStatus('正在从 GitHub 拉取雷达数据（首次约 1~3 秒）...', 'stale');
+      fetchFresh().then(function(html) {
+        render(html);
+        fmtInfo(html, 'fresh');
+        setStatus(document.getElementById('info').innerHTML + ' · 已缓存', 'fresh');
+        cachePut(html);
+      }).catch(function(err) {
+        setStatus('加载失败：' + (err && err.message ? err.message : '网络异常'), 'err');
+        showErr('雷达数据拉取失败<br><small>' + (err && err.message ? err.message : '') + '<br>网络恢复后可点重试</small>');
+      });
+    }
+  });
+}
+
+function manualRefresh() {
+  setStatus('正在刷新...', 'stale');
+  fetchFresh().then(function(html) {
+    render(html);
+    fmtInfo(html, 'fresh');
+    setStatus(document.getElementById('info').innerHTML + ' · 已更新', 'fresh');
+    cachePut(html);
+  }).catch(function(err) {
+    if (_rendered) {
+      setStatus('刷新失败：' + (err && err.message ? err.message : '网络异常') + '，继续显示当前内容', 'stale');
+    } else {
+      setStatus('加载失败：' + (err && err.message ? err.message : '网络异常'), 'err');
+      showErr('雷达数据拉取失败<br><small>' + (err && err.message ? err.message : '') + '<br>网络恢复后可点重试</small>');
+    }
+  });
+}
+
+boot();
+</script>
+</body>
+</html>
