@@ -159,9 +159,19 @@ function fmtInfo(html, cls) {
 }
 
 /* ========== 渲染 ========== */
+/* 主题补丁：IndexedDB 缓存的雷达 HTML 可能是旧版（主题初始化写死 dark），
+   在 </head> 前注入覆盖脚本，使任何版本的缓存渲染出来都跟随 APP 主题（pb_calc_theme → 系统偏好）。
+   补丁与新版雷达页自带逻辑一致，重复执行幂等无害。 */
+function patchTheme(html) {
+  var patch = '<script>(function(){var t="dark";try{var app=localStorage.getItem("pb_calc_theme");if(app==="light"||app==="dark"){t=app;}else if(window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches){t="light";}}catch(e){}document.documentElement.setAttribute("data-theme",t);})();<' + '/script>';
+  if (html.indexOf('</head>') >= 0) {
+    return html.replace('</head>', patch + '</head>');
+  }
+  return html;
+}
 function render(html) {
   var frame = document.getElementById('radar');
-  frame.srcdoc = html;
+  frame.srcdoc = patchTheme(html);
   document.getElementById('errbox').classList.remove('show');
   _rendered = true;
 }
