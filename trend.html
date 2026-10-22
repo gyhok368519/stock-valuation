@@ -664,8 +664,8 @@ function renderIdx(m) {
   var html = '';
   for (var j = 0; j < defs.length; j++) {
     var d = defs[j];
-    var w1 = Math.round(Math.abs((d.chg || 0)) / maxAbs * 100);
-    var w2 = Math.round(Math.abs((d.c60 || 0) * 100) / maxAbs * 100);
+    var w1 = Math.round(Math.abs((d.chg || 0)) / maxAbs * 50);
+    var w2 = Math.round(Math.abs((d.c60 || 0) * 100) / maxAbs * 50);
     var chgTxt = d.chg === null || d.chg === undefined ? '--' : d.chg.toFixed(2) + '%';
     html += '<div class="axis-row"><div class="axis-name"><b>' + d.name + '</b> · ' +
       (d.price !== undefined && d.price !== null ? d.price.toFixed(2) + ' ' : '') +
