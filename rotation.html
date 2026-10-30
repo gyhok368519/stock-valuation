@@ -168,7 +168,7 @@ body { background:var(--bg); color:var(--text); font-family:var(--font); font-si
     <button onclick="manualRefresh()">刷新</button>
   </div>
   <div class="content" id="content">
-    <div class="loading"><div><div class="spin"></div><div>正在从东方财富接口获取行业轮动数据，首次约 1~3 秒...</div></div></div>
+    <div class="loading"><div><div class="spin"></div><div>正在从东方财富接口获取数据：指数约 2 秒先出，行业榜单串行错峰约 10 秒全部到位...</div></div></div>
     <div class="footer" id="footer" style="display:none;">
       <b>口径说明</b>：行业口径为东方财富行业板块体系（申万二级 / 三级粒度，非申万一级），共 496 个板块，热力图与排行取当日涨跌幅、主力净流入两端的头部板块；主力净流入＝板块成分股超大单＋大单净额合计，不等于北向或全市场资金；风格 RS＝配对指数涨跌幅之差（百分点），正值表示左侧（前项）占优；行业资金集中度＝净流入前五合计与净流出前五合计之比。基准日规则：交易日盘中为实时快照（未收盘会在页面注明），收盘后为当日收盘数据，非交易日自动取最近一个交易日收盘数据。<br>
       <b>免责声明</b>：以上内容基于公开数据计算，仅供参考，不构成投资建议。市场有风险，投资需谨慎。数据可能存在延迟，以交易所官方发布为准。
@@ -318,86 +318,138 @@ function urlSecPage(fid, pn, host) {
      host 支持东财编号节点轮换，规避单节点限流 */
   return 'https://' + (host || 'push2.eastmoney.com') + '/api/qt/clist/get?pn=' + pn + '&pz=100&po=1&np=1&fltt=2&invt=2&fid=' + fid + '&fs=m:90+t:2+f:!50&fields=f12,f14,f3,f62,f104,f105,f128';
 }
-/* clist 节点轮换：主域名失败后依次尝试编号节点 */
-var _secHosts = ['push2.eastmoney.com', '1.push2.eastmoney.com', '7.push2.eastmoney.com', '33.push2.eastmoney.com'];
-function secPageReq(fid, pn) {
-  var i = 0;
-  function attempt() {
-    return jsonp(urlSecPage(fid, pn, _secHosts[i])).catch(function(err) {
-      i++;
-      if (i < _secHosts.length) return attempt();
-      throw err;
-    });
+/* clist 双节点轮换：主节点失败换 33.push2（不同边缘 IP，规避单节点限流），再失败记入降级名单 */
+function secReq(fid, pn) {
+  return reqJsonp(urlSecPage(fid, pn, 'push2.eastmoney.com'), 12000).catch(function(e1) {
+    return reqJsonp(urlSecPage(fid, pn, '33.push2.eastmoney.com'), 12000).catch(function() { throw e1; });
+  });
+}
+/* 测试开关：?_stub=1 用本地 mock 冒充网络返回，走完整数据管线（验证 fetch 路径；仅沙箱用，生产无影响） */
+var _stub = /[?&]_stub=1/.test(location.search);
+function stubFor(url) {
+  var d = window.__ROT_MOCK || {};
+  if (url.indexOf('ulist.np') >= 0) return d.idx;
+  if (url.indexOf('clist') >= 0) {
+    var tail = url.indexOf('pn=5') >= 0;
+    if (url.indexOf('fid=f62') >= 0) return tail ? d.secOut : d.secIn;
+    if (url.indexOf('fid=f3') >= 0) return tail ? d.secDn : d.secUp;
+    return null;
   }
-  return attempt();
+  if (url.indexOf('kline') >= 0) {
+    if (url.indexOf('secid=1.000001&') >= 0) return d.kSH;
+    if (url.indexOf('secid=1.000016') >= 0) return d.k50;
+    if (url.indexOf('secid=0.399006') >= 0) return d.kCyb;
+    if (url.indexOf('secid=1.000300') >= 0) return d.k300;
+    if (url.indexOf('secid=1.000852') >= 0) return d.k1000;
+    if (url.indexOf('secid=1.000922') >= 0) return d.kDiv;
+    if (url.indexOf('secid=1.000688') >= 0) return d.kKC50;
+  }
+  return null;
+}
+/* 统一取数入口：生产走 JSONP；_stub 模式走本地 mock 并模拟网络延迟 */
+function reqJsonp(url, timeout) {
+  if (_stub) {
+    var v = stubFor(url);
+    if (v === undefined || v === null) return Promise.reject(new Error('stub 未命中'));
+    return delay(80 + Math.floor(Math.random() * 200)).then(function() { return v; });
+  }
+  return jsonp(url, timeout);
 }
 function urlKline(secid, lmt) {
   return 'https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=' + secid + '&klt=101&fqt=1&lmt=' + lmt + '&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f53';
 }
 
+/* ========== 分阶段数据管线：核心件（指数+基准K线）先渲染，风格K线并行补齐，行业榜单串行错峰 ========== */
+/* 设计要点：1) 任何一阶段到位即重渲染（渐进显示，杜绝无反馈长等待）；
+   2) 4 路行业榜单串行间隔 2.2 秒，避免瞬时并发触发东财 clist 接口限流；
+   3) 榜单失败仅降级对应区块（指数/风格RS/研判不受影响），核心件失败才整页报错 */
+var _acc = {};          /* 累积的原始数据 */
+var _fails = [];
+var _coreSettled = 0;   /* 核心件（idx/kSH）已结算数 */
+var _coreOk = false;
+var _secDone = 0, _secTotal = 4;
+var _fetchDone = false;
 var _busy = false;
-function fetchAll() {
-  if (_busy) return Promise.resolve(null);
-  _busy = true;
-  function settle(p) { return p.then(function(v) { return { ok: true, v: v }; }, function(e) { return { ok: false, e: e }; }); }
-  /* 分批错峰：核心三件先行（指数 / 上证K线定基准日 / 主力净流入榜），其余延后再发 */
-  var batch1 = {
-    idx:    retry(function() { return jsonp(urlUlist()); }, 3),
-    kSH:    retry(function() { return jsonp(urlKline('1.000001', 5)); }, 3),
-    secIn:  retry(function() { return secPageReq('f62', 1); }, 2)
-  };
-  var batch2 = {
-    secOut: retry(function() { return secPageReq('f62', 5); }, 2),
-    secUp:  retry(function() { return secPageReq('f3', 1); }, 2),
-    secDn:  retry(function() { return secPageReq('f3', 5); }, 2)
-  };
-  var batch2 = {
-    secOut: retry(function() { return secListReq('f62', 0); }, 2),
-    secUp:  retry(function() { return secListReq('f3', 1); }, 2),
-    secDn:  retry(function() { return secListReq('f3', 0); }, 2)
-  };
-  var batch3 = {
-    k50:    retry(function() { return jsonp(urlKline('1.000016', 25)); }, 2),
-    kCyb:   retry(function() { return jsonp(urlKline('0.399006', 25)); }, 2),
-    k300:   retry(function() { return jsonp(urlKline('1.000300', 25)); }, 2),
-    k1000:  retry(function() { return jsonp(urlKline('1.000852', 25)); }, 2),
-    kDiv:   retry(function() { return jsonp(urlKline('1.000922', 25)); }, 2),
-    kKC50:  retry(function() { return jsonp(urlKline('1.000688', 25)); }, 2)
-  };
-  var keys1 = [], keys2 = [], keys3 = [];
-  for (var k1 in batch1) keys1.push(k1);
-  for (var k2 in batch2) keys2.push(k2);
-  for (var k3 in batch3) keys3.push(k3);
-  var pros1 = [];
-  for (var i = 0; i < keys1.length; i++) pros1.push(settle(batch1[keys1[i]]));
-  var pros2 = delay(700).then(function() {
-    var ps = [];
-    for (var i = 0; i < keys2.length; i++) ps.push(settle(batch2[keys2[i]]));
-    return Promise.all(ps);
-  });
-  var pros3 = delay(1500).then(function() {
-    var ps = [];
-    for (var i = 0; i < keys3.length; i++) ps.push(settle(batch3[keys3[i]]));
-    return Promise.all(ps);
-  });
-  return Promise.all([Promise.all(pros1), pros2, pros3]).then(function(batches) {
-    _busy = false;
-    var out = {}, fails = [];
-    var results = batches[0].concat(batches[1]).concat(batches[2]);
-    var keys = keys1.concat(keys2).concat(keys3);
-    for (var i = 0; i < keys.length; i++) {
-      if (results[i] && results[i].ok) out[keys[i]] = results[i].v;
-      else fails.push(keys[i] + ':' + (results[i] && results[i].e && results[i].e.message || '失败'));
+var _hasRendered = false;
+
+function into(promise, key, after) {
+  return promise.then(function(v) { _acc[key] = v; if (after) after(); return true; },
+    function(e) { _fails.push(key + ':' + (e && e.message || '失败')); if (after) after(); return false; });
+}
+function refreshView() {
+  if (!_coreOk) return;
+  _acc._fails = _fails;
+  try { render(_acc, Date.now()); _hasRendered = true; }
+  catch (e) { setStatus('渲染异常：' + (e && e.message || e), 'err'); return; }
+  updateStatus();
+}
+function updateStatus() {
+  var m = compute(_acc);
+  var liveTag = m.mktLive ? ' <span class="live">盘中实时 · 未收盘</span>' : '';
+  var secPart = _fetchDone ? '' : ' · 行业榜 ' + _secDone + '/' + _secTotal;
+  var limPart = (_fetchDone && _fails.length) ? ' · <span class="stale">部分数据受限</span>' : '';
+  setStatus('数据日 <b>' + m.dataDate + '</b> · ' + esc(m.mktStatus) + secPart + limPart + ' · ' + timeStr(Date.now()) + liveTag, _fetchDone ? 'fresh' : 'stale');
+}
+function coreSettled() {
+  _coreSettled++;
+  if (_coreSettled < 2) return;
+  _coreOk = !!(_acc.idx && _acc.kSH);
+  if (_coreOk) { refreshView(); return; }
+  /* 核心件失败：已有内容则保留并提示，否则整页错误 */
+  _busy = false;
+  if (_hasRendered) {
+    setStatus('刷新失败：核心数据（指数/K线）拉取失败（' + esc(_fails.join('；')) + '），继续显示当前内容', 'stale');
+  } else {
+    setStatus('加载失败：核心数据（指数行情）拉取失败（' + esc(_fails.join('；')) + '）——多为网络波动或接口限流，稍等片刻点「刷新」重试', 'err');
+    document.getElementById('content').innerHTML =
+      '<div class="loading"><div>指数行情拉取失败<br><small style="color:var(--text3);">' + esc(_fails.join('；')) + '<br>多为网络波动或行情接口临时限流（通常几分钟到几小时恢复）<br>稍等片刻后点击下方按钮重试</small><br><br>' +
+      '<button onclick="manualRefresh()" style="height:38px;padding:0 20px;border-radius:8px;border:1px solid var(--blue);background:var(--blue);color:#fff;font-size:13px;cursor:pointer;">重试</button></div></div>';
+  }
+}
+var _KLINE_DEFS = [
+  ['k50', '1.000016'], ['kCyb', '0.399006'], ['k300', '1.000300'],
+  ['k1000', '1.000852'], ['kDiv', '1.000922'], ['kKC50', '1.000688']
+];
+function runPipeline() {
+  if (_busy) return;
+  _busy = true; _fetchDone = false; _fails = []; _acc = {};
+  _coreSettled = 0; _coreOk = false; _secDone = 0;
+
+  /* 阶段 1（立即并行）：指数行情 + 上证 K 线（定基准日）——就绪即首屏渲染 */
+  into(retry(function() { return reqJsonp(urlUlist(), 12000); }, 2), 'idx', coreSettled);
+  into(retry(function() { return reqJsonp(urlKline('1.000001', 5), 12000); }, 2), 'kSH', coreSettled);
+
+  /* 阶段 2（600ms 后并行）：6 条风格 K 线（push2his 域，与 push2 限流互不影响），逐条到位渐进重渲染 */
+  delay(600).then(function() {
+    for (var i = 0; i < _KLINE_DEFS.length; i++) {
+      (function(kd) {
+        into(retry(function() { return reqJsonp(urlKline(kd[1], 25), 12000); }, 1), kd[0], refreshView);
+      })(_KLINE_DEFS[i]);
     }
-    /* 核心：指数行情 + 主力净流入榜（热力图可由流入/流出榜降级渲染） */
-    if (!out.idx || (!out.secIn && !out.secOut)) {
-      throw new Error('核心数据拉取失败（' + fails.join('; ') + '）');
+  });
+
+  /* 阶段 3（1.2s 起串行，每路间隔 2.2s）：4 路行业榜单（净流入榜/净流出榜/涨幅榜/跌幅榜） */
+  delay(1200).then(function() {
+    function secStep(fid, pn, key) {
+      return into(secReq(fid, pn), key, function() { _secDone++; refreshView(); });
     }
-    out._fails = fails;
-    return out;
-  }).catch(function(e) {
+    return secStep('f62', 1, 'secIn')
+      .then(function() { return delay(2200); })
+      .then(function() { return secStep('f62', 5, 'secOut'); })
+      .then(function() { return delay(2200); })
+      .then(function() { return secStep('f3', 1, 'secUp'); })
+      .then(function() { return delay(2200); })
+      .then(function() { return secStep('f3', 5, 'secDn'); });
+  }).then(function() {
     _busy = false;
-    throw e;
+    _fetchDone = true;
+    if (_coreOk) {
+      _acc._fails = _fails;
+      render(_acc, Date.now());
+      _hasRendered = true;
+      cachePut(_acc);
+      updateStatus();
+    }
   });
 }
 
@@ -585,7 +637,7 @@ function renderIdx(m) {
 }
 
 function renderHeat(m) {
-  if (!m.heat.length) return '<div class="sec-note">热力图数据缺失。</div>';
+  if (!m.heat.length) return '<div class="sec-note">' + (_fetchDone ? '行业榜单获取受限（接口限流或网络异常），点右上「刷新」重试；指数与风格 RS 不受影响。' : '行业榜单获取中（串行错峰防限流，全部到位约需 10 秒）...') + '</div>';
   var html = '<div class="heat-grid">';
   var isLight = document.documentElement.classList.contains('light');
   var heatUp = isLight ? '207,34,46' : '240,71,92';
@@ -622,7 +674,7 @@ function renderHeat(m) {
 
 function renderFlow(m) {
   var html = '';
-  if (!m.flowIn.length && !m.flowOut.length) return '<div class="sec-note">资金流数据缺失。</div>';
+  if (!m.flowIn.length && !m.flowOut.length) return '<div class="sec-note">' + (_fetchDone ? '主力资金榜获取受限（接口限流或网络异常），点右上「刷新」重试。' : '主力资金榜获取中（串行错峰防限流）...') + '</div>';
   var wPct = function(v) { return m.flowMax ? Math.min(Math.abs(v) / m.flowMax * 50, 50) : 0; };
   if (m.flowIn.length) {
     html += '<div class="fig-title">主力净流入 TOP10</div>';
@@ -827,21 +879,24 @@ function render(d, ts) {
   if (footer && footer.parentNode) footer.parentNode.removeChild(footer);
   c.innerHTML = html;
   if (footer) { footer.style.display = 'block'; c.appendChild(footer); }
-  /* 状态条 */
-  var liveTag = m.mktLive ? ' <span class="live">盘中实时 · 未收盘</span>' : '';
-  setStatus('数据日 <b>' + m.dataDate + '</b> · ' + esc(m.mktStatus) + ' · 生成于 ' + timeStr(ts) + liveTag, ts ? 'fresh' : 'stale');
+  /* 状态条由 updateStatus() 统一维护（随分阶段进度刷新） */
 }
 
-/* ========== 主流程：缓存秒开 + 后台刷新（SWR 思路） ========== */
-var _renderedTs = 0;
+/* ========== 主流程：缓存秒开 + 后台分阶段刷新（SWR 思路） ========== */
 function boot() {
-  if (_mock) {
+  if (_mock || _stub) {
     var s = document.createElement('script');
     s.src = 'mock_data.js';
     s.onload = function() {
       if (!window.__ROT_MOCK) { setStatus('MOCK 未定义', 'err'); return; }
-      try { render(window.__ROT_MOCK, Date.now()); }
-      catch (e) { setStatus('RENDER_ERR: ' + (e && e.message) + ' | ' + String(e && e.stack || '').split(String.fromCharCode(10)).slice(0, 2).join(' <- '), 'err'); }
+      if (_mock) {
+        /* 纯渲染验证：直接整页渲染 mock 数据 */
+        try { render(window.__ROT_MOCK, Date.now()); setStatus('MOCK 数据 · ' + timeStr(Date.now()), 'fresh'); }
+        catch (e) { setStatus('RENDER_ERR: ' + (e && e.message) + ' | ' + String(e && e.stack || '').split(String.fromCharCode(10)).slice(0, 2).join(' <- '), 'err'); }
+      } else {
+        /* 管线验证：_stub=1 走完整数据管线（reqJsonp 用 mock 冒充网络返回） */
+        runPipeline();
+      }
     };
     s.onerror = function() { setStatus('mock 数据加载失败', 'err'); };
     document.head.appendChild(s);
@@ -849,41 +904,19 @@ function boot() {
   }
   cacheGet().then(function(cached) {
     if (cached && cached.d && cached.d.idx) {
-      render(cached.d, cached.ts);
-      _renderedTs = cached.ts || 0;
-      setStatus('数据日 <b>' + (compute(cached.d).dataDate) + '</b> · ' + esc(compute(cached.d).mktStatus) + ' · ' + timeStr(cached.ts) + ' · 后台刷新中...', 'stale');
-      fetchAll().then(function(d) {
-        render(d, Date.now());
-        cachePut(d);
-      }).catch(function() {
-        setStatus('数据日 <b>' + (compute(cached.d).dataDate) + '</b> · 刷新失败，显示缓存', 'stale');
-      });
+      _acc = cached.d; _coreOk = true; _hasRendered = true;
+      render(_acc, cached.ts);
+      setStatus('数据日 <b>' + (compute(_acc).dataDate) + '</b> · ' + esc(compute(_acc).mktStatus) + ' · ' + timeStr(cached.ts) + ' · 后台刷新中...', 'stale');
+      runPipeline();
     } else {
-      fetchAll().then(function(d) {
-        render(d, Date.now());
-        cachePut(d);
-      }).catch(function(err) {
-        setStatus('加载失败：' + (err && err.message ? err.message : '网络异常') + '，多为网络波动或接口临时限流，稍等片刻点「刷新」重试', 'err');
-        document.getElementById('content').innerHTML =
-          '<div class="loading"><div>行业与资金数据拉取失败<br><small style="color:var(--text3);">' + esc(err && err.message || '') + '<br>多为网络波动或行情接口临时限流（通常几分钟后恢复）<br>稍等片刻后点击下方按钮重试</small><br><br>' +
-          '<button onclick="manualRefresh()" style="height:38px;padding:0 20px;border-radius:8px;border:1px solid var(--blue);background:var(--blue);color:#fff;font-size:13px;cursor:pointer;">重试</button></div></div>';
-      });
+      runPipeline();
     }
   });
 }
 function manualRefresh() {
   if (_busy) return;
   setStatus('正在刷新...', 'stale');
-  fetchAll().then(function(d) {
-    render(d, Date.now());
-    cachePut(d);
-  }).catch(function(err) {
-    if (_renderedTs) {
-      setStatus('刷新失败：' + (err && err.message ? err.message : '网络异常') + '，继续显示当前内容', 'stale');
-    } else {
-      setStatus('加载失败：' + (err && err.message ? err.message : '网络异常'), 'err');
-    }
-  });
+  runPipeline();
 }
 
 boot();
