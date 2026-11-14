@@ -24,6 +24,10 @@ body { background:var(--bg); color:var(--text); font-family:var(--font); font-si
 .topbar .back-btn { position:absolute; left:0; top:10px; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text2); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:all .2s; text-decoration:none; }
 .topbar .back-btn:hover { border-color:var(--blue); color:var(--blue); }
 .topbar h1 { font-size:20px; font-weight:600; color:var(--blue); letter-spacing:.5px; }
+.theme-toggle { position:absolute; right:0; top:10px; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text2); cursor:pointer; font-size:17px; display:flex; align-items:center; justify-content:center; transition:all .2s; }
+.theme-toggle:hover { border-color:var(--blue); color:var(--blue); }
+.theme-icon { display:inline-block; vertical-align:middle; width:18px; height:18px; }
+.theme-icon svg { width:100%; height:100%; }
 
 /* 状态条：数据日期 + 刷新 */
 .bar { display:flex; align-items:center; gap:8px; flex:none; padding:0 12px 10px; }
@@ -55,18 +59,21 @@ iframe { position:absolute; inset:0; width:100%; height:100%; border:none; backg
   else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) { document.documentElement.classList.add('light'); }
 })();
 </script>
+<link rel="stylesheet" href="assets/css/common.css?v=6.0.0">
+<script src="assets/js/common.js?v=6.0.0"></script>
 </head>
 <body>
   <div class="topbar">
     <a href="PB_PE_ROE_calc.html?tab=note" class="back-btn" title="返回">&larr;</a>
     <div><h1>解禁预警雷达</h1></div>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换深色模式"><span id="themeIcon" class="theme-icon"></span></button>
   </div>
   <div class="bar">
     <div class="info" id="info">正在加载雷达数据...</div>
     <button id="btnRefresh" onclick="manualRefresh()">刷新</button>
   </div>
   <div class="frame-wrap">
-    <iframe id="radar" title="解禁预警雷达"></iframe>
+    <iframe id="radar" title="解禁预警雷达" sandbox="allow-scripts"></iframe>
     <div class="errbox" id="errbox">
       <div class="e-icon">&#x1F4E1;</div>
       <div class="e-msg" id="errmsg"></div>
@@ -159,22 +166,77 @@ function fmtInfo(html, cls) {
 }
 
 /* ========== 渲染 ========== */
-/* 主题补丁：IndexedDB 缓存的雷达 HTML 可能是旧版（主题初始化写死 dark），
-   在 </head> 前注入覆盖脚本，使任何版本的缓存渲染出来都跟随 APP 主题（pb_calc_theme → 系统偏好）。
-   补丁与新版雷达页自带逻辑一致，重复执行幂等无害。 */
+/* 主题补丁（v6.0.1）：
+   1) 注入同步脚本：按 pb_calc_theme/系统偏好同时设置 data-theme 属性与 .light class（双机制，兼容新旧雷达 CSS）
+   2) 旧版缓存雷达没有 html[data-theme="light"] 浅色样式 → 注入完整浅色变量表兜底，保证白天模式真实生效 */
+var _V6_RADAR_LIGHT_CSS = 'html[data-theme="light"]{--bg:#eef3f9;--panel:#ffffff;--panel2:#f7fafd;--line:#dbe4ef;--line2:#c6d3e3;--txt:#0d1a26;--txt2:#3b4c60;--mut:#526578;--dim:#6b7d92;--red:#d92c2c;--red2:#c4183a;--orange:#c2410c;--amber:#9a6700;--cyan:#0b6f88;--teal:#0f766e;--near:#b45309;--bg-glow1:rgba(11,111,136,.06);--bg-glow2:rgba(217,44,44,.05);--hd-grad:linear-gradient(180deg,rgba(255,255,255,.97),rgba(238,243,249,.8));--hd-grad2:linear-gradient(180deg,rgba(11,111,136,.06),transparent);--wash:rgba(13,26,38,.03);--wash2:rgba(13,26,38,.038);--wash3:rgba(13,26,38,.02);--input-bg:#ffffff;--thead-bg:#eaf1f8;--row-line:#e2eaf4;--row-line2:#eaeff7;--dash:#cedae8;--hover:rgba(11,111,136,.07);--hover2:rgba(11,111,136,.09);--top-bg:rgba(11,111,136,.07);--rhigh:rgba(217,44,44,.07);--rhigh-h:rgba(217,44,44,.12);--rboth:rgba(196,24,58,.1);--rboth-h:rgba(196,24,58,.15);--rnear:rgba(194,65,12,.07);--alarm-tx:#a51b1b;--rh-v:#b01634;--up:#d92c2c;--dn:#0f766e;--star-tx:#ffffff;--code-bg:rgba(11,111,136,.1);--code-tx:#0b6f88;--wb-bg:rgba(194,65,12,.07);--wb-bd:rgba(194,65,12,.28);--wb-tx:#8a3a08;--bar1:#0b6f88;--bar2:#a51b1b;--glow1:rgba(11,111,136,.28);--glow2:rgba(217,44,44,.26);--tg-r-bg:rgba(217,44,44,.1);--tg-r-tx:#a51b1b;--tg-r-bd:rgba(217,44,44,.32);--tg-o-bg:rgba(194,65,12,.1);--tg-o-tx:#8a3a08;--tg-o-bd:rgba(194,65,12,.3);--tg-a-bg:rgba(154,103,0,.1);--tg-a-tx:#7a5200;--tg-a-bd:rgba(154,103,0,.3);--tg-b-bg:rgba(93,112,134,.1);--tg-b-bd:rgba(93,112,134,.3);--c-grid:#dbe4ef;--c-axis:#5d7086;--c-axisline:#b9c7d8;--c-nb:#7a8ca1;--g-bar-a:#b3ecf7;--g-bar-b:#0e7490;--g-peak-a:#ffd2b0;--g-peak-b:#d13b12;--c-v:#0b6f88;--c-vpk:#b3490a;--c-lb:#4a5c71;--c-lpk:#b3490a;--c-name:#16283a;--c-code:#5d7086;--c-right:#41536b;--c-ct:#5d7086;--c-cv:#0d1a26;--c-seg-stroke:#ffffff;color-scheme:light}html[data-theme="light"] body{background:var(--bg);color:var(--txt)}';
 function patchTheme(html) {
-  var patch = '<script>(function(){var t="dark";try{var app=localStorage.getItem("pb_calc_theme");if(app==="light"||app==="dark"){t=app;}else if(window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches){t="light";}}catch(e){}document.documentElement.setAttribute("data-theme",t);})();<' + '/script>';
+  // 在父页面确定主题值并烤入注入脚本：沙箱 iframe（无 allow-same-origin）读不到 localStorage；
+  // 父/iframe 系统偏好一致，结果确定无歧义。
+  var t = "dark";
+  try {
+    var app = localStorage.getItem("pb_calc_theme");
+    if (app === "light" || app === "dark") { t = app; }
+    else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) { t = "light"; }
+  } catch (e) {}
+  var patch = '<script>(function(){var de=document.documentElement;de.setAttribute("data-theme","' + t + '");' +
+    (t === 'light' ? 'de.classList.add("light");' : 'de.classList.remove("light");') +
+    '})();<' + '/script>';
+  var lightFallback = '';
+  // 旧版缓存雷达没有浅色样式 → 注入变量表兜底
+  if (html.indexOf('data-theme="light"') < 0) {
+    lightFallback = '<style>' + _V6_RADAR_LIGHT_CSS + '</style>';
+  }
+  var inject = lightFallback + patch;
   if (html.indexOf('</head>') >= 0) {
-    return html.replace('</head>', patch + '</head>');
+    return html.replace('</head>', inject + '</head>');
   }
   return html;
 }
+var _lastRadarHtml = null;
 function render(html) {
+  _lastRadarHtml = html;
   var frame = document.getElementById('radar');
   frame.srcdoc = patchTheme(html);
   document.getElementById('errbox').classList.remove('show');
   _rendered = true;
 }
+
+/* 主题切换（与其他工具页一致，写 pb_calc_theme 并实时重渲染雷达） */
+function _themeIconSVG(isDark) {
+  var fg = isDark ? '#ffffff' : '#161b22';
+  var fill = isDark ? '#ffffff' : '#f6f8fa';
+  return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<line x1="12" y1="1.5" x2="12" y2="4" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="12" y1="20" x2="12" y2="22.5" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="1.5" y1="12" x2="4" y2="12" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="20" y1="12" x2="22.5" y2="12" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="4.1" y1="4.1" x2="5.9" y2="5.9" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="18.1" y1="18.1" x2="19.9" y2="19.9" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="4.1" y1="19.9" x2="5.9" y2="18.9" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<line x1="18.1" y1="5.9" x2="19.9" y2="4.1" stroke="' + fg + '" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<circle cx="12" cy="12" r="5.5" stroke="' + fg + '" stroke-width="1.6" fill="none"/>' +
+    '<path d="M10.5 7.2a5.5 5.5 0 0 1 0 9.6a4.2 4.2 0 0 0 0-9.6z" fill="' + fill + '"/>' +
+    '</svg>';
+}
+function paintThemeIcon() {
+  var isLight = document.documentElement.classList.contains('light');
+  var el = document.getElementById('themeIcon');
+  if (el) el.innerHTML = _themeIconSVG(!isLight);
+  var btn = document.getElementById('themeToggle');
+  if (btn) btn.title = isLight ? '切换深色模式' : '切换浅色模式';
+}
+function toggleTheme() {
+  var isLight = document.documentElement.classList.contains('light');
+  var t = isLight ? 'dark' : 'light';
+  try { localStorage.setItem('pb_calc_theme', t); } catch (e) {}
+  if (t === 'light') { document.documentElement.classList.add('light'); }
+  else { document.documentElement.classList.remove('light'); }
+  paintThemeIcon();
+  // 雷达内容实时跟随（patchTheme 按新主题注入）
+  if (_lastRadarHtml) render(_lastRadarHtml);
+}
+paintThemeIcon();
 
 /* ========== 数据获取 ========== */
 function fetchFresh() {
@@ -188,16 +250,23 @@ function fetchFresh() {
       return r.text();
     });
   } else {
-    /* 浏览器：GitHub Contents API 匿名读公开仓库（CORS 放行），base64 解码 */
-    p = fetch(REPO_API + '?_t=' + Date.now(), {
-      headers: { 'Accept': 'application/vnd.github.v3+json' },
-      cache: 'no-store'
-    }).then(function(r) {
-      if (!r.ok) throw new Error('API HTTP ' + r.status);
-      return r.json();
-    }).then(function(data) {
-      if (!data.content) throw new Error('API 无内容');
-      return _safeAtob(data.content);
+    /* 浏览器：jsDelivr CDN 直读公开仓库 HTML，失败再走 GitHub Contents API（匿名，base64 解码） */
+    var cdnUrl = 'https://cdn.jsdelivr.net/gh/gyhok368519/gyhok368519-lookup-radio@main/index.html?_t=' + Date.now();
+    p = fetch(cdnUrl, { cache: 'no-store' }).then(function(r) {
+      if (!r.ok) throw new Error('CDN HTTP ' + r.status);
+      return r.text();
+    }).catch(function(e2) {
+      console.log('[lockup] CDN failed (' + e2.message + '), trying GitHub API...');
+      return fetch(REPO_API + '?_t=' + Date.now(), {
+        headers: { 'Accept': 'application/vnd.github.v3+json' },
+        cache: 'no-store'
+      }).then(function(r) {
+        if (!r.ok) throw new Error('API HTTP ' + r.status);
+        return r.json();
+      }).then(function(data) {
+        if (!data.content) throw new Error('API 无内容');
+        return _safeAtob(data.content);
+      });
     });
   }
   return p.then(function(html) {
