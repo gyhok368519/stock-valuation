@@ -1,208 +1,181 @@
-const CACHE_NAME = 'pb-calc-v250';
-const ASSETS = [
+/* sw.js — v6.0.0
+ * 缓存名由 version.json 单一真源派生（构建时同步）；无后端、无凭证。
+ * 策略：
+ *  - install：逐资源容忍式预缓存（单个失败不阻断整体）
+ *  - version.json / *_update=：仅网络（失败返回 503，不做缓存兜底）
+ *  - db_data.json / db_meta.json / stock_index.json：网络优先，缓存兜底
+ *  - 同源其余请求（含页面导航）：SWR（缓存秒开 + 后台刷新）
+ *  - /dj-proxy/、/emweb-proxy/：白名单 CORS 代理（同源路径 → 东财/蛋卷），失败返回 502 JSON
+ *  - activate：清理旧缓存；不自动 skipWaiting（由页面消息触发，避免新旧资源混用）
+ */
+var VER = '6.0.0';
+var CACHE = 'pb-calc-v' + VER;
+var ASSETS = [
+  './', './index.html',
   './PB_PE_ROE_calc.html',
-  './roe.html',
-  './mine.html',
-  './moat.html',
-  './risk.html',
-  './macro.html',
-  './lockup.html',
-  './trend.html',
-  './rotation.html',
-  './schiller.html',
-  './stock_index.json',
-  './manifest.json',
-  './icon-512.jpg',
-  './sw.js'
+  './roe.html', './mine.html', './moat.html', './risk.html', './macro.html',
+  './lockup.html', './trend.html', './rotation.html', './schiller.html',
+  './assets/js/common.js', './assets/css/common.css',
+  './stock_index.json', './db_meta.json', './version.json',
+  './manifest.json', './icon-512.jpg'
 ];
+var NETWORK_FIRST = ['./db_data.json', './db_meta.json', './stock_index.json'];
+var SWR_MAX_ENTRIES = 400; // SWR 缓存条目上限，防止无限增长
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(function() {
-      self.skipWaiting();
-    })
-  );
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    ).then(function() {
-      return self.clients.claim();
-    })
-  );
-});
-
-// Handle SKIP_WAITING message from page
-self.addEventListener('message', e => {
-  if (e.data && e.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
-// === Stale-While-Revalidate helper ===
-// Return cached response immediately (if available), fetch fresh copy in background for next visit.
-// If no cache, wait for network. Network failure falls back to ANY cache across all cache stores.
-function swr(request) {
-  return caches.match(request).then(function(cached) {
-    var fetchPromise = fetch(request, { cache: 'no-store' }).then(function(response) {
-      if (response.ok) {
-        var clone = response.clone();
-        caches.open(CACHE_NAME).then(function(cache) { cache.put(request, clone); });
-      }
-      return response;
-    }).catch(function(err) {
-      console.warn('[SW] SWR background refresh failed:', request.url, err && err.message);
-    });
-
-    if (cached) return cached; // SWR: instant cache, background refresh
-    return fetchPromise.catch(function() {
-      // Network failed & no exact cache match: search ALL caches for a fallback
-      return caches.keys().then(function(cacheNames) {
-        var matchNext = function(i) {
-          if (i >= cacheNames.length) {
-            return new Response('network error', { status: 502, headers: { 'Content-Type': 'text/plain' } });
-          }
-          return caches.open(cacheNames[i]).then(function(cache) {
-            return cache.match(request);
-          }).then(function(resp) {
-            if (resp) return resp;
-            return matchNext(i + 1);
-          }).catch(function() {
-            return matchNext(i + 1);
-          });
-        };
-        return matchNext(0);
+self.addEventListener('install', function (event) {
+  // 逐个缓存，单个失败仅记录，不阻断安装；不自动 skipWaiting（由页面 SKIP_WAITING 消息触发）
+  event.waitUntil(
+    Promise.all(ASSETS.map(function (url) {
+      return caches.open(CACHE).then(function (c) {
+        return c.add(new Request(url, { cache: 'no-store' }));
+      }).catch(function (e) {
+        console.warn('[sw] precache fail:', url, e && e.message);
       });
+    }))
+  );
+});
+
+self.addEventListener('message', function (event) {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
+self.addEventListener('activate', function (event) {
+  event.waitUntil(
+    caches.keys().then(function (keys) {
+      return Promise.all(keys.map(function (k) {
+        if (k !== CACHE) return caches.delete(k);
+      }));
+    }).then(function () { return self.clients.claim(); })
+  );
+});
+
+function isNWFirst(url) {
+  // 兼容 GitHub Pages 子路径部署（/stock-valuation/...），用后缀匹配
+  return NETWORK_FIRST.some(function (p) { return url.pathname.indexOf(p) === url.pathname.length - p.length; });
+}
+
+/* 白名单代理：仅允许既有数据路径，避免变成开放代理 */
+var EMWEB_PATHS = ['BonusFinancing/PageAjax', 'CompanySurvey/PageAjax', 'ShareholderResearch/PageAjax'];
+var DJ_PATHS = ['index_eva/dj'];
+
+function proxyResponse(externalUrl) {
+  return fetch(externalUrl, { cache: 'no-store' }).then(function (r) {
+    return r.text().then(function (text) {
+      return new Response(text, {
+        status: r.status,
+        headers: {
+          'Content-Type': r.headers.get('Content-Type') || 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    });
+  }).catch(function (err) {
+    return new Response(JSON.stringify({ error: 'proxy_failed', message: String(err && err.message || err) }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
   });
 }
 
-// Allowed emweb proxy paths (whitelist)
-var EMWEB_ALLOWED = ['BonusFinancing/PageAjax', 'CompanySurvey/PageAjax', 'ShareholderResearch/PageAjax'];
-
-// Allowed danjuan proxy paths (whitelist)
-var DJ_ALLOWED = ['index_eva/dj'];
-
-self.addEventListener('fetch', e => {
-  var url = e.request.url;
-
-  // Lockup radar proxy: bypass SW entirely — let request fall through to WebView network
-  // layer, where Java shouldInterceptRequest intercepts /lockup-radar/ and connects
-  // directly to api.github.com. (If SW handled it, it would fetch the literal path from
-  // GitHub Pages and get 404.)
-  if (url.indexOf('lockup-radar') !== -1) return;
-
-  // Proxy danjuan index-evaluation API: only same-origin + whitelisted paths + GET only
-  if (url.indexOf('/dj-proxy/') !== -1 && new URL(url).origin === self.location.origin) {
-    if (e.request.method !== 'GET') return;
-    var djIdx = url.indexOf('/dj-proxy/');
-    var djAfter = url.substring(djIdx + '/dj-proxy/'.length);
-    var djQueryIdx = djAfter.indexOf('?');
-    var djPath = djQueryIdx >= 0 ? djAfter.substring(0, djQueryIdx) : djAfter;
-    var djAllowed = false;
-    for (var di = 0; di < DJ_ALLOWED.length; di++) {
-      if (djPath === DJ_ALLOWED[di]) { djAllowed = true; break; }
-    }
-    if (!djAllowed) return;
-    var djQuery = djQueryIdx >= 0 ? djAfter.substring(djQueryIdx + 1) : '';
-    var djRealUrl = 'https://danjuanfunds.com/djapi/' + djPath + (djQuery ? '?' + djQuery : '');
-    e.respondWith(
-      fetch(djRealUrl, { mode: 'cors', credentials: 'omit' })
-        .then(function(resp) {
-          var headers = new Headers();
-          headers.set('Content-Type', 'application/json; charset=utf-8');
-          headers.set('Access-Control-Allow-Origin', self.location.origin);
-          return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers: headers });
-        })
-        .catch(function(err) {
-          return new Response(JSON.stringify({error: err.message}), {
-            status: 502,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': self.location.origin }
-          });
-        })
-    );
-    return;
+function handleProxy(url) {
+  var path = url.pathname;
+  if (path.indexOf('/emweb-proxy/') >= 0) {
+    var rest = path.substring(path.indexOf('/emweb-proxy/') + '/emweb-proxy/'.length);
+    var ok = EMWEB_PATHS.some(function (p) { return rest.indexOf(p) === 0; });
+    if (!ok) return Promise.resolve(new Response(JSON.stringify({ error: 'path_not_allowed' }), { status: 403, headers: { 'Content-Type': 'application/json' } }));
+    return proxyResponse('https://emweb.securities.eastmoney.com/PC_HSF10/' + rest + url.search);
   }
-
-  // Proxy emweb API: only same-origin + whitelisted paths + GET only
-  if (url.indexOf('/emweb-proxy/') !== -1 && new URL(url).origin === self.location.origin) {
-    if (e.request.method !== 'GET') return;
-    var proxyIdx = url.indexOf('/emweb-proxy/');
-    var afterProxy = url.substring(proxyIdx + '/emweb-proxy/'.length);
-    var queryIdx = afterProxy.indexOf('?');
-    var pathPart = queryIdx >= 0 ? afterProxy.substring(0, queryIdx) : afterProxy;
-    // Whitelist check
-    var allowed = false;
-    for (var i = 0; i < EMWEB_ALLOWED.length; i++) {
-      if (pathPart === EMWEB_ALLOWED[i]) { allowed = true; break; }
-    }
-    if (!allowed) return;
-    var queryPart = queryIdx >= 0 ? afterProxy.substring(queryIdx + 1) : '';
-    var realUrl = 'https://emweb.securities.eastmoney.com/PC_HSF10/' + pathPart + '?' + queryPart;
-    e.respondWith(
-      fetch(realUrl, { mode: 'cors', credentials: 'omit' })
-        .then(function(resp) {
-          // Only copy safe headers, not upstream sensitive ones
-          var headers = new Headers();
-          headers.set('Content-Type', 'application/json; charset=utf-8');
-          headers.set('Access-Control-Allow-Origin', self.location.origin);
-          return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers: headers });
-        })
-        .catch(function(err) {
-          return new Response(JSON.stringify({error: err.message}), {
-            status: 502,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': self.location.origin }
-          });
-        })
-    );
-    return;
+  if (path.indexOf('/dj-proxy/') >= 0) {
+    var restDj = path.substring(path.indexOf('/dj-proxy/') + '/dj-proxy/'.length);
+    var okDj = DJ_PATHS.some(function (p) { return restDj.indexOf(p) === 0; });
+    if (!okDj) return Promise.resolve(new Response(JSON.stringify({ error: 'path_not_allowed' }), { status: 403, headers: { 'Content-Type': 'application/json' } }));
+    return proxyResponse('https://danjuanfunds.com/djapi/' + restDj + url.search);
   }
+  return null;
+}
 
-  // Update check requests: bypass all caches, force fresh from network
-  // Includes version.json fetch (tiny file, much faster than fetching full HTML)
-  if (url.indexOf('_update=') !== -1 || url.indexOf('version.json') !== -1) {
-    e.respondWith(
-      fetch(e.request, { cache: 'no-store' })
-        .catch(function() {
-          return new Response('{"error":"network_unavailable"}', {
-            status: 503,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        })
-    );
-    return;
-  }
+/* SWR 缓存写入 + 容量上限 */
+function swrPut(cache, request, response) {
+  return cache.put(request, response.clone()).then(function () {
+    return cache.keys().then(function (keys) {
+      if (keys.length > SWR_MAX_ENTRIES) {
+        // 淘汰最早的 (keys.length - SWR_MAX_ENTRIES) 条
+        var extra = keys.length - SWR_MAX_ENTRIES;
+        var toDelete = keys.slice(0, extra);
+        return Promise.all(toDelete.map(function (k) { return cache.delete(k); }));
+      }
+    });
+  }).catch(function () { /* 缓存写失败不影响响应 */ });
+}
 
-  // db_data.json: network-first (always try fresh data from GitHub, fallback to cache)
-  if (url.indexOf('db_data.json') !== -1) {
-    e.respondWith(
-      fetch(e.request, { cache: 'no-store' }).then(function(response) {
-        if (response.ok) {
-          var clone = response.clone();
-          caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
-        }
-        return response;
-      }).catch(function() {
-        return caches.match(e.request).then(function(cached) {
-          return cached || new Response('{}', { status: 502, headers: { 'Content-Type': 'application/json' } });
+self.addEventListener('fetch', function (event) {
+  var req = event.request;
+  if (req.method !== 'GET') return;
+
+  var url = null;
+  try { url = new URL(req.url); } catch (e) { return; }
+
+  // 跨域请求交给浏览器
+  if (url.origin !== self.location.origin) return;
+
+  // Android APK 本地拦截路径：交给原生层
+  if (url.pathname.indexOf('lockup-radar') >= 0) return;
+
+  // 白名单代理
+  var proxied = handleProxy(url);
+  if (proxied) { event.respondWith(proxied); return; }
+
+  // version.json / _update=：仅网络（更新探测必须拿到最新）
+  var pn = url.pathname;
+  if ((pn.length >= 13 && pn.indexOf('version.json') === pn.length - 13) || url.search.indexOf('_update=') >= 0) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' }).catch(function () {
+        return new Response(JSON.stringify({ error: 'network_unavailable' }), {
+          status: 503, headers: { 'Content-Type': 'application/json' }
         });
       })
     );
     return;
   }
 
-  // Skip cross-origin requests entirely — let browser handle them directly
-  // (prevents SW from blocking mine.html/roe.html API calls on mobile WebView)
-  if (new URL(url).origin !== self.location.origin) return;
+  // 数据类文件：网络优先，缓存兜底
+  if (isNWFirst(url)) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' }).then(function (r) {
+        if (r.ok) {
+          caches.open(CACHE).then(function (c) { swrPut(c, req, r); });
+        }
+        return r.clone();
+      }).catch(function () {
+        return caches.match(req,{ignoreSearch:true}).then(function (c) {
+          return c || new Response('{}', { status: 502, headers: { 'Content-Type': 'application/json' } });
+        });
+      })
+    );
+    return;
+  }
 
-  // Skip navigation requests for HTML pages — let browser handle them directly
-  // (prevents SW from intercepting page loads like roe.html/mine.html on mobile WebView
-  // where SW is unstable and may return 502 "network error" instead of loading the page)
-  if (e.request.mode === 'navigate') return;
-
-  // Stale-While-Revalidate for same-origin static assets
-  // - PB_PE_ROE_calc.html, sw.js, manifest.json, stock_index.json → SWR
-  e.respondWith(swr(e.request));
+  // 同源其余（含导航）：SWR
+  event.respondWith(
+    caches.open(CACHE).then(function (cache) {
+      return cache.match(req).then(function (cached) {
+        var fetching = fetch(req, { cache: 'no-store' }).then(function (r) {
+          if (r && r.ok) swrPut(cache, req, r);
+          return r;
+        }).catch(function () { return undefined; });
+        if (cached) {
+          fetching.catch(function () { /* 后台刷新失败：保留旧缓存 */ });
+          event.waitUntil(fetching);
+          return cached;
+        }
+        return fetching.then(function (r) {
+          if (r) return r.clone();
+          // 终极兜底：遍历所有缓存
+          return caches.match(req,{ignoreSearch:true}).then(function (c2) {
+            return c2 || new Response('network error', { status: 502, headers: { 'Content-Type': 'text/plain' } });
+          });
+        });
+      });
+    })
+  );
 });
