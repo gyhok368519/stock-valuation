@@ -144,6 +144,8 @@ body {
 [data-theme="dark"] .rule-table td { border-bottom-color: #2d2d44; }
 [data-theme="dark"] .rule-table th { border-bottom-color: #2d2d44; }
 </style>
+<link rel="stylesheet" href="assets/css/common.css?v=6.0.0">
+<script src="assets/js/common.js?v=6.0.0"></script>
 </head>
 <body>
 
@@ -326,14 +328,21 @@ function _fetchStockIndexFallback(){
   }).catch(function(e1){
     // Pages/assets fetch failed - try GitHub API (public repo, no token needed)
     console.log('[index] direct fetch failed ('+e1.message+'), trying API fallback...');
+    var cdnUrl='https://cdn.jsdelivr.net/gh/gyhok368519/stock-valuation@main/stock_index.json?_t='+Date.now();
     var apiUrl='https://api.github.com/repos/gyhok368519/stock-valuation/contents/stock_index.json';
     var headers={'Accept':'application/vnd.github.v3+json'};
-    return fetch(apiUrl,{headers:headers}).then(function(r){
-      if(!r.ok) throw new Error('API HTTP '+r.status);
+    return fetch(cdnUrl,{cache:'no-store'}).then(function(r){
+      if(!r.ok) throw new Error('CDN HTTP '+r.status);
       return r.json();
-    }).then(function(data){
-      if(!data.content) throw new Error('No content in API response');
-      return JSON.parse(_safeAtob(data.content));
+    }).catch(function(e2){
+      console.log('[index] CDN failed ('+e2.message+'), trying GitHub API fallback...');
+      return fetch(apiUrl,{headers:headers}).then(function(r){
+        if(!r.ok) throw new Error('API HTTP '+r.status);
+        return r.json();
+      }).then(function(data){
+        if(!data.content) throw new Error('No content in API response');
+        return JSON.parse(_safeAtob(data.content));
+      });
     });
   });
 }
@@ -488,7 +497,7 @@ function _fetchCashflow(code) {
 
 /* 获取现价（腾讯行情）与近半年跌幅（腾讯日K） */
 function _fetchPrice(code) {
-  var secid = code.indexOf('6') === 0 ? 'sh' : 'sz';
+  var secid = (function(c){ if (c.substring(0,3) === '920') return 'bj'; var ch = c.charAt(0); if (ch === '6' || ch === '9') return 'sh'; if (ch === '4' || ch === '8') return 'bj'; return 'sz'; })(code);
   var p = _apiGet('https://qt.gtimg.cn/q=' + secid + code).then(function (t) {
     var m = String(t).match(/"([^"]+)"/);
     if (!m) throw new Error('行情无数据');
@@ -555,7 +564,7 @@ function _fetchData(code) {
       auto.divYield = +(div.bonus / price.price * 100).toFixed(2);
     } else missingFields.push('股息率');
     // 派息率 = 每股股息 / 每股收益
-    if (div && div.bonus && div.eps) {
+    if (div && div.bonus && div.eps > 0) {
       auto.payout = +(div.bonus / div.eps * 100).toFixed(1);
     } else missingFields.push('派息率');
     // 经营现金流/分红 = 经营现金流净额 / (每股股息*总股本)
@@ -686,7 +695,7 @@ function renderVerdict(verdict, text, sub, ok, warn, danger, results, missing) {
 }
 
 function saveHistory(name, code, verdict, ok, warn, danger) {
-  var list = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+  var list = (function(){ try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { return []; } })();
   list.unshift({ name:name, code:code, verdict:verdict, ok:ok, warn:warn, danger:danger, time:Date.now() });
   list = list.slice(0, 20);
   localStorage.setItem(STORE_KEY, JSON.stringify(list));
@@ -739,14 +748,14 @@ function bindSwipeDelete() {
   document.addEventListener('click', function (e) { if (openItem && !e.target.closest('.history-item-wrap')) closeOpen(); }, { passive: true });
 }
 function delHistory(i) {
-  var list = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+  var list = (function(){ try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { return []; } })();
   list.splice(i, 1);
   localStorage.setItem(STORE_KEY, JSON.stringify(list));
   renderHistory(list);
 }
 
 /* init */
-renderHistory(JSON.parse(localStorage.getItem(STORE_KEY) || '[]'));
+renderHistory((function(){ try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { return []; } })());
 bindAutoFetch();
 // Pre-load stock index on page open for instant suggestions
 loadStockMap();
@@ -765,6 +774,8 @@ loadStockMap();
         var remoteVer = (d && d.v) ? String(d.v).trim() : '';
         var localVer = localStorage.getItem('_mine_ver') || '';
         if (remoteVer && remoteVer !== localVer) {
+          if (sessionStorage.getItem('_applied_ver') === remoteVer) { return; }
+          try { sessionStorage.setItem('_applied_ver', remoteVer); } catch(e) {}
           localStorage.setItem('_mine_ver', remoteVer);
           location.reload();
         }
