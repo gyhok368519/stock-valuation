@@ -1,7 +1,8 @@
 {
   "name": "PB估值计算器",
   "short_name": "PB计算器",
-  "description": "PB=PE×ROE估值验证工具，输入股票代码自动识别，一键判断高估低估",
+  "description": "PB=PE×ROE估值验证工具，5203只A股全量财务数据，本地运行、无需登录",
+  "version": "6.0.0",
   "start_url": "./PB_PE_ROE_calc.html",
   "display": "standalone",
   "orientation": "portrait",
