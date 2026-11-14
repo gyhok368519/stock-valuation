@@ -200,6 +200,8 @@ details.fold .fold-body { padding-top:8px; }
   .param-grid { grid-template-columns:1fr; }
 }
 </style>
+<link rel="stylesheet" href="assets/css/common.css?v=6.0.0">
+<script src="assets/js/common.js?v=6.0.0"></script>
 </head>
 <body><div class="container">
   <div class="topbar">
@@ -340,14 +342,21 @@ function _fetchStockIndexFallback(){
     return r.json();
   }).catch(function(e1){
     console.log('[index] direct fetch failed ('+e1.message+'), trying API fallback...');
+    var cdnUrl='https://cdn.jsdelivr.net/gh/gyhok368519/stock-valuation@main/stock_index.json?_t='+Date.now();
     var apiUrl='https://api.github.com/repos/gyhok368519/stock-valuation/contents/stock_index.json';
     var headers={'Accept':'application/vnd.github.v3+json'};
-    return fetch(apiUrl,{headers:headers}).then(function(r){
-      if(!r.ok) throw new Error('API HTTP '+r.status);
+    return fetch(cdnUrl,{cache:'no-store'}).then(function(r){
+      if(!r.ok) throw new Error('CDN HTTP '+r.status);
       return r.json();
-    }).then(function(data){
-      if(!data.content) throw new Error('No content in API response');
-      return JSON.parse(_safeAtob(data.content));
+    }).catch(function(e2){
+      console.log('[index] CDN failed ('+e2.message+'), trying GitHub API fallback...');
+      return fetch(apiUrl,{headers:headers}).then(function(r){
+        if(!r.ok) throw new Error('API HTTP '+r.status);
+        return r.json();
+      }).then(function(data){
+        if(!data.content) throw new Error('No content in API response');
+        return JSON.parse(_safeAtob(data.content));
+      });
     });
   });
 }
@@ -1154,7 +1163,9 @@ renderHistory();
         var remoteVer=(d&&d.v)?String(d.v).trim():'';
         var localVer=localStorage.getItem('_risk_ver')||'';
         if(remoteVer && remoteVer!==localVer){
-          localStorage.setItem('_risk_ver',remoteVer);
+          if (sessionStorage.getItem('_applied_ver') === remoteVer) { return; }
+          try { sessionStorage.setItem('_applied_ver', remoteVer); } catch(e) {}
+          localStorage.setItem('_risk_ver', remoteVer);
           location.reload();
         }
       })
