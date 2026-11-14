@@ -11,7 +11,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='5.9.80';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script>var APP_VER='6.0.0';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script src="assets/js/common.js?v=6.0.0"></script>
 <style>
 :root {
   /* 基础背景 */
@@ -604,92 +605,7 @@ body {
 </head>
 <body>
 
-<!-- ========== Auth Overlay ========== -->
-<!-- Anti-flash: if a session exists, hide auth overlay before it renders (removed by _authShow when needed) -->
-<script>(function(){try{if(localStorage.getItem('current_user')){var s=document.createElement('style');s.id='authAntiFlash';s.textContent='#authOverlay{display:none!important}';document.head.appendChild(s);}}catch(e){}})();</script>
-<div class="auth-overlay" id="authOverlay">
-  <div class="auth-card">
-    <div class="auth-logo">
-      <h2>股票估值计算器</h2>
-      <p>注册/登录后即可使用</p>
-      <div id="authFileWarning" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(255,152,0,0.15);border:1px solid rgba(255,152,0,0.3);border-radius:6px;font-size:12px;color:#ff9800;text-align:left;line-height:1.5;"></div>
-    </div>
-    <div class="auth-tab">
-      <div class="auth-tab-item active" id="tabRegister" onclick="switchAuthTab('register')">注册</div>
-      <div class="auth-tab-item" id="tabLogin" onclick="switchAuthTab('login')">登录</div>
-      <div class="auth-tab-item" id="tabReset" onclick="switchAuthTab('reset')">忘记密码</div>
-    </div>
-    <!-- Register Form -->
-    <div class="auth-form active" id="formRegister">
-      <div class="auth-field">
-        <label>手机号</label>
-        <input type="tel" id="regPhone" placeholder="请输入11位手机号" maxlength="11" inputmode="numeric">
-      </div>
-      <div class="auth-field">
-        <label>用户名</label>
-        <input type="text" id="regUser" placeholder="设置用户名" maxlength="20">
-      </div>
-      <div class="auth-field">
-        <label>密码</label>
-        <input type="password" id="regPass" placeholder="设置密码">
-        <div class="auth-hint">以字母开头，6-16位，需包含大小写字母和数字组合</div>
-      </div>
-      <div class="auth-field">
-        <label>确认密码</label>
-        <input type="password" id="regPass2" placeholder="再次输入密码">
-      </div>
-      <div class="auth-error" id="regError"></div>
-      <button class="auth-btn auth-btn-green" id="btnRegister" onclick="doRegister()">注 册</button>
-      <div class="auth-notice">
-        当前为免费版本，所有功能均可免费使用。<br>后续版本可能会收费，届时将提前通知。
-      </div>
-    </div>
-    <!-- Login Form -->
-    <div class="auth-form" id="formLogin">
-      <div class="auth-field">
-        <label>用户名</label>
-        <input type="text" id="loginUser" placeholder="请输入用户名" maxlength="20">
-      </div>
-      <div class="auth-field">
-        <label>密码</label>
-        <input type="password" id="loginPass" placeholder="请输入密码">
-      </div>
-      <div class="auth-error" id="loginError"></div>
-      <button class="auth-btn auth-btn-primary" id="btnLogin" onclick="doLogin()">登 录</button>
-      <div style="text-align:center;margin-top:10px;">
-        <span style="color:var(--primary);font-size:13px;cursor:pointer;text-decoration:underline;" onclick="switchAuthTab('reset')">忘记密码？通过手机号重置</span>
-      </div>
-      <div class="auth-notice">
-        当前为免费版本，所有功能均可免费使用。<br>后续版本可能会收费，届时将提前通知。
-      </div>
-    </div>
-    <!-- Reset Password Form -->
-    <div class="auth-form" id="formReset">
-      <div class="auth-field">
-        <label>用户名</label>
-        <input type="text" id="resetUser" placeholder="请输入注册时的用户名" maxlength="20">
-      </div>
-      <div class="auth-field">
-        <label>手机号</label>
-        <input type="tel" id="resetPhone" placeholder="请输入注册时的手机号" maxlength="11" inputmode="numeric">
-      </div>
-      <div class="auth-field">
-        <label>新密码</label>
-        <input type="password" id="resetPass" placeholder="设置新密码">
-        <div class="auth-hint">以字母开头，6-16位，需包含大小写字母和数字组合</div>
-      </div>
-      <div class="auth-field">
-        <label>确认新密码</label>
-        <input type="password" id="resetPass2" placeholder="再次输入新密码">
-      </div>
-      <div class="auth-error" id="resetError"></div>
-      <button class="auth-btn auth-btn-green" id="btnReset" onclick="doResetPassword()">重置密码</button>
-      <div class="auth-notice">
-        验证注册时的手机号后即可设置新密码
-      </div>
-    </div>
-  </div>
-</div>
+<!-- v6.0.0: 登录墙已移除（本地模式，无需注册/登录） -->
 
 <!-- ========== Anti-flash: hide default page before render if tab param present ========== -->
 <script>(function(){var m=location.search.match(/[?&]tab=(\w+)/);if(m&&m[1]&&m[1]!=='db'){var s=document.createElement('style');s.id='antiFlashStyle';s.textContent='#pageDB{display:none!important}';document.head.appendChild(s);}})();</script>
@@ -810,7 +726,7 @@ body {
   <div class="header" style="position:relative;">
     <h1>⭐ 我的收藏</h1>
     <p id="favSubTitle">0 只股票</p>
-    <button class="info-btn" style="right:52px;" onclick="favCloudSync()" title="同步收藏" id="favSyncBtn"><span style="font-size:14px;">&#x21BB;</span></button>
+    <button class="info-btn" style="right:52px;" onclick="favExport()" title="导出收藏JSON" id="favSyncBtn"><span style="font-size:14px;">&#x21BB;</span></button>
     <button class="info-btn" style="right:12px;" id="themeBtnFav" onclick="toggleTheme()" title="切换深色模式"><span id="themeIconFav"></span></button>
   </div>
   <div class="container">
@@ -930,20 +846,6 @@ body {
 <div class="toast" id="toast"></div>
 
 <!-- Group Picker Modal -->
-<!-- Dev Dialog (replaces prompt/alert) -->
-<div class="gp-overlay" id="devDialogOverlay" onclick="_devDialogCancel()">
-  <div class="gp-card" onclick="event.stopPropagation()">
-    <div class="gp-title" id="devDialogTitle">输入密码</div>
-    <div id="devDialogBody" style="padding:0 4px;">
-      <input class="gp-new-input" id="devDialogInput" type="password" placeholder="请输入开发者密码" maxlength="20" style="width:100%;box-sizing:border-box;" />
-    </div>
-    <div style="display:flex;margin-top:16px;justify-content:center;">
-      <button class="gp-new-btn" style="min-width:80px;max-width:120px;background:var(--gray-light);color:var(--text2);" onclick="_devDialogCancel()">取消</button>
-      <button class="gp-new-btn" style="min-width:80px;max-width:120px;margin-left:24px;" id="devDialogOk" onclick="_devDialogConfirm()">确认</button>
-    </div>
-  </div>
-</div>
-
 <div class="gp-overlay" id="gpOverlay" onclick="_gpCancel()">
   <div class="gp-card" onclick="event.stopPropagation()">
     <div class="gp-title" id="gpTitle">选择分组</div>
@@ -962,7 +864,7 @@ body {
 <div class="gp-overlay" id="radarDialogOverlay" onclick="closeRadarDialog()" style="color-scheme:light only;">
   <div class="gp-card" onclick="event.stopPropagation()" style="max-width:360px;width:90%;max-height:95vh;min-height:60vh;display:flex;flex-direction:column;color-scheme:light only;">
     <div class="gp-title" id="radarDialogTitle" style="flex-shrink:0;">指标雷达</div>
-    <div id="radarDialogBody" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;"></div>
+    <div id="radarDialogBody" style="flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 4px 8px;"></div>
     <div style="display:flex;margin-top:14px;justify-content:center;flex-shrink:0;">
       <button class="gp-new-btn" style="min-width:80px;max-width:120px;" onclick="closeRadarDialog()">关闭</button>
     </div>
@@ -989,20 +891,16 @@ body {
       <div class="app-ver" id="appVerHeader">v2.2</div>
     </div>
     <div class="info-menu-body">
-      <div class="info-menu-row"><span class="row-label">用户</span><span class="row-value" id="menuUser">-</span></div>
-      <div class="info-menu-row" style="cursor:pointer;" onclick="doLogout()"><span class="row-label" style="color:var(--primary);font-weight:600;">退出登录</span><span class="row-value">&#x1F6AA;</span></div>
-      <div class="info-menu-row" style="cursor:pointer;" onclick="doDeregister()"><span class="row-label" style="color:var(--red);font-weight:600;">注销账号</span><span class="row-value">&#x26D4;</span></div>
-    </div>
-    <div class="info-menu-divider"></div>
-    <div class="info-menu-body">
       <div class="info-menu-row"><span class="row-label">名称</span><span class="row-value">股票估值计算器</span></div>
       <div class="info-menu-row"><span class="row-label">版本</span><span class="row-value" id="appVerMenu">v2.2</span></div>
       <div class="info-menu-row" style="cursor:pointer;" onclick="manualCheckUpdate()"><span class="row-label" style="color:var(--primary);font-weight:600;">检查更新</span><span class="row-value" id="updateStatusMenu">&#x1F504;</span></div>
       <div class="info-menu-row"><span class="row-label">数据库版本</span><span class="row-value" id="dbVerMenu">-</span></div>
-      <div class="info-menu-row"><span class="row-label">开发者(微信同名)</span><span class="row-value">小小金钱草</span></div>
-      <div class="info-menu-row"><span class="row-label">联系开发者</span><span class="row-value" style="color:var(--primary);cursor:pointer;" onclick="_copyPhone()">15029164832</span></div>
-      <div class="info-menu-row" style="cursor:pointer;" onclick="showCustomerDB()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 查看客户数据</span><span class="row-value">&#x1F527;</span></div>
-      <div class="info-menu-row" style="cursor:pointer;" onclick="showDBUpdater()"><span class="row-label" style="color:var(--gray);font-weight:600;">开发者: 手动更新数据库</span><span class="row-value">&#x1F4BE;</span></div>
+      <div class="info-menu-row"><span class="row-label">开发者(微信号)</span><span class="row-value">gyhok520</span></div>
+      <div class="info-menu-row"><span class="row-label">联系开发者</span><span class="row-value" style="color:var(--primary);cursor:pointer;" onclick="_copyPhone()">815272424@qq.com</span></div>
+      <div class="info-menu-row" style="cursor:pointer;" onclick="showDBUpdater()"><span class="row-label" style="color:var(--gray);font-weight:600;">数据工具（本地抓取/导入/导出）</span><span class="row-value">&#x1F4BE;</span></div>
+      <div class="info-menu-row" style="cursor:pointer;" onclick="favExport()"><span class="row-label" style="color:var(--gray);font-weight:600;">导出收藏 JSON</span><span class="row-value">&#x2B07;</span></div>
+      <div class="info-menu-row" style="cursor:pointer;" onclick="favImport()"><span class="row-label" style="color:var(--gray);font-weight:600;">导入收藏 JSON</span><span class="row-value">&#x2B06;</span></div>
+      <div class="info-menu-row" style="cursor:pointer;" onclick="PBC.showDiagLog()"><span class="row-label" style="color:var(--gray);font-weight:600;">诊断日志</span><span class="row-value">&#x1FA9C;</span></div>
     </div>
     <div class="info-menu-disclaimer">
       <b>免责声明</b><br>
@@ -1042,7 +940,7 @@ body {
     <div class="db-updater-tabs">
       <div class="db-updater-tab active" data-tab="api" onclick="switchUpdaterTab('api')">手动抓取</div>
       <div class="db-updater-tab" data-tab="upload" onclick="switchUpdaterTab('upload')">上传文件</div>
-      <div class="db-updater-tab" data-tab="push" onclick="switchUpdaterTab('push')">推送到线上</div>
+      <div class="db-updater-tab" data-tab="export" onclick="switchUpdaterTab('export')">导出文件</div>
     </div>
 
     <!-- Update Status -->
@@ -1144,17 +1042,15 @@ body {
     };
     </script>
 
-    <!-- Push Tab -->
-    <div class="db-updater-body" id="updaterTabPush" style="display:none;">
-      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">将当前本地数据库推送到 GitHub Pages，线上用户下次访问即可获取新数据</p>
+    <!-- Export Tab (v6: 本地导出，由开发者手动提交到仓库) -->
+    <div class="db-updater-body" id="updaterTabExport" style="display:none;">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">将当前本地数据库导出为 db_data.json 文件，提交到仓库（或网页上传）即完成线上更新。本机版本号自动同步，不会重复下载。</p>
       <div style="background:var(--primary-light);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;">
-        <div>当前库存：<b id="pushStockCount">0</b> 只</div>
-        <div>本地版本：<b id="pushLocalVer">-</b></div>
-        <div>本地缓存：<b id="pushCacheStatus">-</b></div>
-        <div>线上版本：<b id="pushRemoteStatus">检测中...</b></div>
+        <div>当前库存：<b id="exportStockCount">0</b> 只</div>
+        <div>本地版本：<b id="exportLocalVer">-</b></div>
       </div>
-      <button class="btn btn-primary" onclick="pushToGitHub()" id="pushBtn" style="width:100%;">一键推送到线上</button>
-      <div id="pushLog" style="margin-top:8px;font-size:12px;color:var(--text2);"></div>
+      <button class="btn btn-primary" onclick="exportDbFile()" id="exportBtn" style="width:100%;">导出 db_data.json</button>
+      <div id="exportLog" style="margin-top:8px;font-size:12px;color:var(--text2);"></div>
     </div>
   </div>
 </div>
@@ -1241,24 +1137,28 @@ function loadStockIndex() {
   });
 }
 
-// Fetch stock_index.json with cache-bust, then fallback to GitHub API
+// Fetch stock_index.json：同源 → jsDelivr CDN → GitHub API（匿名只读）
 function _fetchStockIndex() {
   var url = './stock_index.json?_t=' + Date.now();
   return fetch(url, { cache: 'no-store' }).then(function(r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   }).catch(function(e1) {
-    // GitHub Pages failed — try GitHub API (same domain as auth)
-    console.log('[index] Pages fetch failed (' + e1.message + '), trying API fallback...');
-    var apiUrl = 'https://api.github.com/repos/' + GH_REPO + '/contents/stock_index.json';
-    var headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (typeof GH_TOKEN !== 'undefined' && GH_TOKEN) headers['Authorization'] = 'token ' + GH_TOKEN;
-    return fetch(apiUrl, { headers: headers }).then(function(r) {
-      if (!r.ok) throw new Error('API HTTP ' + r.status);
+    console.log('[index] Pages fetch failed (' + e1.message + '), trying jsDelivr CDN...');
+    var cdnUrl = 'https://cdn.jsdelivr.net/gh/' + GH_REPO + '@main/stock_index.json?_t=' + Date.now();
+    return fetch(cdnUrl, { cache: 'no-store' }).then(function(r) {
+      if (!r.ok) throw new Error('CDN HTTP ' + r.status);
       return r.json();
-    }).then(function(data) {
-      if (!data.content) throw new Error('No content in API response');
-      return JSON.parse(_safeAtob(data.content));
+    }).catch(function(e2) {
+      console.log('[index] CDN failed (' + e2.message + '), trying GitHub API...');
+      var apiUrl = 'https://api.github.com/repos/' + GH_REPO + '/contents/stock_index.json';
+      return fetch(apiUrl, { headers: { 'Accept': 'application/vnd.github.v3+json' } }).then(function(r) {
+        if (!r.ok) throw new Error('API HTTP ' + r.status);
+        return r.json();
+      }).then(function(data) {
+        if (!data.content) throw new Error('No content in API response');
+        return JSON.parse(_safeAtob(data.content));
+      });
     });
   });
 }
@@ -1359,68 +1259,15 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
 
 <script>
 // ===== Auth System (GitHub Cloud) =====
-const SESSION_KEY = 'current_user';
-const DEV_PASS = 'xxjqc2026';
-const PASS_SALT = 'pb_calc_2026'; // Salt for password hashing
-const IS_FILE_PROTOCOL = (location.protocol === 'file:');
+// ===== v6.0.0 本地模式：无账号体系、无云端写入 =====
+// 已移除：GitHub token（GH_TOKEN/_ghFilePut/ghGet/ghPut）、customers.json 认证体系
+// （doRegister/doLogin/doResetPassword/checkSession/_cloudValidate）、收藏云同步（favCloud*）、
+// _offlineSyncLoop 后台循环、开发者密码。
+// 收藏与笔记仅保存在本设备 IndexedDB（StockFavDB / NotePadDB），不再上传到任何服务器。
+const GH_REPO = 'gyhok368519/stock-valuation'; // 仅用于匿名只读兜底（jsDelivr / GitHub Contents API）
 
-// Async SHA-256 hash: returns hex string of SHA-256(salt + password)
-async function hashPassword(pass) {
-  const data = new TextEncoder().encode(PASS_SALT + pass);
-  // crypto.subtle may be unavailable in iOS standalone PWA mode or non-HTTPS contexts
-  if (typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest) {
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-  // Fallback: simple hash for environments without crypto.subtle
-  console.warn('[auth] crypto.subtle unavailable, using fallback hash');
-  var h = 0;
-  var str = PASS_SALT + pass;
-  for (var i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; }
-  return 'fb' + Math.abs(h).toString(16).padStart(14, '0') + Math.abs(h * 31).toString(16).padStart(14, '0') +
-         Math.abs(h * 127).toString(16).padStart(14, '0') + Math.abs(h * 8191).toString(16).padStart(14, '0');
-}
-// Constant-time string comparison to prevent timing attacks
-function _constantTimeEqual(a, b) {
-  if (a.length !== b.length) return false;
-  var result = 0;
-  for (var i = 0; i < a.length; i++) result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return result === 0;
-}
-// Async full check: supports both plain and hashed passwords, auto-upgrade on match
-async function _passMatchAsync(stored, input) {
-  // Plain text match (old user, will auto-upgrade)
-  if (_constantTimeEqual(String(stored), String(input))) return true;
-  // SHA-256 hash match (standard 64-char hex)
-  if (stored.length === 64 && /^[a-f0-9]+$/.test(stored)) {
-    const hashed = await hashPassword(input);
-    return _constantTimeEqual(hashed, stored);
-  }
-  // Fallback hash match (56-char hex starting with 'fb', from crypto.subtle fallback)
-  if (stored.length === 58 && stored.startsWith('fb')) {
-    const hashed = await hashPassword(input);
-    return _constantTimeEqual(hashed, stored);
-  }
-  return false;
-}
-
-// Token encryption (XOR with dev password)
-// SECURITY NOTE: Token is XOR-encrypted in source but still client-visible at runtime.
-// This is acceptable for a public GitHub Pages app with no sensitive server access.
-// For production apps, use server-side proxy or GitHub Apps with server-stored secrets.
-const _ET = [31,17,30,25,22,80,111,66,87,12,39,91,64,32,121,125,125,126,62,49,90,51,20,71,72,126,65,54,60,88,32,43,123,111,81,1,15,46,1,68,42,122,6,87,82,46,78,7,1,57,112,6,81,5,0,60,44,7,7,126,73,81,2,22,26,58,5,11,84,68,126,122,60,57,59,34,4,121,100,123,125,51,62,50,39,58,7,6,120,99,22,50,50]; // XOR encrypted token
-function _xorDec(enc, key) {
-  const k = key || DEV_PASS;
-  const r = [];
-  for (let i = 0; i < enc.length; i++) r.push(enc[i] ^ k.charCodeAt(i % k.length));
-  return r.map(c => String.fromCharCode(c)).join('');
-}
-const GH_TOKEN = _xorDec(_ET);
-const GH_REPO = 'gyhok368519/stock-valuation';
-const GH_PATH = 'customers.json';
-const GH_API = 'https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_PATH;
-const FAV_GH_PATH = 'favorites.json';
-const FAV_GH_API = 'https://api.github.com/repos/' + GH_REPO + '/contents/' + FAV_GH_PATH;
+function favCloudPull() { /* v6 本地模式：无云端同步 */ }
+function favCloudPush() { /* v6 本地模式：无云端同步 */ }
 
 // Beijing time helper (UTC+8)
 function bjTime() {
@@ -1428,649 +1275,30 @@ function bjTime() {
   return d.toISOString().replace('T',' ').substring(0,19);
 }
 
-// GitHub API helpers (with localStorage cache for speed)
-const CACHE_KEY = '_auth_db_cache';
-const CACHE_TIME_KEY = '_auth_db_cache_time';
-const CACHE_TTL = 300000; // cache valid for 5min (was 60s, too short for auth operations)
-const OFFLINE_DB_KEY = '_auth_offline_db'; // offline fallback DB
-let _ghSha = null;
-let _dbCache = null;
-let _dbCacheTime = 0;
-
-function _loadCache() {
-  try {
-    const t = localStorage.getItem(CACHE_TIME_KEY);
-    const d = localStorage.getItem(CACHE_KEY);
-    if (d && t && (Date.now() - parseInt(t)) < CACHE_TTL) {
-      _dbCache = JSON.parse(d);
-      _dbCacheTime = parseInt(t);
-    }
-  } catch(e) { console.warn('err:', e.message); }
-}
-function _saveCache(db) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(db));
-    localStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
-    _dbCache = db;
-    _dbCacheTime = Date.now();
-  } catch(e) { console.warn('err:', e.message); }
-}
-_loadCache(); // load cache on page init
-
-// Offline fallback: read/write a local-only DB when GitHub is unreachable
-function _getOfflineDB() {
-  try { return JSON.parse(localStorage.getItem(OFFLINE_DB_KEY)) || {}; } catch(e) { return {}; }
-}
-function _saveOfflineDB(db) {
-  try { localStorage.setItem(OFFLINE_DB_KEY, JSON.stringify(db)); } catch(e) { console.warn('offline save err:', e); }
-}
-// Merge offline-only users into cloud DB after successful fetch, then upload
-async function _mergeOfflineToCloud(cloudDB) {
-  const offline = _getOfflineDB();
-  const offlineUsers = Object.keys(offline);
-  if (!offlineUsers.length) return;
-  let changed = false;
-  for (const u of offlineUsers) {
-    if (!cloudDB[u]) { cloudDB[u] = offline[u]; changed = true; }
-  }
-  if (changed) {
-    _saveCache(cloudDB);
-    await saveAuthDB(cloudDB);
-    localStorage.removeItem(OFFLINE_DB_KEY); // clear offline after merge
-  }
-}
-
-async function ghGet() {
-  try {
-    const r = await fetch(GH_API, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    _ghSha = d.sha;
-    const db = JSON.parse(_safeAtob(d.content));
-    _saveCache(db);
-    // Cloud success: merge offline users asynchronously (non-blocking)
-    _mergeOfflineToCloud(db).catch(e => console.warn('merge err:', e));
-    return db;
-  } catch (e) { console.error('ghGet error:', e); return null; }
-}
-// Generic GitHub file PUT (SHA→PUT→409 retry)
-async function _ghFilePut(apiUrl, shaRef, data, commitMsg, retryCount) {
-  retryCount = retryCount || 0;
-  try {
-    if (!shaRef.value || retryCount > 0) {
-      var r = await fetch(apiUrl, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
-      if (r.status === 404) { shaRef.value = null; }
-      else if (r.ok) { var d = await r.json(); shaRef.value = d.sha; }
-    }
-    var content = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-    var body = { message: commitMsg + ' ' + bjTime(), content: content };
-    if (shaRef.value) body.sha = shaRef.value;
-    var r = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (r.status === 409 && retryCount < 3) { shaRef.value = null; return _ghFilePut(apiUrl, shaRef, data, commitMsg, retryCount + 1); }
-    if (!r.ok) { var e = await r.json(); throw new Error(e.message || 'HTTP ' + r.status); }
-    var d = await r.json();
-    shaRef.value = d.content.sha;
-    return true;
-  } catch (e) { console.error('_ghFilePut error:', e); return false; }
-}
-
-async function ghPut(db, retryCount) {
-  var result = await _ghFilePut(GH_API, { get value(){ return _ghSha; }, set value(v){ _ghSha = v; } }, db, 'update customers');
-  if (result) _saveCache(db);
-  return result;
-}
-
-// Cached auth DB: returns cache if fresh, otherwise fetches from cloud
-function getCachedDB() { return (_dbCache && (Date.now() - _dbCacheTime) < CACHE_TTL) ? _dbCache : null; }
-function getAuthDB() { const c = getCachedDB(); return c !== null ? Promise.resolve(c) : ghGet(); }
-function saveAuthDB(db) { return ghPut(db); }
-
-// ===== Favorites Cloud Sync (favorites.json on GitHub) =====
-var _favGhSha = null;
-var _favSyncBusy = false;
-
-// Read favorites.json from GitHub, return {username: [favItems]} or null
-async function favCloudGet() {
-  try {
-    const r = await fetch(FAV_GH_API, { headers: { 'Authorization': 'token ' + GH_TOKEN, 'Accept': 'application/vnd.github.v3+json' } });
-    if (r.status === 404) { _favGhSha = null; return {}; }
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    _favGhSha = d.sha;
-    return JSON.parse(_safeAtob(d.content));
-  } catch (e) { console.warn('favCloudGet error:', e.message); return null; }
-}
-
-// Write favorites.json to GitHub
-async function favCloudPut(data, retryCount) {
-  return _ghFilePut(FAV_GH_API, { get value(){ return _favGhSha; }, set value(v){ _favGhSha = v; } }, data, 'sync favorites');
-}
-
-// Pull cloud favorites and merge with local (sync stock list only, group stays local)
-async function favCloudPull() {
-  if (_favSyncBusy) return;
-  var user = localStorage.getItem(SESSION_KEY);
-  if (!user) return;
-  _favSyncBusy = true;
-  try {
-    var cloudData = await favCloudGet();
-    if (!cloudData) { _favSyncBusy = false; return; }
-    var userData = cloudData[user];
-
-    // Compatibility: old format was [items], new format is {items:[], groups:[]}
-    var cloudItems;
-    if (userData && Array.isArray(userData)) {
-      cloudItems = userData; // old format
-    } else if (userData && typeof userData === 'object') {
-      cloudItems = userData.items || [];
-    } else {
-      cloudItems = [];
-    }
-    if (!Array.isArray(cloudItems)) cloudItems = [];
-
-    // Build map from cloud items
-    var cloudMap = {};
-    cloudItems.forEach(function(item) { if (item.code) cloudMap[item.code] = item; });
-
-    // Merge: only sync which stocks are favorited, not group assignment
-    var changed = false;
-    for (var code in cloudMap) {
-      if (!_favCache[code]) {
-        // Cloud has item not in local → add, no group (only visible in "全部" tab)
-        var newItem = {code: cloudMap[code].code, name: cloudMap[code].name, group: '', time: cloudMap[code].time || Date.now()};
-        _favCache[code] = newItem;
-        _favSave(newItem);
-        changed = true;
-      }
-      // Local item already exists → keep local group assignment, don't overwrite
-    }
-    // Push local items that cloud doesn't have
-    for (var code in _favCache) {
-      if (!cloudMap[code]) {
-        changed = true;
-      }
-    }
-    if (changed) {
-      updateFavCount();
-      renderFavList();
-      await favCloudPush();
-    }
-  } catch(e) { console.warn('favCloudPull error:', e); }
-  _favSyncBusy = false;
-}
-
-// Push local favorites to cloud (merge with existing cloud data for other users)
-async function favCloudPush() {
-  var user = localStorage.getItem(SESSION_KEY);
-  if (!user) return false;
-  try {
-    // Read full cloud data first (to preserve other users' favorites)
-    var cloudData = await favCloudGet();
-    if (!cloudData) cloudData = {};
-    if (typeof cloudData !== 'object' || Array.isArray(cloudData)) cloudData = {};
-
-    // Build current user's favorites from local cache (stock list only, group is per-device)
-    var myItems = [];
-    for (var code in _favCache) {
-      var item = _favCache[code];
-      // Strip notes and group from cloud (both are per-device)
-      var cloudItem = {code: item.code, name: item.name, time: item.time || Date.now()};
-      myItems.push(cloudItem);
-    }
-    cloudData[user] = myItems;
-    return await favCloudPut(cloudData);
-  } catch(e) { console.error('favCloudPush error:', e); return false; }
-}
-
-// Manual sync button: pull + push
-async function favCloudSync() {
-  var user = localStorage.getItem(SESSION_KEY);
-  if (!user) { showToast('请先登录'); return; }
-  var btn = document.getElementById('favSyncBtn');
-  if (btn) btn.querySelector('span').style.animation = 'spin 0.8s linear infinite';
-  try {
-    await favCloudPull();
-    showToast('收藏已同步');
-  } catch(e) {
-    showToast('同步失败，请检查网络');
-  }
-  if (btn) btn.querySelector('span').style.animation = '';
-}
-
-// Persisted DB: read user DB from localStorage ignoring TTL (for auto-login)
-function _getPersistedDB() {
-  try {
-    const d = localStorage.getItem(CACHE_KEY);
-    return d ? JSON.parse(d) : null;
-  } catch(e) { return null; }
-}
-
-function switchAuthTab(tab) {
-  document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
-  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
-  document.getElementById('tabReset').classList.toggle('active', tab === 'reset');
-  document.getElementById('formRegister').classList.toggle('active', tab === 'register');
-  document.getElementById('formLogin').classList.toggle('active', tab === 'login');
-  document.getElementById('formReset').classList.toggle('active', tab === 'reset');
-  document.getElementById('regError').textContent = '';
-  document.getElementById('loginError').textContent = '';
-  if (document.getElementById('resetError')) document.getElementById('resetError').textContent = '';
-}
-
-function validatePhone(p) { return /^1[3-9]\d{9}$/.test(p); }
-
-function validatePassword(p) {
-  // 字母或数字开头，6-16位，含大写字母或小写字母或数字
-  return /^[a-zA-Z0-9][a-zA-Z0-9]{5,15}$/.test(p) &&
-         (/[A-Z]/.test(p) || /[a-z]/.test(p) || /\d/.test(p));
-}
-
-async function doRegister() {
-  const phone = document.getElementById('regPhone').value.trim();
-  const user = document.getElementById('regUser').value.trim();
-  const pass = document.getElementById('regPass').value;
-  const pass2 = document.getElementById('regPass2').value;
-  const err = document.getElementById('regError');
-  const btn = document.getElementById('btnRegister');
-
-  if (!validatePhone(phone)) { err.textContent = '请输入有效的11位手机号'; return; }
-  if (!user || user.length < 2) { err.textContent = '用户名至少2个字符'; return; }
-  if (/[^a-zA-Z0-9一-龥]/.test(user)) { err.textContent = '用户名只能含字母、数字、中文'; return; }
-  if (!validatePassword(pass)) { err.textContent = '密码需字母或数字开头，6-16位，含大写字母或小写字母或数字'; return; }
-  if (pass !== pass2) { err.textContent = '两次密码不一致'; return; }
-
-  btn.textContent = '注册中...'; btn.disabled = true;
-  try {
-    let db = await getAuthDB();
-    let offlineMode = false;
-    if (db === null) {
-      // GitHub API unreachable — allow offline registration
-      offlineMode = true;
-      db = _getOfflineDB();
-      // Also check cache for duplicate checking
-      const cached = getCachedDB();
-      if (cached) {
-        for (const [u, d] of Object.entries(cached)) {
-          if (!db[u]) db[u] = d; // merge cached users into offline view
-        }
-      }
-    }
-    if (!db) db = {};
-    if (db[user]) { err.textContent = '该用户名已注册，请直接登录'; btn.textContent = '注册'; btn.disabled = false; return; }
-    for (const [u, d] of Object.entries(db)) {
-      if (d.phone === phone) { err.textContent = '该手机号已注册，请直接登录'; btn.textContent = '注册'; btn.disabled = false; return; }
-    }
-    db[user] = { phone: phone, pass: await hashPassword(pass), time: bjTime() };
-    if (offlineMode) {
-      _saveOfflineDB(db);
-      _saveCache(db);
-    } else {
-      _saveCache(db);
-    }
-    localStorage.setItem(SESSION_KEY, user);
-    _authHide();
-    if (offlineMode) {
-      // Will auto-sync when network recovers (checkSession or next ghGet)
-      if (IS_FILE_PROTOCOL) {
-        showToast('注册成功！（本地模式，仅本设备可用。建议用浏览器打开线上版以获得完整功能）');
-      } else {
-        showToast('注册成功！（离线模式，恢复网络后自动同步）');
-      }
-    } else {
-      saveAuthDB(db).then(ok => { if (!ok) { _loadCache(); } }); // fire-and-forget write
-      showToast('注册成功！欢迎使用股票估值计算器');
-      loadFavCache().then(function() { favCloudPull(); });
-    }
-  } catch(e) { console.error('注册错误:', e); err.textContent = '注册失败: ' + (e.message || '未知错误'); }
-  btn.textContent = '注册'; btn.disabled = false;
-}
-
-async function doLogin() {
-  const user = document.getElementById('loginUser').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  const err = document.getElementById('loginError');
-  const btn = document.getElementById('btnLogin');
-
-  if (!user) { err.textContent = '请输入用户名'; return; }
-  if (!pass) { err.textContent = '请输入密码'; return; }
-
-  btn.textContent = '登录中...'; btn.disabled = true;
-  try {
-    // Check cache first for instant login
-    const cached = getCachedDB();
-    if (cached && cached[user]) {
-      const matched = await _passMatchAsync(cached[user].pass, pass);
-      if (matched) {
-        // Auto-upgrade: if cached password is old plain text, replace with hash
-        if (cached[user].pass === pass) {
-          cached[user].pass = await hashPassword(pass);
-          _saveCache(cached);
-          saveAuthDB(cached); // fire-and-forget sync to cloud
-        }
-        localStorage.setItem(SESSION_KEY, user);
-        _authHide();
-        showToast('登录成功！（离线模式）');
-        btn.textContent = '登录'; btn.disabled = false;
-        loadFavCache().then(function() { favCloudPull(); });
-        return;
-      }
-      err.textContent = '网络不可用，且本地无此用户记录'; btn.textContent = '登录'; btn.disabled = false; return;
-    }
-    // Not in cache — fetch from cloud
-    const db = await getAuthDB();
-    if (!db || !db[user]) { err.textContent = '用户名不存在，请先注册'; btn.textContent = '登录'; btn.disabled = false; return; }
-    const matched = await _passMatchAsync(db[user].pass, pass);
-    if (!matched) { err.textContent = '密码错误，请重新输入'; btn.textContent = '登录'; btn.disabled = false; return; }
-    // Auto-upgrade: if cloud password is old plain text, replace with hash
-    if (db[user].pass === pass) {
-      db[user].pass = await hashPassword(pass);
-      _saveCache(db);
-      saveAuthDB(db); // fire-and-forget upgrade
-    }
-    localStorage.setItem(SESSION_KEY, user);
-    _authHide();
-    showToast('登录成功！');
-    loadFavCache().then(function() { favCloudPull(); });
-  } catch(e) { console.error('登录错误:', e); err.textContent = '登录失败: ' + (e.message || '未知错误'); }
-  btn.textContent = '登录'; btn.disabled = false;
-}
-
-// ===== Reset Password =====
-async function doResetPassword() {
-  const user = document.getElementById('resetUser').value.trim();
-  const phone = document.getElementById('resetPhone').value.trim();
-  const pass = document.getElementById('resetPass').value;
-  const pass2 = document.getElementById('resetPass2').value;
-  const err = document.getElementById('resetError');
-  const btn = document.getElementById('btnReset');
-
-  if (!user) { err.textContent = '请输入用户名'; return; }
-  if (!validatePhone(phone)) { err.textContent = '请输入有效的11位手机号'; return; }
-  if (!validatePassword(pass)) { err.textContent = '密码需字母或数字开头，6-16位，含大写字母或小写字母或数字'; return; }
-  if (pass !== pass2) { err.textContent = '两次密码不一致'; return; }
-
-  btn.textContent = '验证中...'; btn.disabled = true;
-  try {
-    const db = await getAuthDB();
-    if (db === null) {
-      // GitHub API unreachable — try offline DB
-      const offline = _getOfflineDB();
-      if (!offline[user]) { err.textContent = '网络不可用，且本地无此用户记录'; btn.textContent = '重置密码'; btn.disabled = false; return; }
-      if (offline[user].phone !== phone) { err.textContent = '手机号与注册时不一致'; btn.textContent = '重置密码'; btn.disabled = false; return; }
-      offline[user].pass = await hashPassword(pass);
-      _saveOfflineDB(offline);
-      _saveCache(offline);
-      showToast('密码重置成功！（离线模式）');
-      switchAuthTab('login');
-      document.getElementById('loginUser').value = user;
-      document.getElementById('loginPass').value = '';
-      btn.textContent = '重置密码'; btn.disabled = false;
-      return;
-    }
-    if (!db || !db[user]) { err.textContent = '用户名不存在，请先注册'; btn.textContent = '重置密码'; btn.disabled = false; return; }
-    if (db[user].phone !== phone) { err.textContent = '手机号与注册时不一致'; btn.textContent = '重置密码'; btn.disabled = false; return; }
-    // Phone verified, update password
-    db[user].pass = await hashPassword(pass);
-    db[user].time = db[user].time; // keep original registration time
-    _saveCache(db);
-    const ok = await saveAuthDB(db);
-    if (!ok) { err.textContent = '保存失败，请重试'; btn.textContent = '重置密码'; btn.disabled = false; return; }
-    showToast('密码重置成功！请使用新密码登录');
-    switchAuthTab('login');
-    document.getElementById('loginUser').value = user;
-    document.getElementById('loginPass').value = '';
-    document.getElementById('loginPass').focus();
-  } catch(e) { err.textContent = '网络错误，请稍后重试'; }
-  btn.textContent = '重置密码'; btn.disabled = false;
-}
-
-// Auth helpers
-function _authRemoveAntiFlash() { var s = document.getElementById('authAntiFlash'); if (s && s.parentNode) s.parentNode.removeChild(s); }
-function _authShow() {
-  _authRemoveAntiFlash();
-  var ao = document.getElementById('authOverlay'); if (ao) ao.classList.remove('hidden'); updateMenuUser();
-  // Show file:// protocol warning
-  if (IS_FILE_PROTOCOL) {
-    var w = document.getElementById('authFileWarning');
-    if (w) {
-      w.style.display = 'block';
-      w.innerHTML = '您正在本地文件模式下使用，注册/登录仅本设备可用，收藏同步等功能受限。' +
-        '<br>建议：<a href="https://gyhok368519.github.io/stock-valuation/PB_PE_ROE_calc.html" target="_blank" ' +
-        'style="color:#4fc3f7;text-decoration:underline;">点击此处用浏览器打开线上版</a>，可享受完整功能。';
-    }
-  }
-}
-function _authHide() { _authRemoveAntiFlash(); var ao = document.getElementById('authOverlay'); if (ao) ao.classList.add('hidden'); updateMenuUser(); }
-function _cloudValidate(session) {
-  ghGet().then(function(db) {
-    if (db === null) return;
-    if (db && db[session]) { _saveCache(db); return; }
-    if (Object.keys(db).length > 0) {
-      localStorage.removeItem(SESSION_KEY);
-      _authShow();
-    }
-  });
-}
-
-// Auto-login: persisted cache first for instant entry, then background cloud verify
-(async function checkSession() {
-  const session = localStorage.getItem(SESSION_KEY);
-  if (!session) return;
-
-  // 1. Check in-memory cache (within TTL)
-  const cached = getCachedDB();
-  if (cached && cached[session]) { _authHide(); _cloudValidate(session); return; }
-
-  // 2. Check persisted localStorage (ignores TTL)
-  const persisted = _getPersistedDB();
-  if (persisted && persisted[session]) {
-    _dbCache = persisted; _dbCacheTime = Date.now();
-    _authHide(); _cloudValidate(session); return;
-  }
-
-  // 3. Check offline DB
-  const offline = _getOfflineDB();
-  if (offline[session]) { _saveCache(offline); _authHide(); _cloudValidate(session); return; }
-
-  // 4. Last resort: fetch from cloud (with 2s timeout)
-  try {
-    const dbPromise = ghGet();
-    const timeoutPromise = new Promise(r => setTimeout(() => r('timeout'), 2000));
-    const result = await Promise.race([dbPromise, timeoutPromise]);
-    if (result === 'timeout') {
-      dbPromise.then(db => { if (db && db[session]) _authHide(); else if (db !== null) localStorage.removeItem(SESSION_KEY); });
-    } else if (result && result[session]) { _authHide(); }
-    else if (result !== null) { localStorage.removeItem(SESSION_KEY); }
-  } catch(e) { /* retry next launch */ }
-})();
-
-// Background sync: periodically try to merge offline users to cloud when network recovers
-(function _offlineSyncLoop() {
-  setTimeout(async () => {
-    try {
-      const offline = _getOfflineDB();
-      if (Object.keys(offline).length > 0) {
-        const db = await ghGet();
-        // _mergeOfflineToCloud is called inside ghGet on success (async)
-      }
-    } catch(e) { console.warn('offlineSync error:', e); }
-    _offlineSyncLoop(); // keep checking
-  }, 60000); // check every 60s
-})();
-
 function updateMenuUser() {
-  const session = localStorage.getItem(SESSION_KEY);
-  const el = document.getElementById('menuUser');
-  if (el) el.textContent = session || '-';
-  // Update version display
   var verText = 'v' + (typeof APP_VER !== 'undefined' ? APP_VER : '?.?');
   var h = document.getElementById('appVerHeader'); if (h) h.textContent = verText;
   var m = document.getElementById('appVerMenu'); if (m) m.textContent = verText;
-  // Update DB version display
   var dbVerEl = document.getElementById('dbVerMenu');
   if (dbVerEl) {
     var dbVerNum = localStorage.getItem('db_data_ver_num') || '-';
     dbVerEl.textContent = 'v' + dbVerNum;
   }
 }
+updateMenuUser();
 
-function doLogout() {
-  localStorage.removeItem(SESSION_KEY);
-  toggleInfoMenu();
-  _authShow();
-  switchAuthTab('login');
-  document.getElementById('loginUser').value = '';
-  document.getElementById('loginPass').value = '';
-  document.getElementById('loginError').textContent = '';
-}
+// 清理旧版认证残留
+try {
+  ['current_user','_auth_db_cache','_auth_db_cache_time','_auth_offline_db'].forEach(function(k){ localStorage.removeItem(k); });
+} catch(e) {}
 
-async function doDeregister() {
-  const session = localStorage.getItem(SESSION_KEY);
-  if (!session) return;
-  if (!await _devConfirm('注销后将清除您的所有账号数据，确定要注销吗？')) return;
-  try {
-    let db = await getAuthDB();
-    if (db === null) {     showToast('网络连接失败，请稍后重试'); return; }
-    if (!db) db = {};
-    delete db[session];
-    _saveCache(db);
-    localStorage.removeItem(SESSION_KEY);
-    toggleInfoMenu();
-    _authShow();
-    switchAuthTab('register');
-    document.getElementById('regPhone').value = '';
-    document.getElementById('regUser').value = '';
-    document.getElementById('regPass').value = '';
-    document.getElementById('regPass2').value = '';
-    document.getElementById('regError').textContent = '';
-    showToast('账号已注销');
-    saveAuthDB(db); // background write to cloud
-    // Also clean up user's favorites from cloud
-    favCloudGet().then(function(favDb) {
-      if (favDb && favDb[session]) {
-        delete favDb[session];
-        favCloudPut(favDb);
-      }
-    }).catch(function() {});
-  } catch(e) { showToast('注销失败，请稍后重试'); }
-}
-
-// Update menu user on load and after auth actions
-try { updateMenuUser(); } catch(e) { console.warn('updateMenuUser error:', e); }
-
-var _devDialogResolve = null;
-function _devDialogCancel() {
-  var el = document.getElementById('devDialogOverlay');
-  el.classList.remove('show');
-  if (_devDialogResolve) { _devDialogResolve(null); _devDialogResolve = null; }
-}
-function _devDialogConfirm() {
-  var el = document.getElementById('devDialogOverlay');
-  var input = document.getElementById('devDialogInput');
-  el.classList.remove('show');
-  if (_devDialogResolve) { _devDialogResolve(input.value || ''); _devDialogResolve = null; }
-}
-function _devPrompt(title, placeholder, isPassword) {
-  return new Promise(function(resolve) {
-    _devDialogResolve = resolve;
-    document.getElementById('devDialogTitle').textContent = title || '输入';
-    var input = document.getElementById('devDialogInput');
-    input.type = isPassword ? 'password' : 'text';
-    input.placeholder = placeholder || '';
-    input.value = '';
-    document.getElementById('devDialogOverlay').classList.add('show');
-    setTimeout(function() { input.focus(); }, 100);
-  });
-}
-function _devAlert(title, msg) {
-  return new Promise(function(resolve) {
-    _devDialogResolve = resolve;
-    document.getElementById('devDialogTitle').textContent = title || '提示';
-    document.getElementById('devDialogInput').style.display = 'none';
-    // Insert alert content before the input element (don't destroy it with innerHTML)
-    var body = document.getElementById('devDialogBody');
-    var alertDiv = document.createElement('div');
-    alertDiv.id = 'devAlertDialogContent';
-    alertDiv.style.cssText = 'font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:300px;overflow-y:auto;';
-    alertDiv.textContent = msg || '';
-    body.insertBefore(alertDiv, document.getElementById('devDialogInput'));
-    document.getElementById('devDialogOk').textContent = '知道了';
-    document.getElementById('devDialogOverlay').classList.add('show');
-  }).then(function(v) {
-    // Clean up alert content, restore input
-    var alertDiv = document.getElementById('devAlertDialogContent');
-    if (alertDiv) alertDiv.remove();
-    document.getElementById('devDialogInput').style.display = '';
-    document.getElementById('devDialogOk').textContent = '确认';
-    return v;
-  });
-}
-
-async function showCustomerDB() {
-  const pwd = await _devPrompt('开发者验证', '请输入开发者密码', true);
-  if (pwd === null) return;
-  if (pwd !== DEV_PASS) { showToast('密码错误，无权访问'); return; }
-  try {
-    // Force fetch from cloud (bypass cache) — developer tool needs latest data
-    let db = await ghGet();
-    let source = '云端';
-    if (db === null) {
-      // GitHub API unreachable: fallback to offline DB + cache
-      db = _getOfflineDB();
-      const cached = getCachedDB();
-      if (cached) {
-        for (const [u, d] of Object.entries(cached)) {
-          if (!db[u]) db[u] = d;
-        }
-      }
-      source = '本地（网络不可用，仅显示本地记录）';
-    }
-    const keys = Object.keys(db || {});
-    if (!keys.length) { showToast('客户数据库为空，暂无注册用户'); return; }
-    let msg = '【' + source + '客户数据】共 ' + keys.length + ' 位注册用户\n\n';
-    keys.forEach((u, i) => {
-      const d = (db || {})[u];
-      const phone = d.phone || '-';
-      const time = d.time || '-';
-      msg += (i+1) + '. 用户: ' + u + '\n   手机: ' + phone + '\n   注册: ' + time + '\n\n';
-    });
-    await _devAlert('客户数据', msg);
-  } catch(e) { showToast('读取客户数据出错'); }
-}
-
-// ===== DB Updater =====
-var _updaterVerified = false;
-
+// ===== 数据工具（本地：手动抓取 / 导入文件 / 导出文件） =====
 function showDBUpdater() {
-  if (!_updaterVerified) {
-    _devPrompt('开发者验证', '请输入开发者密码', true).then(function(pwd) {
-      if (pwd === null) return;
-      if (pwd !== DEV_PASS) { showToast('密码错误，无权访问'); return; }
-      _updaterVerified = true;
-      _openDBUpdater();
-    });
-    return;
-  }
-  _openDBUpdater();
-}
-
-function _openDBUpdater() {
   toggleInfoMenu();
   var panel = document.getElementById('dbUpdaterPanel');
-  panel.style.display = 'flex';
+  if (panel) panel.style.display = 'flex';
   switchUpdaterTab('api');
-  document.getElementById('pushStockCount').textContent = dbCount();
-  document.getElementById('pushLocalVer').textContent = 'v' + (localStorage.getItem('db_data_ver_num') || '1');
-  document.getElementById('pushCacheStatus').textContent = '检查中...';
-  _dbLoad('db_data_v' + (localStorage.getItem('db_data_ver_num') || '1')).then(function(v) {
-    document.getElementById('pushCacheStatus').textContent = v ? '已缓存' : '无缓存';
-  });
   _refreshUpdaterStatus();
-  checkRemoteDB();
 }
 
 function closeDBUpdater() {
@@ -2131,22 +1359,7 @@ function switchUpdaterTab(tab) {
   document.querySelectorAll('.db-updater-tab').forEach(function(t) { t.classList.toggle('active', t.dataset.tab === tab); });
   document.getElementById('updaterTabApi').style.display = tab === 'api' ? 'block' : 'none';
   document.getElementById('updaterTabUpload').style.display = tab === 'upload' ? 'block' : 'none';
-  document.getElementById('updaterTabPush').style.display = tab === 'push' ? 'block' : 'none';
-}
-
-function checkRemoteDB() {
-  var statusEl = document.getElementById('pushRemoteStatus');
-  statusEl.textContent = '检测中...';
-  var headers = { 'Authorization': 'token ' + GH_TOKEN };
-  var ctrl = new AbortController();
-  var timer = setTimeout(function() { ctrl.abort(); }, 30000);
-  fetch('https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json', { headers: headers, signal: ctrl.signal })
-    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(function(info) {
-      statusEl.textContent = (info.size || '?') + ' 字节，SHA=' + (info.sha || '?').substring(0,8);
-    })
-    .catch(function() { statusEl.textContent = '检测失败'; })
-    .finally(function() { clearTimeout(timer); });
+  document.getElementById('updaterTabExport').style.display = tab === 'export' ? 'block' : 'none';
 }
 
 // --- API Fetch ---
@@ -2195,7 +1408,7 @@ function startApiFetch() {
 
   // --- Extracted: Build 4 API URLs for a given stock code ---
   function buildApiUrls(code) {
-    var mkt = (code.charAt(0) === '6') ? 'SH' : 'SZ';
+    var mkt = (function(c){ if (c.substring(0,3) === '920') return 'BJ'; var ch = c.charAt(0); if (ch === '6' || ch === '9') return 'SH'; if (ch === '4' || ch === '8') return 'BJ'; return 'SZ'; })(code);
     var secCode = mkt + code;
     return {
       mkt: mkt,
@@ -2378,6 +1591,7 @@ function startApiFetch() {
     });
   }
   function fetchEmwebData(code, mkt, row, closePrice, netProfit) {
+    if (mkt === 'BJ') return Promise.resolve(); // 北交所无 emweb F10 数据源
     return _checkSwProxy().then(function(swOk) {
 
     var p1 = _emwebFetch('BonusFinancing/PageAjax', mkt, code).then(function(data) {
@@ -2570,7 +1784,7 @@ function uploadDBFile() {
       try { var _uv = localStorage.getItem('db_data_ver_num') || '1'; _dbSave('db_data_v' + _uv, DB_DATA).catch(function(e) {}); } catch(ex) {}
       var count = dbCount();
       status.innerHTML = '<span style="color:var(--green);">导入成功！已加载 ' + count + ' 只股票数据</span>';
-      document.getElementById('pushStockCount').textContent = count;
+      var _ec = document.getElementById('exportStockCount'); if (_ec) _ec.textContent = count;
     } catch(ex) {
       status.innerHTML = '<span style="color:var(--red);">JSON解析失败: ' + ex.message + '</span>';
     }
@@ -2596,39 +1810,37 @@ function uploadDBFile() {
   reader.readAsArrayBuffer(file);
 }
 
-// --- Push to GitHub ---
-var _dbDataSha = null; // SHA for db_data.json on GitHub
-async function pushToGitHub() {
-  var log = document.getElementById('pushLog');
-  var btn = document.getElementById('pushBtn');
+// --- 导出数据库文件（本地下载；提交到仓库即完成线上更新） ---
+async function exportDbFile() {
+  var log = document.getElementById('exportLog');
+  var btn = document.getElementById('exportBtn');
   if (dbCount() === 0) {
-    log.innerHTML = '<span style="color:var(--red);">数据库为空，无法推送。请先加载或更新数据库。</span>';
+    if (log) log.innerHTML = '<span style="color:var(--red);">数据库为空，请先加载或更新数据库。</span>';
     return;
   }
-  btn.disabled = true;
-  btn.textContent = '推送中...';
-  log.innerHTML = '准备上传 db_data.json（' + dbCount() + ' 只股票）...<br>';
-
-  var pushVer = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10) + 1;
-  var pushArr = [];
-  for (var k in DB_DATA) { if (k !== '_meta') pushArr.push(DB_DATA[k]); }
-  var pushData = { d: pushArr, _meta: { v: pushVer, d: bjTime().substring(0,10), t: Date.now(), c: pushArr.length } };
-
-  var apiUrl = 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json';
-  var result = await _ghFilePut(apiUrl,
-    { get value(){ return _dbDataSha; }, set value(v){ _dbDataSha = v; } },
-    pushData, 'update db_data.json v' + pushVer);
-
-  if (result) {
-    localStorage.setItem('db_data_ver_num', pushVer);
-    try { _dbSave('db_data_v' + pushVer, DB_DATA); } catch(e) { console.warn('err:', e.message); }
-    log.insertAdjacentHTML('beforeend', '<span style="color:var(--green);">推送成功！线上数据库已更新（v' + pushVer + '）</span>');
-    checkRemoteDB();
-  } else {
-    log.insertAdjacentHTML('beforeend', '<span style="color:var(--red);">推送失败，请稍后重试</span>');
+  if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+  try {
+    var ver = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10) + 1;
+    var arr = [];
+    for (var k in DB_DATA) { if (k !== '_meta') arr.push(DB_DATA[k]); }
+    var payload = { d: arr, _meta: { v: ver, d: bjTime().substring(0,10), t: Date.now(), c: arr.length } };
+    var blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'db_data.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ try { URL.revokeObjectURL(a.href); } catch(e) {} }, 5000);
+    localStorage.setItem('db_data_ver_num', ver);
+    try { _dbSave('db_data_v' + ver, DB_DATA); } catch(e) {}
+    try {
+      localStorage.setItem('db_update_status', JSON.stringify({ time: Date.now(), status: 'success', updated: arr.length, failed: 0, stockCount: arr.length, version: ver }));
+    } catch(e2) {}
+    if (log) log.innerHTML = '<span style="color:var(--green);">已导出 db_data.json（v' + ver + '，' + arr.length + ' 只）。提交到仓库后线上用户将自动获取；本机版本号已同步，不会重复下载。</span>';
+    _refreshUpdaterStatus();
+  } catch(e) {
+    if (log) log.innerHTML = '<span style="color:var(--red);">导出失败: ' + _esc(e.message) + '</span>';
   }
-  btn.textContent = '一键推送到线上';
-  btn.disabled = false;
+  if (btn) { btn.textContent = '导出 db_data.json'; btn.disabled = false; }
 }
 
 // ===== Info Menu =====
@@ -3156,9 +2368,12 @@ function showRadarChart(code) {
 
   // Draw canvas (440x440 for 8-axis radar with 3-line labels)
   var size = 440, cx = size/2, cy = size/2, r = 110;
+  // 2x 超采样：高清屏文字更锐利（显示仍为 440 CSS px，弹窗内可滑动查看）
+  var ss = 2;
   var canvas = document.createElement('canvas');
-  canvas.width = size; canvas.height = size;
+  canvas.width = size * ss; canvas.height = size * ss;
   var ctx = canvas.getContext('2d');
+  ctx.scale(ss, ss);
 
   // Background rings
   for (var ring = 1; ring <= 3; ring++) {
@@ -4138,115 +3353,105 @@ var _dbCount = 0; // cached count for O(1) query
 function dbCount() { return _dbCount; }
 function _updateDBCount() { _dbCount = Object.keys(DB_DATA).filter(function(k) { return k !== '_meta'; }).length; }
 
+function fetchJSONTimeout(url, ms) {
+  var controller = new AbortController();
+  var timer = setTimeout(function() { controller.abort(); }, ms);
+  return fetch(url, { cache: 'no-store', signal: controller.signal }).then(function(r) {
+    clearTimeout(timer);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).catch(function(e) { clearTimeout(timer); throw e; });
+}
+
+// v6: 先取微型元文件 db_meta.json 比对版本，仅在远端更新时才下载全量 db_data.json
 function loadDBData() {
   var localVer = parseInt(localStorage.getItem('db_data_ver_num') || '1', 10);
 
-  // 1. Try IndexedDB cache (fast display)
+  // 1. IndexedDB 缓存优先（秒开）
   var hasCache = false;
   var cachePromise = _dbLoad('db_data_v' + localVer).then(function(cached) {
     if (cached && typeof cached === 'object') {
-      // cached is already a DB_DATA map (stored after _buildDBMap)
       DB_DATA = cached;
       _updateDBCount();
       hasCache = true;
-      console.log('DB cache hit v' + localVer + ': ' + Object.keys(DB_DATA).length + ' stocks');
+      console.log('DB cache hit v' + localVer + ': ' + dbCount() + ' stocks');
     }
     return hasCache;
-  }).catch(function(e) {
-    console.log('IDB cache read error:', e.message);
-    return false;
-  });
+  }).catch(function(e) { console.log('IDB cache read error:', e.message); return false; });
 
-  // 2. Always check remote for updates (with timeout and auto-retry)
-  var _fetchRetryCount = 0;
-  var _fetchMaxRetries = 0; // no retry for GitHub Pages (fallback to API below)
-  function fetchRemote() {
+  async function fetchRemote() {
     _dbDataLoading = true;
-    var timeout = hasCache ? 8000 : 20000;
-    var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, timeout);
-    return fetch('./db_data.json?_t=' + Date.now(), {cache: 'no-store', signal: controller.signal}).then(function(r) {
-      clearTimeout(timer);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }).catch(function(e) {
-      // GitHub Pages failed (network/CORS/timeout) — fallback to GitHub API
-      clearTimeout(timer);
-      console.log('DB GitHub Pages fetch failed:', e.message, '— trying GitHub API fallback...');
-      return fetchDBViaAPI();
-    }).then(function(raw) {
-      if (!raw || typeof raw !== 'object') throw new Error('Invalid data');
-      // Extract version from remote _meta
-      var remoteVer = (raw._meta && raw._meta.v) ? raw._meta.v : 0;
-      // Build DB_DATA map from array or map format
-      var newMap = _buildDBMap(raw);
-      // If cache exists and remote version is same or older, skip update
-      if (hasCache && remoteVer <= localVer) {
-        console.log('DB remote version ' + remoteVer + ' <= local ' + localVer + ', skip update');
-        _dbDataLoading = false;
-        _showDBVerNotice('fresh', '数据库已是最新版本');
-        return Promise.resolve();
-      }
-      // Update DB_DATA with latest
-      DB_DATA = newMap;
-      // Preserve _meta for date display
-      if (raw._meta) DB_DATA._meta = raw._meta;
-      _updateDBCount();
-      var newVer = remoteVer > localVer ? remoteVer : localVer + 1;
-      localStorage.setItem('db_data_ver_num', newVer);
-      // Save to IndexedDB (no size limit!)
-      _dbSave('db_data_v' + newVer, newMap).then(function() {
-        // Clean old version caches
-        _dbLoad('db_data_v' + localVer).then(function(old) {
-          if (old && localVer !== newVer) _dbDelete('db_data_v' + localVer);
-        }).catch(function() {});
-        console.log('DB saved to IndexedDB v' + newVer + ': ' + Object.keys(newMap).length + ' stocks');
-      }).catch(function(e) {
-        console.log('IDB save error:', e.message);
-      });
+    // 1) 轻量版本探测（几 KB）
+    var meta = null;
+    try { meta = await fetchJSONTimeout('./db_meta.json?_t=' + Date.now(), 8000); }
+    catch(e) { meta = null; }
+    if (hasCache && meta && meta.v && parseInt(meta.v, 10) <= localVer) {
       _dbDataLoading = false;
-      var remoteDate = (raw._meta && raw._meta.d) ? raw._meta.d : '';
-      _showDBVerNotice('updated', hasCache ? ('数据库已更新至最新版本' + (remoteDate ? (' (' + remoteDate + ')') : '')) : '数据库加载完成');
+      _showDBVerNotice('fresh', '数据库已是最新版本' + (meta.d ? ('（数据截至 ' + meta.d + '）') : ''));
       _updateDBSubTitle();
-      return Promise.resolve();
-    }).catch(function(e) {
-      console.log('Remote DB fetch failed (all methods):', e.message);
+      return;
+    }
+    // 2) 全量下载：同源 → jsDelivr CDN → GitHub API（匿名）
+    var raw = null, lastErr = null;
+    var urls = ['./db_data.json?_t=' + Date.now(),
+               'https://cdn.jsdelivr.net/gh/' + GH_REPO + '@main/db_data.json'];
+    for (var i = 0; i < urls.length && !raw; i++) {
+      try { raw = await fetchJSONTimeout(urls[i], hasCache ? 15000 : 25000); }
+      catch(e) { lastErr = e; console.log('DB fetch failed [' + i + ']:', e.message); }
+    }
+    if (!raw) {
+      try { raw = await fetchDBViaAPI(); } catch(e) { lastErr = e; }
+    }
+    if (!raw || typeof raw !== 'object') {
       _dbDataLoading = false;
       if (hasCache) {
         _showDBVerNotice('stale', '网络异常，当前为本地缓存数据，可能非最新');
+        return;
       }
-      return Promise.resolve();
-    });
-  }
-
-  // Fallback: fetch db_data.json via GitHub API (same domain as auth/fav sync)
-  function fetchDBViaAPI() {
-    var apiUrl = 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json';
-    var headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (GH_TOKEN) headers['Authorization'] = 'token ' + GH_TOKEN;
-    return fetch(apiUrl, { headers: headers }).then(function(r) {
-      if (!r.ok) throw new Error('API HTTP ' + r.status);
-      return r.json();
-    }).then(function(data) {
-      if (!data.content) throw new Error('No content in API response');
-      // Decode base64 content with error handling
-      try {
-        return JSON.parse(_safeAtob(data.content));
-      } catch(e) {
-        throw new Error('db_data.json base64 decode/parse failed: ' + e.message);
-      }
-    });
+      throw (lastErr || new Error('db_data.json 所有来源均失败'));
+    }
+    var remoteVer = (raw._meta && raw._meta.v) ? raw._meta.v : 0;
+    var newMap = _buildDBMap(raw);
+    if (hasCache && remoteVer <= localVer) {
+      _dbDataLoading = false;
+      _showDBVerNotice('fresh', '数据库已是最新版本');
+      _updateDBSubTitle();
+      return;
+    }
+    DB_DATA = newMap;
+    if (raw._meta) DB_DATA._meta = raw._meta;
+    _updateDBCount();
+    var newVer = remoteVer > localVer ? remoteVer : localVer + 1;
+    localStorage.setItem('db_data_ver_num', newVer);
+    _dbSave('db_data_v' + newVer, newMap).then(function() {
+      if (localVer !== newVer) _dbDelete('db_data_v' + localVer);
+    }).catch(function(e) { console.log('IDB save error:', e.message); });
+    _dbDataLoading = false;
+    var remoteDate = (raw._meta && raw._meta.d) ? raw._meta.d : '';
+    _showDBVerNotice('updated', hasCache ? ('数据库已更新至最新版本' + (remoteDate ? (' (' + remoteDate + ')') : '')) : '数据库加载完成');
+    _updateDBSubTitle();
   }
 
   return cachePromise.then(function(cached) {
     if (cached) {
-      // Return immediately with cache, then silently refresh in background
-      fetchRemote();
-      return Promise.resolve(); // don't block UI
-    } else {
-      // No cache: must wait for remote (with auto-retry)
-      return fetchRemote();
+      fetchRemote().catch(function(e) { console.log('DB background refresh failed:', e.message); });
+      return Promise.resolve();
     }
+    return fetchRemote();
+  });
+}
+
+// 兜底：GitHub Contents API 匿名读取（公共数据，无需凭证）
+function fetchDBViaAPI() {
+  var apiUrl = 'https://api.github.com/repos/' + GH_REPO + '/contents/db_data.json';
+  var headers = { 'Accept': 'application/vnd.github.v3+json' };
+  return fetch(apiUrl, { headers: headers }).then(function(r) {
+    if (!r.ok) throw new Error('API HTTP ' + r.status);
+    return r.json();
+  }).then(function(data) {
+    if (!data.content) throw new Error('No content in API response');
+    try { return JSON.parse(_safeAtob(data.content)); }
+    catch(e) { throw new Error('db_data.json base64 decode/parse failed: ' + e.message); }
   });
 }
 
@@ -5007,13 +4212,41 @@ function renderHistory() {
   _bindHistorySwipe();
 }
 
-var _histSwipeItem = null, _histSwipeX0 = 0, _histSwipeDx = 0;
+var _histSwipeItem = null, _histSwipeX0 = 0, _histSwipeY0 = 0, _histSwipeDx = 0;
+var _histSwipeDragged = false;
+var _histSwipeLocked = false;
 var _histSwipeBound = false;
+function _histSwipeAbort(item, content) {
+  // 滑动中断（纵向滚动接管/系统手势）：弹回原位，不删除
+  if (content) content.style.transform = 'translateX(0)';
+  item.classList.remove('swiping');
+  item.classList.add('swipe-back');
+  _histSwipeItem = null; _histSwipeDx = 0; _histSwipeLocked = false;
+}
+function _histSwipeFinish(item, content) {
+  item.classList.remove('swiping');
+  item.classList.add('swipe-back');
+  _histSwipeLocked = false;
+  if (_histSwipeDx < -60 || _histSwipeDx > 60) {
+    var dir = _histSwipeDx < 0 ? '-100%' : '100%';
+    content.style.transform = 'translateX(' + dir + ')';
+    content.style.transition = 'transform 0.25s ease';
+    setTimeout(function() { delHistory(parseInt(item.dataset.idx)); }, 250);
+  } else {
+    content.style.transform = 'translateX(0)';
+  }
+  _histSwipeItem = null;
+}
 function _bindHistorySwipe() {
   if (_histSwipeBound) return;
   _histSwipeBound = true;
   var list = document.getElementById('historyList');
   if (!list) return;
+  // 拖拽超过阈值后抑制本次 click（避免松手误触"载入历史"）
+  list.addEventListener('click', function(e) {
+    if (_histSwipeDragged) { e.stopPropagation(); e.preventDefault(); _histSwipeDragged = false; }
+  }, true);
+  // ---- 触摸（手机端）----
   list.addEventListener('touchstart', function(e) {
     var content = e.target.closest('.history-item-content');
     if (!content) return;
@@ -5021,7 +4254,8 @@ function _bindHistorySwipe() {
     if (!item) return;
     _histSwipeItem = item;
     _histSwipeX0 = e.touches[0].clientX;
-    _histSwipeDx = 0;
+    _histSwipeY0 = e.touches[0].clientY;
+    _histSwipeDx = 0; _histSwipeDragged = false; _histSwipeLocked = false;
     item.classList.add('swiping');
     item.classList.remove('swipe-back');
   }, {passive: true});
@@ -5030,28 +4264,73 @@ function _bindHistorySwipe() {
     var content = _histSwipeItem.querySelector('.history-item-content');
     if (!content) return;
     var dx = e.touches[0].clientX - _histSwipeX0;
-    if (dx > 120) dx = 120;
-    if (dx < -120) dx = -120;
-    _histSwipeDx = dx;
-    content.style.transform = 'translateX(' + dx + 'px)';
-  }, {passive: true});
-  list.addEventListener('touchend', function(e) {
+    var dy = e.touches[0].clientY - _histSwipeY0;
+    // 未锁定时若纵向位移明显占优 → 让路给页面滚动，放弃本次滑动
+    if (!_histSwipeLocked && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
+      _histSwipeAbort(_histSwipeItem, content);
+      return;
+    }
+    // 水平意图确立 → 锁定方向并阻止浏览器劫持手势（保证左右两个方向都可靠）
+    if (!_histSwipeLocked && Math.abs(dx) > 10 && Math.abs(dx) >= Math.abs(dy)) {
+      _histSwipeLocked = true;
+    }
+    if (_histSwipeLocked) {
+      if (e.cancelable) e.preventDefault();
+      if (dx > 120) dx = 120;
+      if (dx < -120) dx = -120;
+      _histSwipeDx = dx;
+      if (Math.abs(dx) > 8) _histSwipeDragged = true;
+      content.style.transform = 'translateX(' + dx + 'px)';
+    }
+  }, {passive: false});
+  list.addEventListener('touchend', function() {
     if (!_histSwipeItem) return;
     var item = _histSwipeItem;
     var content = item.querySelector('.history-item-content');
     if (!content) { _histSwipeItem = null; return; }
-    item.classList.remove('swiping');
-    item.classList.add('swipe-back');
-    if (_histSwipeDx < -60 || _histSwipeDx > 60) {
-      var dir = _histSwipeDx < 0 ? '-100%' : '100%';
-      content.style.transform = 'translateX(' + dir + ')';
-      content.style.transition = 'transform 0.25s ease';
-      setTimeout(function() { delHistory(parseInt(item.dataset.idx)); }, 250);
-    } else {
-      content.style.transform = 'translateX(0)';
-    }
-    _histSwipeItem = null;
+    _histSwipeFinish(item, content);
   }, {passive: true});
+  list.addEventListener('touchcancel', function() {
+    // 浏览器/系统手势打断：弹回原位
+    if (!_histSwipeItem) return;
+    var item = _histSwipeItem;
+    var content = item.querySelector('.history-item-content');
+    _histSwipeAbort(item, content);
+  }, {passive: true});
+  // ---- 鼠标（桌面端，与高分红排雷页一致）----
+  list.addEventListener('mousedown', function(e) {
+    if (e.button !== 0) return;
+    if (e.target.closest('.history-del')) return;
+    var content = e.target.closest('.history-item-content');
+    if (!content) return;
+    var item = content.closest('.history-item[data-idx]');
+    if (!item) return;
+    _histSwipeItem = item;
+    _histSwipeX0 = e.clientX;
+    _histSwipeDx = 0; _histSwipeDragged = false;
+    item.classList.add('swiping');
+    item.classList.remove('swipe-back');
+    e.preventDefault(); // 防止拖拽时选中文字
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!_histSwipeItem) return;
+    var content = _histSwipeItem.querySelector('.history-item-content');
+    if (!content) return;
+    var dx = e.clientX - _histSwipeX0;
+    if (dx > 120) dx = 120;
+    if (dx < -120) dx = -120;
+    _histSwipeDx = dx;
+    if (Math.abs(dx) > 8) _histSwipeDragged = true;
+    content.style.transform = 'translateX(' + dx + 'px)';
+  });
+  window.addEventListener('mouseup', function() {
+    if (!_histSwipeItem) return;
+    var item = _histSwipeItem;
+    var content = item.querySelector('.history-item-content');
+    _histSwipeItem = null;
+    if (!content) return;
+    _histSwipeFinish(item, content);
+  });
 }
 
 function loadHistory(idx) {
@@ -5204,7 +4483,8 @@ function _showDBVerNotice(type, msg) {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js?v=20260812bb').then(function(reg) {
+  // SW 注册 URL 的缓存穿透参数跟随 APP_VER（版本单一真源），不再硬编码旧构建标记
+  navigator.serviceWorker.register('./sw.js?v=' + (typeof APP_VER !== 'undefined' ? APP_VER : '6.0.0')).then(function(reg) {
     // Force update: ensure latest SW is activated
     if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
     if (reg.installing) {
@@ -5220,7 +4500,8 @@ if ('serviceWorker' in navigator) {
       console.log('SW controller changed, reloading...');
       if (!sessionStorage.getItem('_swReloaded')) { sessionStorage.setItem('_swReloaded', '1'); location.reload(); }
     });
-    reg.update();
+    // 更新检查失败（离线/服务器不可达）属预期行为，静默跳过，避免 unhandledrejection 刷诊断日志
+    reg.update().catch(function() { console.log('SW update check skipped (offline?)'); });
     console.log('SW ok');
   }).catch(function(e) { console.log('SW fail', e); });
 }
@@ -5276,6 +4557,8 @@ function _applyUpdate(remoteVer) {
       .then(function(data) {
         var remoteVer = (data && data.v) ? String(data.v).trim() : '';
         if (remoteVer && remoteVer !== localVer) {
+          if (sessionStorage.getItem('_applied_ver') === remoteVer) { console.log('Update v' + remoteVer + ' already applied this session, skip'); return; }
+          try { sessionStorage.setItem('_applied_ver', remoteVer); } catch(e) {}
           console.log('New version detected: v' + remoteVer + ' (current: v' + localVer + ')');
           _applyUpdate(remoteVer);
         } else {
