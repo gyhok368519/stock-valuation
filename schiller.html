@@ -182,6 +182,8 @@ details.method[open] summary:before { content:"▾ "; }
 .fetching { text-align:center; padding:14px 0 4px; color:var(--text2); font-size:12.5px; }
 .fetching .spin { display:inline-block; width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--blue); border-radius:50%; margin-right:8px; vertical-align:-4px; }
 </style>
+<link rel="stylesheet" href="assets/css/common.css?v=6.0.0">
+<script src="assets/js/common.js?v=6.0.0"></script>
 </head>
 <body>
   <div class="topbar">
@@ -421,15 +423,20 @@ function _fetchIndex() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   }).catch(function() {
-    return fetch('https://api.github.com/repos/' + GH_REPO + '/contents/stock_index.json', {
-      headers: { 'Accept': 'application/vnd.github.v3+json' },
-      cache: 'no-store'
-    }).then(function(r) {
-      if (!r.ok) throw new Error('API HTTP ' + r.status);
+    return fetch('https://cdn.jsdelivr.net/gh/' + GH_REPO + '@main/stock_index.json', { cache: 'no-store' }).then(function(r) {
+      if (!r.ok) throw new Error('CDN HTTP ' + r.status);
       return r.json();
-    }).then(function(data) {
-      if (!data.content) throw new Error('no content');
-      return JSON.parse(_safeAtob(data.content));
+    }).catch(function(e2) {
+      return fetch('https://api.github.com/repos/' + GH_REPO + '/contents/stock_index.json', {
+        headers: { 'Accept': 'application/vnd.github.v3+json' },
+        cache: 'no-store'
+      }).then(function(r) {
+        if (!r.ok) throw new Error('API HTTP ' + r.status);
+        return r.json();
+      }).then(function(data) {
+        if (!data.content) throw new Error('no content');
+        return JSON.parse(_safeAtob(data.content));
+      });
     });
   });
 }
