@@ -1,0 +1,5 @@
+/* common.css — v6.0.0 公共样式（诊断日志弹窗等公共 UI） */
+#pbcDiagOverlay { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+#pbcDiagList { color: #444; }
+#pbcDiagList::-webkit-scrollbar { width: 4px; }
+#pbcDiagList::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
