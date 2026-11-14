@@ -65,20 +65,23 @@
     var arr = getJSON(DIAG_KEY, []);
     var overlay = document.createElement('div');
     overlay.id = 'pbcDiagOverlay';
+    // v6.0.1 兼容修复：老 Android WebView 不支持 inset/flex-gap，且 flex列+flex:1 的滚动区解析不出
+    // 可滚高度（日志多时被裁掉无法下滚）。改用全时代兼容写法：四向长式定位、滚动区直接 max-height、
+    // 按钮间距用 margin 替代 gap（与项目"老 WebView 避新 CSS"铁律一致）。
     overlay.setAttribute('style',
-      'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;padding:16px;');
+      'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;padding:16px;');
     var inner = '';
-    inner += '<div id="pbcDiagCard" style="background:#fff;color:#202124;border-radius:12px;max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.3);font-family:inherit;">';
+    inner += '<div id="pbcDiagCard" style="background:#fff;color:#202124;border-radius:12px;max-width:420px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.3);font-family:inherit;">';
     inner += '<div style="padding:12px 14px;font-weight:700;font-size:15px;border-bottom:1px solid #eee;">诊断日志（最近 ' + arr.length + ' 条）</div>';
-    inner += '<div id="pbcDiagList" style="flex:1;overflow-y:auto;padding:8px 14px;font-size:12px;line-height:1.7;font-family:monospace;white-space:pre-wrap;word-break:break-all;">';
+    inner += '<div id="pbcDiagList" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 14px;font-size:12px;line-height:1.7;font-family:monospace;white-space:pre-wrap;word-break:break-all;">';
     if (!arr.length) inner += '暂无日志。发生异常时会自动记录。';
     arr.forEach(function (it) {
       inner += '[' + esc(fmtDiagTime(it.t)) + '] ' + esc(it.level) + ' ' + esc(it.msg) + '\n';
     });
     inner += '</div>';
-    inner += '<div style="padding:10px 14px;border-top:1px solid #eee;display:flex;gap:8px;justify-content:flex-end;">';
-    inner += '<button id="pbcDiagCopy" style="padding:8px 14px;border-radius:8px;border:1px solid #dadce0;background:#fff;cursor:pointer;">复制</button>';
-    inner += '<button id="pbcDiagClear" style="padding:8px 14px;border-radius:8px;border:1px solid #dadce0;background:#fff;cursor:pointer;">清空</button>';
+    inner += '<div style="padding:10px 14px;border-top:1px solid #eee;text-align:right;">';
+    inner += '<button id="pbcDiagCopy" style="padding:8px 14px;border-radius:8px;border:1px solid #dadce0;background:#fff;cursor:pointer;margin-right:8px;">复制</button>';
+    inner += '<button id="pbcDiagClear" style="padding:8px 14px;border-radius:8px;border:1px solid #dadce0;background:#fff;cursor:pointer;margin-right:8px;">清空</button>';
     inner += '<button id="pbcDiagClose" style="padding:8px 14px;border-radius:8px;border:none;background:#1a73e8;color:#fff;cursor:pointer;">关闭</button>';
     inner += '</div></div>';
     overlay.innerHTML = inner;
