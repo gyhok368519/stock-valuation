@@ -8,7 +8,7 @@
  *  - /dj-proxy/、/emweb-proxy/：白名单 CORS 代理（同源路径 → 东财/蛋卷），失败返回 502 JSON
  *  - activate：清理旧缓存；不自动 skipWaiting（由页面消息触发，避免新旧资源混用）
  */
-var VER = '6.0.0';
+var VER = '6.0.1';
 var CACHE = 'pb-calc-v' + VER;
 var ASSETS = [
   './', './index.html',
