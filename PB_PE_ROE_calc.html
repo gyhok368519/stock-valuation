@@ -11,8 +11,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PB计算器">
 <link rel="apple-touch-icon" href="icon-512.jpg">
-<script>var APP_VER='6.0.1';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
-<script src="assets/js/common.js?v=6.0.1"></script>
+<script>var APP_VER='6.0.2';var _isAndroidApp=(function(){try{return !!(window.JSInterface||navigator.userAgent.indexOf('StockValuation')>=0||localStorage.getItem('_android_app')==='1');}catch(e){return false;}})();</script>
+<script src="assets/js/common.js?v=6.0.2"></script>
 <style>
 :root {
   /* 基础背景 */
@@ -1824,12 +1824,30 @@ async function exportDbFile() {
     var arr = [];
     for (var k in DB_DATA) { if (k !== '_meta') arr.push(DB_DATA[k]); }
     var payload = { d: arr, _meta: { v: ver, d: bjTime().substring(0,10), t: Date.now(), c: arr.length } };
-    var blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'db_data.json';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function(){ try { URL.revokeObjectURL(a.href); } catch(e) {} }, 5000);
+    var payloadStr = JSON.stringify(payload);
+    // Android APK：WebView 的 blob 下载静默失败（老坑），走分块桥 → 系统"保存到文件"对话框（v6.0.2）
+    if (window._isAndroidApp && window.JSInterface && window.JSInterface.saveFileStart) {
+      try {
+        var CH = 262144; // 与 Java 端一致的块大小（字符数）
+        window.JSInterface.saveFileStart('db_data.json');
+        for (var i = 0; i < payloadStr.length; i += CH) {
+          window.JSInterface.saveFileChunk(payloadStr.substring(i, i + CH));
+        }
+        window.JSInterface.saveFileEnd();
+      } catch (e) {
+        if (log) log.innerHTML = '<span style="color:var(--red);">导出失败(桥): ' + _esc(e.message) + '</span>';
+        if (btn) { btn.textContent = '导出 db_data.json'; btn.disabled = false; }
+        return;
+      }
+    } else {
+      // 浏览器：blob 下载
+      var blob = new Blob([payloadStr], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'db_data.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ try { URL.revokeObjectURL(a.href); } catch(e) {} }, 5000);
+    }
     localStorage.setItem('db_data_ver_num', ver);
     try { _dbSave('db_data_v' + ver, DB_DATA); } catch(e) {}
     try {
