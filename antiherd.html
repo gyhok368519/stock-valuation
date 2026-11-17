@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<!--pnid:Xp8x59j8QCXiVgx7daxec4--><!-- 个人数字工作台 · 反羊群纪律台 · 全内联单文件 · 数据本地存储 -->
+<html data-page-node-id="DQ20MfGxBGZSGfWxf5JeuO" lang="zh-CN">
+<head data-page-node-id="lQ4GJ1WEEBO4q73BYKM0lq">
+<meta data-page-node-id="SsqumA8hGays3jhwpm0kVB" charset="UTF-8">
+<meta data-page-node-id="JxlrYBpXkQwdsezL5SAo16" content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+<meta data-page-node-id="9RQFxzuonNOrOSp84BRROg" content="#0f3b5c" name="theme-color">
+<title data-page-node-id="RFOJsf6Mpe8Wha1oMTW7gN" data-pnid-children="uGi4VmPDDBi9e2iY8gf2Da">反羊群纪律台</title>
+<style data-page-node-id="w4OMk6K8m58rJRky2EDdTm" data-pnid-children="dJR8rQfVcZRbS0KQ3ghewy">
+  :root{
+    --bg:#eef2f6; --card:#ffffff; --ink:#12263a; --sub:#5b7186; --line:#dbe5ee;
+    --brand:#0f3b5c; --brand2:#14567f; --teal:#0a7d78; --teal-soft:#e5f4f2;
+    --red:#c8322b; --red-soft:#fdecea; --amber:#b26b00; --amber-soft:#fdf1de;
+    --green:#137a4c; --green-soft:#e6f4ec; --shadow:0 1px 3px rgba(16,42,67,.07),0 6px 20px rgba(16,42,67,.05);
+    --r:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:15px;line-height:1.55;
+    padding-bottom:calc(24px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:16px}
+  /* header */
+  header{background:linear-gradient(135deg,#0f3b5c,#14567f);color:#fff;border-radius:var(--r);padding:22px 22px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  header::after{content:"";position:absolute;right:-40px;top:-50px;width:190px;height:190px;border:22px solid rgba(255,255,255,.06);border-radius:50%}
+  .h-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:relative;z-index:1}
+  .h-title{font-size:22px;font-weight:700;letter-spacing:.5px;margin:0}
+  .h-sub{font-size:12.5px;color:#bcd6e8;margin-top:4px;letter-spacing:.3px}
+  .sync{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:6px 11px;border-radius:999px;font-size:12px;white-space:nowrap}
+  .sync .dot{width:7px;height:7px;border-radius:50%;background:#5ce0b0}
+  .quote{margin:16px 0 0;font-size:13.5px;color:#e3eef7;border-left:3px solid #4fc3b8;padding-left:12px;position:relative;z-index:1}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;position:relative;z-index:1}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 15px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
+  .btn:hover{border-color:var(--brand2);color:var(--brand2)}
+  .btn svg{width:17px;height:17px;flex:none}
+  .btn.ghost{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28);color:#fff}
+  .btn.ghost:hover{background:rgba(255,255,255,.2)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:var(--brand2);color:#fff}
+  .btn.tiny{min-height:34px;padding:0 11px;font-size:13px}
+  .btn.danger{color:var(--red);border-color:#f0c4c0}
+  .btn.danger:hover{background:var(--red-soft)}
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .stat{background:var(--card);border-radius:12px;padding:13px 14px;box-shadow:var(--shadow);border:1px solid var(--line)}
+  .stat .k{font-size:12px;color:var(--sub)}
+  .stat .v{font-size:24px;font-weight:750;margin-top:3px;line-height:1}
+  .stat .u{font-size:12px;color:var(--sub);font-weight:500}
+  /* section cards */
+  .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--line);margin-top:14px;overflow:hidden}
+  .card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line)}
+  .card-t{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700}
+  .card-t .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal)}
+  .card-t .ic svg{width:18px;height:18px}
+  .card-t .en{font-size:11px;color:var(--sub);font-weight:500;letter-spacing:.4px}
+  .card-b{padding:16px 18px}
+  /* today */
+  .today .card-h{background:linear-gradient(90deg,#fff,#f7fbfd)}
+  .alert{display:flex;align-items:center;gap:12px;padding:12px 13px;border-radius:11px;border:1px solid var(--line);margin-bottom:9px;background:#fff}
+  .alert:last-child{margin-bottom:0}
+  .alert.red{background:var(--red-soft);border-color:#f3cfcc}
+  .alert.amber{background:var(--amber-soft);border-color:#f2dfbd}
+  .alert .a-ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none;background:#fff;border:1px solid var(--line)}
+  .alert.red .a-ic{color:var(--red)} .alert.amber .a-ic{color:var(--amber)}
+  .alert .a-ic svg{width:19px;height:19px}
+  .alert .a-main{flex:1;min-width:0}
+  .alert .a-t{font-weight:650;font-size:14px}
+  .alert .a-d{font-size:12.5px;color:var(--sub);margin-top:2px}
+  .alert .a-src{font-size:11.5px;color:#7b8fa3;margin-top:3px}
+  .flash{animation:flash 1.8s ease}
+  @keyframes flash{0%,100%{box-shadow:none}18%,62%{box-shadow:0 0 0 3px rgba(10,125,120,.35);border-radius:10px}}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-right:6px}
+  .tag.red{background:var(--red);color:#fff} .tag.amber{background:var(--amber);color:#fff} .tag.teal{background:var(--teal);color:#fff}
+  .empty{text-align:center;color:var(--sub);padding:22px 10px;font-size:13.5px}
+  .empty svg{width:34px;height:34px;color:#b8c8d6;display:block;margin:0 auto 8px}
+  /* list rows */
+  .row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:none}
+  .row-main{flex:1;min-width:0}
+  .row-t{font-weight:650;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .row-s{font-size:12.5px;color:var(--sub);margin-top:3px}
+  .pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#eef3f8;color:var(--brand2)}
+  .pill.hold{background:var(--teal-soft);color:var(--teal)}
+  .pill.exit{background:#eef1f4;color:#71808e}
+  .pill.trig{background:var(--red-soft);color:var(--red)}
+  .pill.draft{background:var(--amber-soft);color:var(--amber)}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 16px;margin-top:6px}
+  .kv div{font-size:12.5px;color:var(--sub)}
+  .kv b{color:var(--ink);font-weight:650}
+  .icon-btn{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--sub);display:grid;place-items:center;cursor:pointer;flex:none}
+  .icon-btn:hover{color:var(--red);border-color:#f0c4c0;background:var(--red-soft)}
+  .icon-btn svg{width:18px;height:18px}
+  /* forms */
+  .form{display:none;gap:10px;flex-wrap:wrap;padding:14px;background:#f6f9fc;border:1px dashed var(--line);border-radius:12px;margin-bottom:14px}
+  .form.open{display:flex}
+  .field{display:flex;flex-direction:column;gap:4px;flex:1 1 150px;min-width:0}
+  .field.lg{flex-basis:100%}
+  .field label{font-size:12px;color:var(--sub);font-weight:600}
+  input,select,textarea{
+    font-family:inherit;font-size:16px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:9px;padding:9px 11px;width:100%;min-height:44px;outline:none
+  }
+  textarea{min-height:64px;resize:vertical;line-height:1.5}
+  input:focus,select:focus,textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(10,125,120,.12)}
+  /* bar chart */
+  .bar-item{margin-bottom:13px}
+  .bar-item:last-child{margin-bottom:0}
+  .bar-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  .bar-top .nm{font-weight:600}
+  .bar-track{height:12px;background:#eef2f6;border-radius:99px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#0a7d78,#37b3a6);transition:width .4s}
+  .bar-fill.over{background:linear-gradient(90deg,#c8322b,#e8685f)}
+  .cap-line{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.55}
+  /* heat */
+  .heat{display:flex;gap:6px;flex-wrap:wrap}
+  .heat .cell{width:30px;text-align:center}
+  .heat .box{width:30px;height:30px;border-radius:8px;background:#e8eef4;display:grid;place-items:center;font-size:11px;color:var(--sub)}
+  .heat .box.on{background:var(--teal);color:#fff;font-weight:700}
+  .heat .box.miss{background:var(--red-soft);color:var(--red);border:1px solid #f3cfcc}
+  .heat .lab{font-size:10px;color:var(--sub);margin-top:3px}
+  /* calendar */
+  .cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .cal-title{font-weight:700;font-size:15px}
+  .cal-nav{display:flex;gap:6px}
+  .cal-nav .btn{min-height:36px;padding:0 12px}
+  .cal-week,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cal-week{margin-bottom:5px}
+  .cal-week div{text-align:center;font-size:11px;color:var(--sub);padding:4px 0;font-weight:600}
+  .cal-cell{position:relative;aspect-ratio:1/1;min-height:42px;border-radius:10px;border:1px solid var(--line);background:#f8fafc;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--ink);cursor:pointer;user-select:none;transition:.12s;font-weight:600}
+  .cal-cell:hover{transform:translateY(-1px);border-color:var(--teal)}
+  .cal-cell.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+  .cal-cell.future{color:#b8c8d6;background:#fafbfd;cursor:not-allowed}
+  .cal-cell.done{background:var(--teal);border-color:var(--teal);color:#fff}
+  .cal-cell.done:hover{background:#096b66}
+  .cal-cell.today{box-shadow:0 0 0 2px var(--brand2) inset}
+  .cal-cell .mk{position:absolute;bottom:3px;font-size:9px;line-height:1;opacity:.9}
+  .cal-cell.done .mk{color:#fff}
+  .cal-cell.today .mk{color:var(--brand2)}
+  .cal-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--sub);margin-top:10px}
+  .cal-legend i{display:inline-block;width:13px;height:13px;border-radius:4px;vertical-align:-2px;margin-right:4px}
+  /* checks */
+  .checkgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+  .chk{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:13.5px;cursor:pointer;user-select:none}
+  .chk.on{background:var(--teal-soft);border-color:#a9ddd6}
+  .chk .box{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex:none;display:grid;place-items:center}
+  .chk.on .box{background:var(--teal);border-color:var(--teal)}
+  .chk.on .box svg{color:#fff}
+  .chk .box svg{width:14px;height:14px;color:transparent}
+  /* whitelist chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:#eef3f8;color:var(--brand2);border-radius:999px;padding:6px 10px 6px 13px;font-size:13px;font-weight:600}
+  .chip button{border:none;background:transparent;color:var(--brand2);cursor:pointer;width:18px;height:18px;display:grid;place-items:center;padding:0}
+  .chip button svg{width:14px;height:14px}
+  /* counter list */
+  .counter{display:flex;gap:8px;align-items:flex-start;padding:7px 0;font-size:13.5px}
+  .counter .n{width:22px;height:22px;border-radius:50%;background:var(--amber-soft);color:var(--amber);font-weight:700;font-size:12px;display:grid;place-items:center;flex:none}
+  .note{font-size:12px;color:var(--sub);background:#f6f9fc;border-radius:8px;padding:8px 11px;margin-top:8px;border-left:3px solid var(--teal)}
+  /* footer */
+  .foot{text-align:center;color:var(--sub);font-size:11.5px;padding:18px 8px 4px;line-height:1.7}
+  .link-danger{background:none;border:none;padding:0;margin-top:8px;color:#9aa9b6;font-size:11.5px;text-decoration:underline;cursor:pointer;font-family:inherit}
+  .link-danger:hover{color:var(--red)}
+  /* toast / modal */
+  #toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:#12263a;color:#fff;padding:11px 20px;border-radius:999px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .mask{position:fixed;inset:0;background:rgba(10,25,40,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}
+  .mask.open{display:flex}
+  .modal{background:#fff;border-radius:16px;padding:22px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .modal h3{margin:0 0 8px;font-size:17px}
+  .modal p{margin:0 0 18px;color:var(--sub);font-size:13.5px}
+  .modal .acts{display:flex;gap:9px;justify-content:flex-end}
+  .sec-line{font-size:12px;color:var(--sub);letter-spacing:.3px;margin:2px 0 10px}
+  /* 顶部锚点导航 */
+  html{scroll-behavior:smooth}
+  .subnav{position:sticky;top:0;z-index:30;display:flex;gap:6px;overflow-x:auto;background:rgba(238,242,246,.95);backdrop-filter:blur(8px);padding:8px 2px;margin:12px -2px 0;border-bottom:1px solid var(--line);scrollbar-width:none}
+  .subnav::-webkit-scrollbar{display:none}
+  .subnav a{flex:none;font-size:12.5px;font-weight:600;color:var(--sub);text-decoration:none;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;white-space:nowrap}
+  .subnav a:hover{color:var(--brand2);border-color:#b9d2e4;background:#f2f8fc}
+  .card{scroll-margin-top:58px}
+  .col-btn{width:34px;height:34px;flex:none;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--sub);display:grid;place-items:center;cursor:pointer;transition:.15s}
+  .col-btn:hover{color:var(--brand2);border-color:#b9d2e4}
+  .col-btn svg{width:16px;height:16px;transition:transform .2s}
+  .card.collapsed .col-btn svg{transform:rotate(-90deg)}
+  .card.collapsed .card-b{display:none}
+  /* 月度复盘 */
+  .review{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .rv{background:#f7fafc;border:1px solid var(--line);border-radius:11px;padding:12px}
+  .rv .k{font-size:12px;color:var(--sub)}
+  .rv .v{font-size:21px;font-weight:750;margin-top:3px;line-height:1.1}
+  .rv .u{font-size:11.5px;color:var(--sub);font-weight:500}
+  /* 首次引导 */
+  .onboard{display:none;border:1px dashed #b9d2e4;background:#f4fafd;border-radius:12px;padding:14px 16px;margin-top:12px}
+  .onboard.show{display:block}
+  .onboard h4{margin:0 0 6px;font-size:14px}
+  .onboard ol{margin:0 0 10px 18px;padding:0;color:var(--sub);font-size:12.5px;line-height:1.85}
+  .onboard .acts{display:flex;gap:8px;flex-wrap:wrap}
+  @media(max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){
+    .review{grid-template-columns:repeat(2,1fr)}
+    .rv .v{font-size:18px}
+    .wrap{padding:11px}
+    header{padding:18px 16px}
+    .h-title{font-size:19px}
+    .stats{gap:8px}
+    .stat .v{font-size:20px}
+    .card-b{padding:14px}
+    .card-h{padding:13px 14px}
+    .checkgrid{grid-template-columns:1fr}
+    .field{flex-basis:100%}
+    .toolbar .btn{flex:1 1 45%}
+    .cal-grid,.cal-week{gap:4px}
+    .cal-cell{aspect-ratio:auto;min-height:36px;font-size:13px;border-radius:8px}
+    .cal-cell .mk{font-size:8px;bottom:1px}
+  }
+</style>
+</head>
+<body data-page-node-id="0Cews15hGqHFfszJccoERk">
+<div data-page-node-id="mXdnyWFFMEmc8imHDJUfIh" class="wrap">
+
+  <header data-page-node-id="HHBcMfAeRcsXRBJlimPGlY">
+    <div data-page-node-id="y808w1boIvDv2m4rTvRbkf" class="h-top">
+      <div data-page-node-id="z5zc33Xh7mqMnFKlGJXSB5">
+        <h1 data-page-node-id="FUsVEWldNKDgWCkBuegvVo" class="h-title"><!--pnid:4x5FBiwJJ3uIN7vHc3GxlL-->反羊群纪律台</h1>
+        <div data-page-node-id="ZMLzR40vBmyFsDquhvadqP" class="h-sub"><!--pnid:A3nff95fyeI8sK8KMHXZS6-->ANTI-HERD DISCIPLINE · 行为金融 · 与群体共处</div>
+      </div>
+      <div data-page-node-id="GxEpcW2dKY2SUeaYOZLgXW" class="sync"><span data-page-node-id="K4dEEQar05yKBV9OUQxvxK" class="dot"></span><span data-page-node-id="bhGJXzxSL4cODhUcFryARG" id="syncText"><!--pnid:MBQh9agHJar4T1ahG46XeO-->本地已保存</span></div>
+    </div>
+    <p data-page-node-id="JD5HukYzFoH6OPstf2PtVD" class="quote"><!--pnid:SDQv9e2Nwlu6GfBqqu4y3M-->"逆向不是预测顶底，而是管理自己；降低与群体的同步率，就是普通人最可行的超额收益。"</p>
+    <div data-page-node-id="fZrHkxzJvU5VUzgh8WYvZF" class="toolbar">
+      <button data-page-node-id="jC90MulHSsMtyKl382eSbA" class="btn ghost" onclick="exportJSON()"><span data-page-node-id="1ryZJU2ofwEOwYVAYkPdOv" id="ic_dl"></span><!--pnid:DYfRoLhXf9oeJUaHlxR8bs-->导出备份</button>
+      <button data-page-node-id="fOhFMrtckxbFxsUGY0ZTBf" class="btn ghost" onclick="document.getElementById('importFile').click()"><span data-page-node-id="kZrW0y6Rpwj07kePZ4oiLM" id="ic_ul"></span><!--pnid:HUchI7IDqcCXa5IyHPiBPl-->导入恢复</button>
+      <input data-page-node-id="emH1nf97veLScORRIw5uHp" accept="application/json,.json" id="importFile" onchange="importJSON(event)" type="file" style="display:none">
+    </div>
+  </header>
+
+  <nav class="subnav" aria-label="区块导航">
+    <a href="#sec-today">今日待办</a><a href="#sec-diet">信息节食</a><a href="#sec-commit">事前承诺</a><a href="#sec-rule">规则仓位</a><a href="#sec-obj">异见者</a><a href="#sec-review">月度复盘</a>
+  </nav>
+
+  <div class="onboard" id="onboard">
+    <h4>三步开始，用纪律替代情绪</h4>
+    <ol>
+      <li>设置单标的仓位上限（决定什么时候必须减仓）</li>
+      <li>写下第一笔承诺：买入理由 + 量化卖出条件</li>
+      <li>今天做一次信息节食打卡</li>
+    </ol>
+    <div class="acts">
+      <button class="btn primary tiny" onclick="startOnboard()">按引导开始</button>
+      <button class="btn tiny" onclick="dismissOnboard()">先用示例数据看看</button>
+    </div>
+  </div>
+
+  <div data-page-node-id="IcNafSwcOM7GGEPnNekDEg" class="stats" id="stats"></div>
+
+  <!--pnid:aKR4BOOc6yYNnsuvqWhhsF--><!-- 今天要处理 -->
+  <section data-page-node-id="wNjW7UaWpWGjL5KqtPvnpr" class="card today">
+    <div data-page-node-id="FsjcapH9TM8PLtPvrSSFOy" class="card-h">
+      <div data-page-node-id="lWIefQ2bNL3J9aFo0xekkC" class="card-t"><span data-page-node-id="pY4mHyw8yQB3vvnIAhnQsb" class="ic" id="ic_today"></span><div data-page-node-id="531UGcQ892LJNfJdHmcJiE"><!--pnid:tpKJtK6Kj3f6q1xWiGrA68-->今天要处理<div data-page-node-id="a8y19oKAzLhgS7IcUa37g8" class="en"><!--pnid:Ai6lVheOb1bl173B8isXT1-->TODAY · 逾期自动顺延</div></div></div>
+      <span data-page-node-id="dLZuvSxlcfYapcjZvrtwPc" class="pill" id="alertCount"><!--pnid:aCQiEkTmJPMmzejt0gBbxD-->0 项</span>
+    </div>
+    <div data-page-node-id="bZJvkIj4ewCglHk3hiIIlG" class="card-b" id="todayBox"></div>
+  </section>
+
+  <!--pnid:9e7KQAVCNC22Hvpfr6baah--><!-- 一：信息节食打卡 -->
+  <section data-page-node-id="Rx5PeBnrxjjgEzVBdYUgML" class="card">
+    <div data-page-node-id="nQPNXL220MqV4qcHafYoQM" class="card-h">
+      <div data-page-node-id="RC9T3CRTQ4ng2jXnLWKfOE" class="card-t"><span data-page-node-id="0Xu0ikRIjnDadBMDw9yP0c" class="ic" id="ic_diet"></span><div data-page-node-id="EfP4pXkIvyF2fulfpGBd52"><!--pnid:QsMtG0RA6joBmuOHgkMs6B-->① 信息节食打卡<div data-page-node-id="ocYi3sIzSlLzEgs5VB561Q" class="en"><!--pnid:2szoujwnznCl9N7RNvqWlk-->REDUCE CONTAGION · 对抗「信息瀑布」</div></div></div>
+      <button data-page-node-id="bMCcBIfihUHwZpWPxVgv7N" class="btn primary tiny" id="checkinBtn" onclick="toggleCheckin()"><!--pnid:GVFMNk3RrzD2FI2cP4lUdZ-->今日打卡</button>
+    </div>
+    <div data-page-node-id="aqhC0e0cksr5UxUkm7gXkL" class="card-b">
+      <div data-page-node-id="wCCymwRRus01EjkIMTA1Lg" class="sec-line"><!--pnid:DqUpF2ZSokyEuDhwssLp64-->点日历上的日期即可打卡 / 补卡，再点一次取消 · 少盯盘少刷群</div>
+      <div data-page-node-id="HktJ3V9zuQVuQOSnwOJGaP" class="cal-head">
+        <div data-page-node-id="vt9R8B8MoZRtM0cQZZZ3DU" class="cal-title" id="calTitle"></div>
+        <div data-page-node-id="qgOwvfspmmxKr1WjhIGHgh" class="cal-nav">
+          <button data-page-node-id="AIUEsOvhuJbS0cjteuteD7" class="btn tiny" onclick="calMove(-1)"><!--pnid:XsN3h9PqsHtRX8atj9zzyW-->‹ 上月</button>
+          <button data-page-node-id="Rbuai5WnqPaFn4Zx872XaJ" class="btn tiny" onclick="calToday()"><!--pnid:guPH5mPTXbdimSwz6oFFk6-->今天</button>
+          <button data-page-node-id="ZHC2dIMGqRpaM3vhUzLMJL" class="btn tiny" onclick="calMove(1)"><!--pnid:y4Le0sUja8GvLzLKeC4QEP-->下月 ›</button>
+        </div>
+      </div>
+      <div data-page-node-id="178ntR9iPNZHX5xetdAYdw" class="cal-week"><div data-page-node-id="vmacICZhqkXKGMDprCuIP0"><!--pnid:QiU5Ss2Thl45drtoC9Vt9M-->日</div><div data-page-node-id="RPybSR03uTwPOIVNq1d80E"><!--pnid:Faa6M5UibUrRedRSFz5E0S-->一</div><div data-page-node-id="EvFjBVn1I6bo8UQD8E0Cd9"><!--pnid:5vnPSvi6c9hq0FvoCtK0Jr-->二</div><div data-page-node-id="13navqx2BLo6rXNCVrTtl8"><!--pnid:FAFzkmpHTo5Jc7AH1JKFyn-->三</div><div data-page-node-id="rolgqIQU53Q2TEdzZYPYyr"><!--pnid:NvyxEDzx3QhVDpg33bjq70-->四</div><div data-page-node-id="CPBzP2s4vj85pTO0yHNGQD"><!--pnid:X8KQO7g54DQb73AiRtdbHO-->五</div><div data-page-node-id="Fs2qhz1yYi1fB5dHXGxubn"><!--pnid:ndjDJph2phIkTUTNpouYdz-->六</div></div>
+      <div data-page-node-id="C6LHBi8EueoE4b33N4k0Q8" class="cal-grid" id="calGrid"></div>
+      <div data-page-node-id="Ex35M4g1XZzsNUHJGUJiAk" class="cal-legend">
+        <span data-page-node-id="dcnv5VYcbeSLeGMc33In3y"><i data-page-node-id="BHOUgVbjh9i4HX3KnuEGvz" style="background:var(--teal)"></i><!--pnid:ncYQpIZAFhibMhZs0bbkJu-->已打卡</span>
+        <span data-page-node-id="QodEwD97n2PyGNv5sY858J"><i data-page-node-id="rkGVjqmVxAeOvF5LRM8g5u" style="background:#f8fafc; border:1px solid var(--line)"></i><!--pnid:KyV7zmF6Ppi9oWdSOUhfn4-->未打卡</span>
+        <span data-page-node-id="hCAyzefj3ch8QbVIxLuHbp"><i data-page-node-id="u3dCgZhorbSOv8wlErxCLt" style="background:#fff; box-shadow:0 0 0 2px var(--brand2) inset"></i><!--pnid:pg1JdmVo6ISscguyk2wJJi-->今天</span>
+      </div>
+      <div data-page-node-id="XFNqvjM0RMil9iUBjNvHzK" class="note" id="streakNote"></div>
+      <div data-page-node-id="pQl8CDXe4j1wGcCJ28gk1H" class="sec-line" style="margin-top:18px"><!--pnid:zf3b2yvfPANyeQl924skKJ-->48 小时冷静期 · 冲动决策先冷冻，到期再评估</div>
+      <div data-page-node-id="FxFMMpX6vIph0WhJgNtFTc" class="form" id="formCool">
+        <div data-page-node-id="LvXF0doXy0UCucMnpw6aIV" class="field lg"><label data-page-node-id="7HgDgCRA3wlcT9JYnWi8hI"><!--pnid:XyWlVqCTUhGGZVuVviTEzQ-->想做的冲动决策</label><input data-page-node-id="QPw5DyBcymNHn2gKGTm54P" id="k_title" placeholder="如：群里都在喊冲，想满仓追这只票"></div>
+        <div data-page-node-id="PhYHy4q0RbdV0kTgl2MOXE" class="field lg" style="flex-direction:row; gap:9px">
+          <button data-page-node-id="nC2lT0SbtVyoGpu24Nic1v" class="btn primary" onclick="addCooling()"><!--pnid:ltwKNzjGewvzHvLWIWn82W-->开始 48h 冷静</button>
+          <button data-page-node-id="HXteQwrroAgn2xEGt2BkKk" class="btn" onclick="toggleForm('formCool')"><!--pnid:SPEyWs3JBlIfPs5BPi2Vxp-->取消</button>
+        </div>
+      </div>
+      <button data-page-node-id="EAbAHYeKbmL46suZEWMd8A" class="btn tiny" id="addCoolBtn" onclick="toggleForm('formCool')" style="margin-bottom:12px"><span data-page-node-id="aZhtzIeLcrGjHLzLTNcVUm" id="ic_plus2"></span><!--pnid:nR9yRSUugu43b9z6qyblVf-->新增冷静期</button>
+      <div data-page-node-id="O6dV06hsgLqcFcp9VOl3qR" id="coolList"></div>
+      <div data-page-node-id="LdRlQdAiatGtRbXPfYHPmT" class="sec-line" style="margin-top:18px"><!--pnid:g6hf2HsjPvWUStunUjoaRr-->信息来源白名单（3-5 个）· 信息越少，判断越清</div>
+      <div data-page-node-id="0qS2FhAJGWRepY9FEF4Gdo" class="form" id="formWhite">
+        <div data-page-node-id="0yfZzlJCibzp5JE4gvUSfG" class="field lg"><label data-page-node-id="X2s7tVhTF2hHaDW7Oumok5"><!--pnid:KFUMJCEVA6u4l98jgBGy1A-->来源名称</label><input data-page-node-id="ctOmi0bDXGExD24LoTO7ha" id="w_name" placeholder="如：某某财报 / 官方公告"></div>
+        <div data-page-node-id="HRbqtVe5SPgv5pO3OX7GB1" class="field lg" style="flex-direction:row; gap:9px">
+          <button data-page-node-id="69Lbd7pU39B7h0xkORmlyq" class="btn primary" onclick="addWhitelist()"><!--pnid:K1jm2HYJjGQSOTK83fVwI1-->加入白名单</button>
+          <button data-page-node-id="SD0rnG1jsWH0ekChgIj1Y1" class="btn" onclick="toggleForm('formWhite')"><!--pnid:HSvPIG2uatYHWtHkqzyVGs-->取消</button>
+        </div>
+      </div>
+      <button data-page-node-id="9Or1R0sOO2cp3BLeB4Wm04" class="btn tiny" id="addWhiteBtn" onclick="toggleForm('formWhite')" style="margin-bottom:12px"><span data-page-node-id="ffNwksoJgqSePPcMroQP7R" id="ic_plus3"></span><!--pnid:v4VpDAQErygGoY30q6LNAn-->添加来源</button>
+      <div data-page-node-id="fsctnTjloxHaEbZ1d4ti4T" class="chips" id="whitelist"></div>
+    </div>
+  </section>
+
+  <!--pnid:QY0NBrHomgDapq5Cr4FTgC--><!-- 二：事前承诺簿 -->
+  <section data-page-node-id="stoaaUGAHv2aJsliNtvloi" class="card">
+    <div data-page-node-id="XI0515DPmFz6fvuLS9umE4" class="card-h">
+      <div data-page-node-id="YzlWAeoYpJmxkyrnW59zkw" class="card-t"><span data-page-node-id="m7BL7aEvdpi8zLcoG22MZV" class="ic" id="ic_commit"></span><div data-page-node-id="1tOGpXqHPsfKJZ69oT20Uz"><!--pnid:uYl8cJNW8azhsDd2kPsETn-->② 事前承诺簿<div data-page-node-id="4JPU1afqv8n2YGNwtDbdEu" class="en"><!--pnid:GV9cw0tBZcNGtW2q9VBf5v-->PRE-COMMITMENT · 对抗「事后合理化」</div></div></div>
+      <button data-page-node-id="UfyryAls47wgFxy1p5Kiiq" class="btn primary tiny" onclick="toggleForm('formCommit')"><span data-page-node-id="7wAHkDLol6s87Lr980ZiVI" id="ic_plus1"></span><!--pnid:7oU8BxWdD0oOfvBjQ7W89i-->写承诺</button>
+    </div>
+    <div data-page-node-id="qH8XODmLvy0uEqwPNwbrEq" class="card-b">
+      <div data-page-node-id="mBAQhKT8Ddf37WKhTwj27H" class="form" id="formCommit">
+        <div data-page-node-id="Z0szoDcTFh5KP49oktTZKu" class="field"><label data-page-node-id="CCSOJhTVg3wDucnC7VKUVB"><!--pnid:IHnBEneg0h960zxSCuYGA2-->标的名称 / 代码</label><input data-page-node-id="PgCwZIRcMs1PuHFkmTWeYu" id="c_symbol" placeholder="如：沪深300ETF 510300"></div>
+        <div data-page-node-id="awy6eYarXGj3S36A4Ux6oq" class="field"><label data-page-node-id="IVdK96RYoEDMLDt0eLOF6v"><!--pnid:F7sppRiuhrk06MTjgP9cnT-->风险敞口（¥）</label><input data-page-node-id="qkzdNPEN0nBzbiVdNY7Xqz" id="c_expo" inputmode="decimal" placeholder="如：20000" type="number"></div>
+        <div data-page-node-id="suGYKGFBILJ4sDu6JeGfyQ" class="field"><label data-page-node-id="LhSyUk1wWp1JnDDRlh3M4y"><!--pnid:3wxHZ0eWRxWboOvVuCMcOl-->仓位占比（%）</label><input data-page-node-id="CLK60wycY66d5pEvw7jPDv" id="c_pos" inputmode="decimal" placeholder="如：8" type="number"></div>
+        <div data-page-node-id="O8J4JGlcjBNm00rJ8H7Y62" class="field lg"><label data-page-node-id="LceG7nHhbnWrkUhEAkEIJE"><!--pnid:gSeB3ZHYChoCc1XsIMMyFf-->买入理由（2-3 条核心逻辑）</label><textarea data-page-node-id="urkhPy0kOIHTuMglVDU5rA" id="c_reason" placeholder="买入前写清楚：我为什么相信它……"></textarea></div>
+        <div data-page-node-id="Igp0gRsBYnEjoBsTDyiOFD" class="field lg"><label data-page-node-id="xOOlyFTquQLNMuLNnJtiDe"><!--pnid:CRbFhpnfbVC7UoSECurLnW-->卖出条件（量化、不可协商）</label><textarea data-page-node-id="0qn3acyBekhovSkiY8ih2N" id="c_sell" placeholder="如：亏损达 -12% 或 跌破60日均线，触发即执行"></textarea></div>
+        <div data-page-node-id="VcpQuwF012u0UjWUHqNcGD" class="field lg" style="flex-direction:row; gap:9px">
+          <button data-page-node-id="hiMZBvqqwSID7wEZWQRR3a" class="btn primary" onclick="addCommitment()"><!--pnid:8XkFuBM9dUM6L1Y3lZkb5V-->保存承诺</button>
+          <button data-page-node-id="UjqFT5qK0BMYlkdQqtfGOP" class="btn" onclick="toggleForm('formCommit')"><!--pnid:puKKv3CxSkCEjiWspa2JlO-->取消</button>
+        </div>
+      </div>
+      <div data-page-node-id="9bFq1ShjnacSKW66OeOOaF" id="commitList"></div>
+    </div>
+  </section>
+
+  <!--pnid:W1Ki8xFYQpwdpndRGK1ziW--><!-- 三：规则与仓位 -->
+  <section data-page-node-id="oNfeWN95g4gfCqTL4bwDMp" class="card">
+    <div data-page-node-id="XNEuSsOdjRGIuksdgx2QNO" class="card-h">
+      <div data-page-node-id="hmCNIZLzpSNW68I1Yu1I8q" class="card-t"><span data-page-node-id="27XGesRlaNEAwCahV5vF6g" class="ic" id="ic_rule"></span><div data-page-node-id="LkgaaP9XkA4W3sistnk7e5"><!--pnid:n7FGUlxiOEIDUpuy0DwmPb-->③ 规则与仓位<div data-page-node-id="DloQhpqI6207dpDG0CbqMD" class="en"><!--pnid:LKi5h1CCJXBE0Vto25KbvH-->RULES OVER EMOTION · 对抗「追涨杀跌」</div></div></div>
+      <button data-page-node-id="F0O1U0AQWlpVjskoXhGShX" class="btn tiny" onclick="toggleForm('formRule')"><!--pnid:RxYPiu99CstmTA9Zwx5b6l-->设置规则</button>
+    </div>
+    <div data-page-node-id="N1ROrjlJsCIf2R23vvWc9c" class="card-b">
+      <div data-page-node-id="JTiz9O86qqj1XQqbP766r0" class="form" id="formRule">
+        <div data-page-node-id="7DLI4jJOTpOloupsh6v8Aq" class="field"><label data-page-node-id="wiyfy9yLpYlIODn1aVhNG6"><!--pnid:dDyHUtIaSQHWep8daQKeBr-->定投频率</label><select data-page-node-id="HDNEGc8CQDUNxeAwFxGN7o" id="r_freq"><option data-page-node-id="XAodEDvONj9Lzg6nF5SINc"><!--pnid:DYZb1rkCh7OtNQMa3mNIVy-->每周</option><option data-page-node-id="ZvTdLjSCvS5ULGIEYF3YCh"><!--pnid:Iw3KoM6tkNM2E1X3HxFj7x-->每两周</option><option data-page-node-id="grKobd6wzr2qxNZ0IO4KzU"><!--pnid:CroeSFjU2boEdgctfLLgte-->每月</option><option data-page-node-id="1TkYGT3nCiMju6bMAPiJcY"><!--pnid:GCi2okD1Kc4RKDqrhl19cT-->不定期</option></select></div>
+        <div data-page-node-id="WBBZzJV9Appbv2gSlc8rNk" class="field"><label data-page-node-id="SufzW2KibMfU8Imfdkmx9b"><!--pnid:NONbwn3TMRUm3a8mmX2GXn-->定投金额（¥）</label><input data-page-node-id="lHAURg91aoedhpdEgwYiPm" id="r_dca" inputmode="decimal" placeholder="如：2000" type="number"></div>
+        <div data-page-node-id="mvjc9GJ4QLijmkFd7T0WgY" class="field"><label data-page-node-id="tNVnbCZMbNY30uvtz5kKN4"><!--pnid:HGyDEoi2ybEVN0HrQS8fdC-->单标的仓位上限（%）</label><input data-page-node-id="rdX1HL1TO014ozdrgSuGmx" id="r_cap" inputmode="decimal" placeholder="如：15" type="number"></div>
+        <div data-page-node-id="3pyIU6cvzOvLBltsMhImd0" class="field"><label data-page-node-id="MPuSvtZ9leLdLdlQw4EuhY"><!--pnid:Bl2YBjLwR7YUjLa2qI73A2-->再平衡偏离阈值（%）</label><input data-page-node-id="JPst4dyCliJgkOWAq6Bja3" id="r_band" inputmode="decimal" placeholder="如：5" type="number"></div>
+        <div data-page-node-id="syRfkLfV0FazS0vzafSV9A" class="field lg" style="flex-direction:row; gap:9px">
+          <button data-page-node-id="dE9L3XDmlZopFsja34KgKl" class="btn primary" onclick="saveRules()"><!--pnid:wfgXi28wsqO4tAObkQDTyT-->保存规则</button>
+          <button data-page-node-id="9jaHax8TlOD8sfU6JnACCy" class="btn" onclick="toggleForm('formRule')"><!--pnid:NToxCDQM6bibcnjYxXOfH6-->取消</button>
+        </div>
+      </div>
+      <div data-page-node-id="xXPt0Wk6bCK9IWw9H1iLG1" class="sec-line"><!--pnid:VV3BVpRNczyvleTJvDCpP7-->规则自检清单 · 让纪律替你做决定，而不是朋友圈</div>
+      <div data-page-node-id="DdNK4xCiiM8Nlz5sl2fsAs" class="checkgrid" id="selfChecks"></div>
+      <div data-page-node-id="9MOcdF84M0Cimw0B5U51nG" class="sec-line" style="margin-top:18px"><!--pnid:frVPidAwCPbDZGkdWVFC0P-->持仓仓位监控 · 竖线为上限，超限标红</div>
+      <div data-page-node-id="LQgu9MF2eZ3NGFvRH40Ns1" id="posChart"></div>
+    </div>
+  </section>
+
+  <!--pnid:zGsEBRnxqGEhe2oNY6jyCi--><!-- 四：异见者清单 -->
+  <section data-page-node-id="321seCNFUDbusJMa1OQcly" class="card">
+    <div data-page-node-id="ZzBN9o4kWAuoMvGseBD4KH" class="card-h">
+      <div data-page-node-id="wLTpNFOvLJMmtoAObLS1YR" class="card-t"><span data-page-node-id="4Nq0fS3WVKRy4a5wC59AV7" class="ic" id="ic_obj"></span><div data-page-node-id="zeMEgTg10exsbAXibURAFN"><!--pnid:aUfxudFICrm5U9KV3df3zo-->④ 异见者清单<div data-page-node-id="yy57cOpXx7irQKSljzLDhj" class="en"><!--pnid:Q5M9Hywc9dTEOP3hbMukNE-->DEVIL'S ADVOCATE · 对抗「群体极化」</div></div></div>
+      <button data-page-node-id="xBxiy3Wbl7hjzlRnvSeN4B" class="btn primary tiny" onclick="toggleForm('formObj')"><span data-page-node-id="CxKttMbkCoKCZOi9TrsW2O" id="ic_plus4"></span><!--pnid:cfK8pTx7G79JpxgMZewrx3-->新决策</button>
+    </div>
+    <div data-page-node-id="Jrp4NVzQEyjJRj4hU2GnEm" class="card-b">
+      <div data-page-node-id="SRcxRjoIVZB9hEyVTZqYTJ" class="form" id="formObj">
+        <div data-page-node-id="V6BUZmQhk2zTkA6WpCdEXK" class="field lg"><label data-page-node-id="gG7MBwsxseIGaSlLeFo0Ek"><!--pnid:IVLnLpPBorHZtCJQShWC5C-->要做的决策</label><input data-page-node-id="Jet6I5qzXWHgnWJF2oYKac" id="o_decision" placeholder="如：把科技仓位加到 30%"></div>
+        <div data-page-node-id="Qe438qTketMlfa2KaOtD7m" class="field lg"><label data-page-node-id="0g9a38dO7NHa2wNOcD7i97"><!--pnid:zRM6zci7nxCLVWKpxPUq9O-->己方观点</label><textarea data-page-node-id="NYR8QYIdNmYjYJ0D1nPSeV" id="o_own" placeholder="我倾向于怎么做，理由是什么"></textarea></div>
+        <div data-page-node-id="LiznGtjopmh4U5k0RQJfhf" class="field lg" style="flex-direction:row; gap:9px">
+          <button data-page-node-id="8HoHWr0haXbcVKgY2SsTZV" class="btn primary" onclick="addObjection()"><!--pnid:twTfx3KF0DmAwm4rVAuzXT-->创建</button>
+          <button data-page-node-id="Uepu9gBI6zi3pypRpBwmW9" class="btn" onclick="toggleForm('formObj')"><!--pnid:aBH9pQ1CLJwNNDGqVRpXwu-->取消</button>
+        </div>
+      </div>
+      <div data-page-node-id="MzmNWsknzLEgiZNTwixoy6" id="objList"></div>
+    </div>
+  </section>
+
+  <section class="card" id="sec-review">
+    <div class="card-h">
+      <div class="card-t"><span class="ic" id="ic_review"></span><div>⑤ 月度复盘<div class="en">REVIEW · 让纪律可以被检验</div></div></div>
+    </div>
+    <div class="card-b">
+      <div class="review" id="reviewGrid"></div>
+      <div class="note rv-note" id="reviewNote"></div>
+    </div>
+  </section>
+
+  <div data-page-node-id="UhZjsYIj5tyNt3Lo9k2v6Q" class="foot"><!--pnid:jjC2c0Ta0PkQUCQOoDP7YK-->
+    把决定权交给「冷静的自己」 · 数据仅保存在本机浏览器，请定期导出备份<br data-page-node-id="87xGHSIzOHrJs250ksG06t"><!--pnid:UxGgnnEvZ5VXXwzLbhWpUT-->
+    本工作台为行为纪律自查工具，所有内容不构成投资建议；市场有风险，决策需自主。
+    <br data-page-node-id="87xGHSIzOHrJs250ksG06t"><button class="link-danger" onclick="clearAll()">清空本机数据</button>
+  </div>
+</div>
+
+<div data-page-node-id="SpbhiaJuEpen1BfTW3GrIJ" id="toast"></div>
+<div data-page-node-id="c5hqbcTbyr84JiMW2kLRI0" class="mask" id="mask">
+  <div data-page-node-id="sdPJJWk6Ore3CtELsvnllc" class="modal">
+    <h3 data-page-node-id="cs5judCUrSZMwUBHd8vkQP" id="mTitle"><!--pnid:wqEoPc2I1ANu8XKjc2OZlb-->确认操作</h3>
+    <p data-page-node-id="SvRgOP5yQbpyGh5kb5dzYm" id="mBody"></p>
+    <div data-page-node-id="IXR0YRFIVQUQSCWn7uYke7" class="acts">
+      <button data-page-node-id="9YAO2jNuMuUkzi1g1ydQyF" class="btn" onclick="closeModal()"><!--pnid:3TQJPwO4HeLZruTTjCnhn7-->取消</button>
+      <button data-page-node-id="A8ZiRiPKqSBfz1sLjoOoOX" class="btn danger" id="mOk"><!--pnid:Nq9TsiBW7PsYqBEudNv65U-->确认</button>
+    </div>
+  </div>
+</div>
+
+<script data-page-node-id="NggpGNF6WABzhTmwfrSPgi" data-pnid-children="ENeiv7Nt6YrkPwTtOnSYqx">
+/* ============ 图标（内联 SVG，不用 emoji） ============ */
+const ICONS={
+  today:'<path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 2"/><path d="M17 3h4v4"/>',
+  commit:'<path d="M5 3h11l3 3v15H5z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
+  rule:'<path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/>',
+  diet:'<path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"/><path d="M12 7v5l3 2"/>',
+  obj:'<path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>',
+  check:'<path d="M5 12l4 4L19 6"/>',
+  alert:'<path d="M12 3l10 18H2z"/><path d="M12 9v5M12 18h.01"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  dl:'<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>',
+  ul:'<path d="M12 21V9M7 14l5-5 5 5M4 3h16"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  ok:'<path d="M20 6L9 17l-5-5"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>',
+  chev:'<path d="M6 9l6 6 6-6"/>'
+};
+function svg(name){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[name]||'')+'</svg>';}
+
+/* ============ 数据层 ============ */
+const KEY='wb_antiherd_v1';
+let S=null;
+
+function fmt(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function today(){return fmt(new Date());}
+function dayOffset(n){const d=new Date();d.setDate(d.getDate()+n);return fmt(d);}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function money(n){n=Number(n)||0;return '¥'+n.toLocaleString('zh-CN');}
+
+function seed(){
+  return {
+    commitments:[
+      {id:uid(),symbol:'沪深300ETF 510300',reason:'1) 估值处于近十年中位下方\n2) 定投长期向上的宽基',sell:'亏损达 -15% 或 基本面逻辑破坏',expo:30000,pos:12,date:today(),status:'holding'},
+      {id:uid(),symbol:'某新能源龙头 3007XX',reason:'1) 行业景气度回升\n2) 估值消化较充分',sell:'跌破 60 日均线，触发即减仓',expo:18000,pos:9,date:dayOffset(-3),status:'triggered'},
+      {id:uid(),symbol:'中证红利 ETF 515180',reason:'1) 高股息防御\n2) 与宽基低相关',sell:'股息率降至 3% 以下',expo:12000,pos:6,date:dayOffset(-1),status:'holding'}
+    ],
+    rules:{freq:'每周',dca:2000,cap:10,band:5},
+    selfChecks:{dca:true,rebalance:false,cap:true,addon:false},
+    checkins:[dayOffset(-1),dayOffset(-2),dayOffset(-4),dayOffset(-5),dayOffset(-6)],
+    cooling:[
+      {id:uid(),title:'群里都在喊「冲」，想满仓追热点题材',start:new Date(Date.now()-50*3600*1000).toISOString(),status:'pending'}
+    ],
+    whitelist:['公司季报/年报','央行公开数据','持有哪些就只看哪些'],
+    objections:[
+      {id:uid(),decision:'把科技仓位从 12% 加到 30%',own:'政策+AI 景气，趋势看着很强',counters:['估值已高位，回撤空间大','自己的能力圈是否真的覆盖','若判断错，最大亏损能承受吗'],date:dayOffset(-2),status:'done'},
+      {id:uid(),decision:'抄底某只跌了 40% 的票',own:'跌这么多总该反弹了',counters:['「跌得多」不等于便宜'],date:dayOffset(-2),status:'draft'},
+      {id:uid(),decision:'卖出黄金 ETF 换现金',own:'涨了不少，先落袋为安',counters:[],date:today(),status:'draft'}
+    ],
+    tipShown:false,
+    onboarded:false
+  };
+}
+function load(){
+  try{const raw=localStorage.getItem(KEY);if(raw){S=JSON.parse(raw);return;}}catch(e){}
+  S=seed();save();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));setSync('本地已保存');}catch(e){setSync('保存失败');}}
+function setSync(t){document.getElementById('syncText').textContent=t;}
+
+/* ============ 计算层 ============ */
+function getAlerts(){
+  const a=[];
+  S.commitments.forEach(c=>{if(c.status==='triggered')a.push({level:'red',tag:'卖出触发',title:'卖出条件已触发：'+c.symbol,desc:'对照白纸黑字的承诺，触发即执行',src:'② 事前承诺簿 · 写下于 '+c.date,act:'commit',actText:'去处理',id:c.id});});
+  S.cooling.forEach(k=>{if(k.status==='pending'&&Date.now()>=Date.parse(k.start)+48*3600*1000)a.push({level:'red',tag:'冷静期满',title:'48h 已到：'+k.title,desc:'现在再冷静评估，还冲动吗？',src:'① 信息节食 · 冷静期开始于 '+fmt(new Date(k.start)),act:'evalCool',actText:'去评估',id:k.id});});
+  S.objections.forEach(o=>{if(o.status==='draft'&&o.counters.length<3){const overdue=dayOffset(-1)>=o.date;a.push({level:overdue?'red':'amber',tag:overdue?'逾期':'待补',title:'反方理由不足 3 条：'+o.decision,desc:'当前 '+o.counters.length+' 条 · 强制找齐反方再决策',src:'④ 异见者清单 · 创建于 '+o.date,act:'obj',actText:'去补充',id:o.id});}});
+  if(!S.checkins.includes(today()))a.push({level:'amber',tag:'今日',title:'今天还没做信息节食打卡',desc:'少盯盘、少刷群，记录一次',src:'① 信息节食打卡 · 今日未打卡',act:'checkin',actText:'打卡',id:''});
+  S.commitments.forEach(c=>{if(c.status!=='exited'&&Number(c.pos)>Number(S.rules.cap))a.push({level:'amber',tag:'仓位超限',title:c.symbol+' 仓位 '+c.pos+'% 超过上限 '+S.rules.cap+'%',desc:'检查规则：是否该再平衡减仓',src:'③ 规则与仓位 · 单标上限 '+S.rules.cap+'%',act:'rule',actText:'查看',id:c.id});});
+  return a;
+}
+function calcStats(){
+  const holding=S.commitments.filter(c=>c.status==='holding').length;
+  const alerts=getAlerts().length;
+  const t=today();
+  const pendingToday=!S.checkins.includes(t);
+  // 今天还没打卡时，从昨天开始回溯，避免把已有连续记录清零
+  let st=0;for(let i=pendingToday?1:0;i<400;i++){if(S.checkins.includes(dayOffset(-i)))st++;else break;}
+  const over=S.commitments.filter(c=>c.status!=='exited'&&Number(c.pos)>Number(S.rules.cap)).length;
+  return {holding,alerts,streak:st,over,pendingToday};
+}
+
+/* ============ 渲染层（互不调用） ============ */
+function renderStats(){
+  const s=calcStats();
+  document.getElementById('stats').innerHTML=
+    stat('持有中承诺',s.holding,'笔')+stat('待处理事项',s.alerts,'项',s.alerts?'var(--red)':'var(--ink)')+
+    stat('连续打卡',s.streak,'天','var(--teal)')+stat('仓位超限',s.over,'个',s.over?'var(--red)':'var(--ink)');
+}
+function stat(k,v,u,color){return '<div class="stat"><div class="k">'+k+'</div><div class="v" style="color:'+(color||'var(--ink)')+'">'+v+' <span class="u">'+u+'</span></div></div>';}
+
+function renderToday(){
+  const a=getAlerts();document.getElementById('alertCount').textContent=a.length+' 项';
+  const box=document.getElementById('todayBox');
+  if(!a.length){box.innerHTML='<div class="empty">'+svg('ok')+'今天没有待处理事项，保持住这份额外的冷静。</div>';return;}
+  box.innerHTML=a.map(x=>{
+    const ic=x.level==='red'?'alert':(x.act==='checkin'?'diet':'clock');
+    return '<div class="alert '+x.level+'"><div class="a-ic">'+svg(ic)+'</div>'+
+      '<div class="a-main"><div class="a-t"><span class="tag '+x.level+'">'+x.tag+'</span>'+esc(x.title)+'</div><div class="a-d">'+esc(x.desc)+'</div>'+(x.src?'<div class="a-src">'+esc(x.src)+'</div>':'')+'</div>'+
+      '<button class="btn tiny" onclick="handleAlert(\''+x.act+'\',\''+x.id+'\')">'+x.actText+'</button></div>';
+  }).join('');
+}
+
+function renderCommitments(){
+  const box=document.getElementById('commitList');
+  if(!S.commitments.length){box.innerHTML='<div class="empty">'+svg('commit')+'还没有承诺。买入前先写下理由与卖出条件。</div>';return;}
+  box.innerHTML=S.commitments.map(c=>{
+    const pmap={holding:['hold','持有中'],triggered:['trig','已触发'],exited:['exit','已了结']};
+    const p=pmap[c.status]||pmap.holding;
+    const reasons=esc(c.reason).split('\n').filter(Boolean).join(' · ');
+    return '<div class="row" id="cm_'+c.id+'"><div class="row-main">'+
+      '<div class="row-t">'+esc(c.symbol)+' <span class="pill '+p[0]+'">'+p[1]+'</span></div>'+
+      '<div class="kv"><div>理由：<b>'+reasons+'</b></div><div>卖出：<b>'+esc(c.sell)+'</b></div>'+
+      '<div>敞口：<b>'+money(c.expo)+'</b></div><div>仓位：<b>'+esc(c.pos)+'%</b></div><div>写下：'+esc(c.date)+'</div></div></div>'+
+      (c.status==='exited'?'':'<button class="icon-btn" title="卖出条件触发" onclick="triggerSell(\''+c.id+'\')">'+svg('bolt')+'</button>')+
+      (c.status==='exited'?'':'<button class="icon-btn" title="标记已了结" onclick="exitCommit(\''+c.id+'\')">'+svg('check')+'</button>')+
+      '<button class="icon-btn" title="删除" onclick="delCommit(\''+c.id+'\')">'+svg('trash')+'</button></div>';
+  }).join('');
+}
+
+function renderRules(){
+  const cap=Number(S.rules.cap)||10;
+  const checks=[['dca','定投：固定频率 + 金额'],['rebalance','再平衡：偏离配比时调整'],['cap','仓位上限：单标 ≤ '+cap+'%'],['addon','追加前问：新标的我还会买吗？']];
+  document.getElementById('selfChecks').innerHTML=checks.map(([k,label])=>
+    '<div class="chk '+(S.selfChecks[k]?'on':'')+'" onclick="toggleCheck(\''+k+'\')"><span class="box">'+svg('check')+'</span><span>'+label+'</span></div>').join('');
+  const list=S.commitments.filter(c=>c.status!=='exited');
+  const chart=document.getElementById('posChart');
+  if(!list.length){chart.innerHTML='<div class="empty">'+svg('info')+'暂无持有中标的，仓位图为空。</div>';return;}
+  const max=Math.max(cap*1.5,...list.map(c=>Number(c.pos)||0),10);
+  const total=list.reduce((n,c)=>n+(Number(c.pos)||0),0);
+  chart.innerHTML=list.map(c=>{
+    const pos=Number(c.pos)||0,over=pos>cap,w=Math.min(100,pos/max*100),capPos=Math.min(100,cap/max*100);
+    return '<div class="bar-item" id="pb_'+c.id+'"><div class="bar-top"><span class="nm">'+esc(c.symbol)+(c.status==='triggered'?' <span style="color:var(--sub);font-weight:500">· 已触发</span>':'')+'</span><span style="color:'+(over?'var(--red)':'var(--ink)')+';font-weight:650">'+pos+'%'+(over?' 超限':'')+'</span></div>'+
+      '<div class="bar-track"><div class="bar-fill '+(over?'over':'')+'" style="width:'+w+'%"></div><div class="cap-line" style="left:'+capPos+'%"></div></div></div>';
+  }).join('')+'<div class="sec-line" style="margin-top:6px">当前规则：'+esc(S.rules.freq)+' 定投 '+money(S.rules.dca)+' · 单标上限 '+cap+'% · 再平衡阈值 ±'+esc(S.rules.band)+'% · 合计仓位 '+total+'%</div>';
+}
+
+let calY=null,calM=null; // 当前显示的年/月（0-based），null 表示跟随今天
+function calFocus(){
+  const d=new Date();
+  calY=calY==null?d.getFullYear():calY;
+  calM=calM==null?d.getMonth():calM;
+}
+function calMove(delta){
+  calFocus(); calM+=delta;
+  if(calM<0){calM=11;calY--;} else if(calM>11){calM=0;calY++;}
+  renderCalendar();
+}
+function calToday(){calY=null;calM=null;renderCalendar();}
+function toggleDate(ds){
+  const i=S.checkins.indexOf(ds);
+  if(i>=0)S.checkins.splice(i,1); else S.checkins.push(ds);
+  save(); refreshAll();
+  toast(i>=0?'已取消 '+ds+' 的打卡':ds+' 打卡成功');
+}
+function renderCalendar(){
+  calFocus();
+  const first=new Date(calY,calM,1).getDay();
+  const days=new Date(calY,calM+1,0).getDate();
+  const t=today();
+  document.getElementById('calTitle').textContent=calY+' 年 '+(calM+1)+' 月';
+  let h='';
+  for(let i=0;i<first;i++) h+='<div class="cal-cell empty"></div>';
+  for(let d=1;d<=days;d++){
+    const ds=calY+'-'+String(calM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const done=S.checkins.indexOf(ds)>=0;
+    const isToday=ds===t;
+    const future=ds>t;
+    let cls='cal-cell';
+    if(done)cls+=' done';
+    if(isToday)cls+=' today';
+    if(future)cls+=' future';
+    const mk=done?'<span class="mk">✓</span>':(isToday?'<span class="mk">今</span>':'');
+    h+='<div class="'+cls+'" '+(future?'':'onclick="toggleDate(\''+ds+'\')"')+'>'+d+mk+'</div>';
+  }
+  document.getElementById('calGrid').innerHTML=h;
+  // 本月打卡天数
+  const prefix=calY+'-'+String(calM+1).padStart(2,'0')+'-';
+  const monthCount=S.checkins.filter(x=>x.indexOf(prefix)===0).length;
+  const s=calcStats();
+  const extra=s.pendingToday?(s.streak>0?'（今日未打卡，打卡后变 <b>'+(s.streak+1)+'</b> 天）':'（今日还没打卡）'):'';
+  document.getElementById('streakNote').innerHTML='本月已打卡 <b>'+monthCount+'</b> 天 · 当前连续 <b>'+s.streak+'</b> 天'+extra+'。信息越少，判断越清；关闭实时推送，每天只在固定时段查看 1-2 次。';
+}
+function renderCheckins(){
+  const btn=document.getElementById('checkinBtn');
+  const done=S.checkins.includes(today());
+  btn.textContent=done?'✓ 今日已打卡':'今日打卡';
+  btn.className='btn tiny '+(done?'':'primary');
+  const cl=document.getElementById('coolList');
+  if(!S.cooling.length){cl.innerHTML='<div class="empty">'+svg('clock')+'没有冷静中的决策。</div>';}
+  else{cl.innerHTML=S.cooling.map(k=>{
+    const end=Date.parse(k.start)+48*3600*1000,left=end-Date.now();
+    let state,cls;
+    if(k.status==='done'){state='已评估';cls='exit';}
+    else if(left<=0){state='已到期 · 待评估';cls='trig';}
+    else{state='冷冻中';cls='hold';}
+    return '<div class="row"><div class="row-main"><div class="row-t">'+esc(k.title)+' <span class="pill '+cls+'">'+state+'</span></div>'+
+      '<div class="a-d" data-countend="'+end+'" data-status="'+k.status+'"></div></div>'+
+      (k.status==='pending'&&left<=0?'<button class="btn tiny" onclick="evalCool(\''+k.id+'\')">去评估</button>':'')+
+      '<button class="icon-btn" onclick="delCool(\''+k.id+'\')">'+svg('trash')+'</button></div>';
+  }).join('');}
+  tick();
+}
+function renderWhitelist(){
+  const w=document.getElementById('whitelist');
+  w.innerHTML=S.whitelist.length?S.whitelist.map((x,i)=>'<span class="chip">'+esc(x)+'<button onclick="delWhite('+i+')">'+svg('x')+'</button></span>').join(''):'<div class="empty">'+svg('info')+'白名单为空，建议锁定 3-5 个高质量来源。</div>';
+}
+function renderObjections(){
+  const box=document.getElementById('objList');
+  if(!S.objections.length){box.innerHTML='<div class="empty">'+svg('obj')+'每个重大决策前，强制找一位「魔鬼代言人」。</div>';return;}
+  box.innerHTML=S.objections.map(o=>{
+    const enough=o.counters.length>=3,done=o.status==='done';
+    return '<div class="row"><div class="row-main">'+
+      '<div class="row-t">'+esc(o.decision)+' <span class="pill '+(done?'hold':(enough?'':'draft'))+'">'+(done?'已完成':(enough?'反方已齐':'反方不足'))+'</span></div>'+
+      '<div class="row-s">己方观点：'+esc(o.own)+' · '+esc(o.date)+'</div>'+
+      o.counters.map((c,i)=>'<div class="counter"><span class="n">'+(i+1)+'</span><span>'+esc(c)+'</span></div>').join('')+
+      (!enough?'<div class="note" style="color:var(--amber)">还差 '+(3-o.counters.length)+' 条反方理由才够 3 条——谁是这个决策里的魔鬼代言人？</div>':'')+
+      '<div class="form" id="co_'+o.id+'" style="margin-top:10px"><div class="field lg"><input id="ci_'+o.id+'" placeholder="写一条有力的反方理由"></div><div class="field lg" style="flex-direction:row;gap:8px"><button class="btn tiny primary" onclick="addCounter(\''+o.id+'\')">添加</button></div></div>'+
+      '</div>'+
+      (!enough?'<button class="btn tiny" onclick="toggleForm(\'co_'+o.id+'\')">+ 反方</button>':'')+
+      (!done&&enough?'<button class="icon-btn" title="标记完成" onclick="doneObj(\''+o.id+'\')">'+svg('check')+'</button>':'')+
+      '<button class="icon-btn" onclick="delObj(\''+o.id+'\')">'+svg('trash')+'</button></div>';
+  }).join('');
+}
+
+/* 只更新倒计时文字，不触发其它渲染（避免调用环） */
+function tick(){
+  document.querySelectorAll('[data-countend]').forEach(el=>{
+    const end=Number(el.getAttribute('data-countend')),status=el.getAttribute('data-status');
+    if(status==='done'){el.textContent='评估完成';return;}
+    const left=end-Date.now();
+    if(left<=0){el.textContent='48 小时已到，可以重新评估了';return;}
+    const h=Math.floor(left/3600000),m=Math.floor(left%3600000/60000);
+    el.textContent='剩余 '+h+' 小时 '+m+' 分';
+  });
+}
+
+/* ============ 统一刷新入口 ============ */
+function renderReview(){
+  const grid=document.getElementById('reviewGrid');if(!grid)return;
+  const prefix=today().slice(0,7)+'-';
+  const monthDays=S.checkins.filter(x=>x.indexOf(prefix)===0).length;
+  const cooled=S.cooling.filter(k=>k.status==='done').length;
+  const objAll=S.objections.length,objReady=S.objections.filter(o=>o.counters.length>=3).length;
+  const readyRate=objAll?Math.round(objReady/objAll*100):0;
+  const exited=S.commitments.filter(c=>c.status==='exited').length;
+  const totalTrig=S.commitments.filter(c=>c.status==='triggered').length+exited;
+  const execRate=totalTrig?Math.round(exited/totalTrig*100):0;
+  const cell=(k,v,u)=>'<div class="rv"><div class="k">'+k+'</div><div class="v">'+v+(u?' <span class="u">'+u+'</span>':'')+'</div></div>';
+  grid.innerHTML=cell('本月打卡',monthDays,'天')+cell('拦下的冲动',cooled,'次')+cell('决策过检率',readyRate,'%')+cell('触发后处置率',totalTrig?execRate+'%':'—',totalTrig?'':'暂无触发');
+  document.getElementById('reviewNote').textContent='每月看一遍这四个数：打卡天数决定你接收多少噪音，冷静期次数说明拦下了多少冲动，过检率检验反方理由是否真的写了，处置率检验承诺是否真的执行。';
+}
+function renderOnboard(){const el=document.getElementById('onboard');if(el)el.classList.toggle('show',!S.onboarded);}
+function dismissOnboard(){S.onboarded=true;save();renderOnboard();}
+function startOnboard(){
+  S.onboarded=true;save();renderOnboard();
+  const sec=document.getElementById('sec-rule');if(sec){sec.classList.remove('collapsed');document.getElementById('formRule').classList.add('open');sec.scrollIntoView({behavior:'smooth',block:'start'});}
+}
+function initSections(){
+  const ids=['sec-today','sec-diet','sec-commit','sec-rule','sec-obj','sec-review'];
+  document.querySelectorAll('.card').forEach((sec,i)=>{
+    if(!sec.id&&ids[i])sec.id=ids[i];
+    const h=sec.querySelector('.card-h');if(!h||h.querySelector('.col-btn'))return;
+    const b=document.createElement('button');b.type='button';b.className='col-btn';b.title='收起 / 展开';b.innerHTML=svg('chev');
+    b.onclick=e=>{e.stopPropagation();sec.classList.toggle('collapsed');};
+    h.appendChild(b);
+  });
+  document.querySelectorAll('.subnav a').forEach(a=>a.addEventListener('click',()=>{
+    const t=document.querySelector(a.getAttribute('href'));if(t)t.classList.remove('collapsed');
+  }));
+}
+function refreshAll(){renderStats();renderToday();renderCommitments();renderRules();renderCalendar();renderCheckins();renderWhitelist();renderObjections();renderReview();}
+
+/* ============ 交互事件 ============ */
+function toggleForm(id){const el=document.getElementById(id);if(!el)return;el.classList.toggle('open');if(el.classList.contains('open')){const inp=el.querySelector('input,textarea');if(inp)setTimeout(()=>inp.focus(),50);}}
+function toast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2000);}
+function ensureTip(){const n=S.commitments.length+S.objections.length+S.checkins.length;if(!S.tipShown&&n>=30){S.tipShown=true;save();toast('数据已积累较多，建议点「导出备份」保存一份');}}
+
+function flashEl(id){const el=document.getElementById(id);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1900);}
+function handleAlert(act,id){
+  if(act==='commit'){flashEl('cm_'+id);return;}
+  if(act==='rule'){flashEl(id?'pb_'+id:'posChart');return;}
+  if(act==='checkin'){toggleCheckin();return;}
+  if(act==='evalCool'){evalCool(id);return;}
+  if(act==='obj'){const el=document.getElementById('co_'+id);if(el){el.style.display='flex';el.querySelector('input').focus();el.scrollIntoView({behavior:'smooth',block:'center'});flashEl('co_'+id);}}
+}
+
+/* 承诺簿 */
+function addCommitment(){
+  const symbol=document.getElementById('c_symbol').value.trim();
+  if(!symbol){toast('请填写标的名称');return;}
+  S.commitments.unshift({id:uid(),symbol,reason:document.getElementById('c_reason').value.trim(),sell:document.getElementById('c_sell').value.trim(),expo:document.getElementById('c_expo').value,pos:document.getElementById('c_pos').value,date:today(),status:'holding'});
+  ['c_symbol','c_reason','c_sell','c_expo','c_pos'].forEach(i=>document.getElementById(i).value='');
+  toggleForm('formCommit');save();refreshAll();ensureTip();toast('承诺已写下');
+}
+function triggerSell(id){const c=S.commitments.find(x=>x.id===id);if(c){c.status='triggered';save();refreshAll();toast('已标记：卖出条件触发');}}
+function exitCommit(id){const c=S.commitments.find(x=>x.id===id);if(c){c.status='exited';save();refreshAll();toast('已了结');}}
+function delCommit(id){confirmModal('删除这条承诺？','删除后无法恢复，确定继续吗？',()=>{S.commitments=S.commitments.filter(x=>x.id!==id);save();refreshAll();toast('已删除');});}
+
+/* 规则与仓位 */
+function saveRules(){S.rules={freq:document.getElementById('r_freq').value,dca:document.getElementById('r_dca').value,cap:document.getElementById('r_cap').value,band:document.getElementById('r_band').value};toggleForm('formRule');save();refreshAll();toast('规则已更新');}
+function toggleCheck(k){S.selfChecks[k]=!S.selfChecks[k];save();renderRules();}
+
+/* 信息节食 */
+function toggleCheckin(){const t=today(),i=S.checkins.indexOf(t);if(i>=0)S.checkins.splice(i,1);else S.checkins.push(t);save();refreshAll();toast(i>=0?'已取消今日打卡':'打卡成功，继续保持');}
+function addCooling(){const title=document.getElementById('k_title').value.trim();if(!title){toast('请填写决策内容');return;}S.cooling.unshift({id:uid(),title,start:new Date().toISOString(),status:'pending'});document.getElementById('k_title').value='';toggleForm('formCool');save();refreshAll();toast('已开始 48 小时冷静期');}
+function evalCool(id){const k=S.cooling.find(x=>x.id===id);if(k){k.status='done';save();refreshAll();toast('评估完成，感谢冷静的自己');}}
+function delCool(id){S.cooling=S.cooling.filter(x=>x.id!==id);save();refreshAll();}
+function addWhitelist(){const v=document.getElementById('w_name').value.trim();if(!v){toast('请填写来源名称');return;}if(S.whitelist.length>=5){toast('白名单建议不超过 5 个');return;}S.whitelist.push(v);document.getElementById('w_name').value='';toggleForm('formWhite');save();refreshAll();}
+function delWhite(i){S.whitelist.splice(i,1);save();refreshAll();}
+
+/* 异见者 */
+function addObjection(){const d=document.getElementById('o_decision').value.trim();if(!d){toast('请填写决策内容');return;}S.objections.unshift({id:uid(),decision:d,own:document.getElementById('o_own').value.trim(),counters:[],date:today(),status:'draft'});document.getElementById('o_decision').value='';document.getElementById('o_own').value='';toggleForm('formObj');save();refreshAll();ensureTip();toast('决策已创建，请找齐 3 条反方理由');}
+function addCounter(id){const inp=document.getElementById('ci_'+id),v=inp.value.trim();if(!v){toast('请填写反方理由');return;}const o=S.objections.find(x=>x.id===id);if(o&&o.counters.length<3){o.counters.push(v);if(o.counters.length>=3)o.status='draft';save();refreshAll();toast(o.counters.length>=3?'反方理由已找齐':'已添加');}else toast('最多 3 条反方理由');}
+function doneObj(id){const o=S.objections.find(x=>x.id===id);if(o){o.status='done';save();refreshAll();toast('决策记录已完成');}}
+function delObj(id){confirmModal('删除这个决策记录？','删除后无法恢复，确定继续吗？',()=>{S.objections=S.objections.filter(x=>x.id!==id);save();refreshAll();toast('已删除');});}
+
+/* 备份 / 清空 */
+function exportJSON(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='反羊群纪律台_备份_'+today()+'.json';a.click();URL.revokeObjectURL(a.href);toast('备份已导出');}
+function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.commitments))throw 0;confirmModal('导入会覆盖当前数据','确定用备份文件替换现有数据？建议先导出当前备份。',()=>{S=d;['checkins','cooling','whitelist','objections'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[];});if(!S.rules)S.rules={freq:'每周',dca:0,cap:10,band:5};if(!S.selfChecks)S.selfChecks={};save();refreshAll();toast('导入成功');});}catch(err){toast('文件格式不正确');}};r.readAsText(f);e.target.value='';}
+function clearAll(){confirmModal('清空所有数据？','将删除全部承诺、打卡与决策记录，且不可恢复。建议先用上方「导出备份」保存一份。',()=>{localStorage.removeItem(KEY);S=seed();S.commitments=[];S.objections=[];S.cooling=[];S.checkins=[];S.whitelist=[];save();refreshAll();toast('已清空');});}
+
+/* 模态确认 */
+function confirmModal(title,body,onOk){document.getElementById('mTitle').textContent=title;document.getElementById('mBody').textContent=body;const ok=document.getElementById('mOk');ok.onclick=()=>{closeModal();onOk();};document.getElementById('mask').classList.add('open');}
+function closeModal(){document.getElementById('mask').classList.remove('open');}
+document.getElementById('mask').addEventListener('click',e=>{if(e.target.id==='mask')closeModal();});
+
+/* ============ 初始化（防御性、固定顺序） ============ */
+function initIcons(){
+  document.getElementById('ic_dl').innerHTML=svg('dl');
+  document.getElementById('ic_ul').innerHTML=svg('ul');
+  document.getElementById('ic_today').innerHTML=svg('today');
+  document.getElementById('ic_commit').innerHTML=svg('commit');
+  document.getElementById('ic_rule').innerHTML=svg('rule');
+  document.getElementById('ic_diet').innerHTML=svg('diet');
+  document.getElementById('ic_obj').innerHTML=svg('obj');
+  document.getElementById('ic_review').innerHTML=svg('ok');
+  ['ic_plus1','ic_plus2','ic_plus3','ic_plus4'].forEach(id=>document.getElementById(id).innerHTML=svg('plus'));
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  initIcons();load();initSections();renderOnboard();refreshAll();setInterval(tick,30000);
+});
+</script>
+</body>
+</html>
